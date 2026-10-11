@@ -10,8 +10,16 @@ function seeded(seed) {
 }
 const hash = s => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
 
+let glOK = null;
 export function webglOK() {
-  try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; }
+  if (glOK !== null) return glOK;
+  try {
+    const c = document.createElement('canvas');
+    const gl = c.getContext('webgl2') || c.getContext('webgl');
+    glOK = !!gl;
+    gl?.getExtension('WEBGL_lose_context')?.loseContext();
+  } catch { glOK = false; }
+  return glOK;
 }
 
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: 0.85, metalness: 0.05, ...o });
@@ -239,17 +247,19 @@ export function playVoyage(container, o) {
     const sky = new THREE.Color(o.sky ?? 0x8fd3ff);
     if (o.storm) sky.multiplyScalar(0.55);
     scene.background = sky;
-    scene.fog = new THREE.Fog(sky, 30, 90);
-    const cam = new THREE.PerspectiveCamera(48, W / H, 0.1, 200);
+    const top = o.view !== 'side';
+    if (!top) scene.fog = new THREE.Fog(sky, 30, 90);
+    const cam = new THREE.PerspectiveCamera(48, W / H, 0.1, 400);
     scene.add(new THREE.HemisphereLight(0xffffff, 0x335577, 0.9));
     const sun = new THREE.DirectionalLight(0xfff1d6, 1.4);
-    sun.position.set(12, 20, 8); sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
-    Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20 });
+    sun.position.set(12, top ? 40 : 20, 8); sun.castShadow = true;
+    sun.shadow.mapSize.set(top ? 2048 : 1024, top ? 2048 : 1024);
+    const sh = top ? 50 : 20;
+    Object.assign(sun.shadow.camera, { left: -sh, right: sh, top: sh, bottom: -sh, far: 120 });
     scene.add(sun);
 
     // océan low-poly animé
-    const oGeo = new THREE.PlaneGeometry(160, 160, 60, 60);
+    const oGeo = new THREE.PlaneGeometry(top ? 240 : 160, top ? 240 : 160, top ? 80 : 60, top ? 80 : 60);
     oGeo.rotateX(-Math.PI / 2);
     const base = Float32Array.from(oGeo.attributes.position.array);
     const ocean = new THREE.Mesh(oGeo, new THREE.MeshStandardMaterial({ color: o.water ?? 0x2a8fd4, flatShading: true, roughness: 0.4, metalness: 0.1 }));
@@ -265,19 +275,46 @@ export function playVoyage(container, o) {
     ship.rotation.y = Math.PI / 2;
     scene.add(ship);
 
+    // ── vue du dessus : île de départ → île d'arrivée, comme sur une carte ──
+    const portrait = H >= W;
+    let from = null, P0, P1, PC, wake = [], wakeT = 0, camH = 60, center = new THREE.Vector3();
+    if (top) {
+      const D = portrait ? 25 : 30;
+      const A = portrait ? new THREE.Vector3(0, 0, D) : new THREE.Vector3(-D, 0, 0);
+      const B = A.clone().multiplyScalar(-1);
+      if (o.from) { from = buildDiorama(o.from); from.position.copy(A); from.rotation.y = 1.2; scene.add(from); }
+      island.position.copy(B);
+      const dir = B.clone().sub(A).normalize();
+      P0 = A.clone().addScaledVector(dir, 8.5);
+      P1 = B.clone().addScaledVector(dir, -8.5);
+      const perp = new THREE.Vector3(-dir.z, 0, dir.x);
+      const rs = seeded(hash((o.from?.id || '') + o.island.id));
+      PC = P0.clone().add(P1).multiplyScalar(0.5).addScaledVector(perp, (rs() < 0.5 ? -1 : 1) * (6 + rs() * 6));
+      ship.scale.setScalar(1.7);
+      // sillage
+      const wm = () => new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 });
+      for (let i = 0; i < 46; i++) { const w = new THREE.Mesh(new THREE.CircleGeometry(0.55, 10), wm()); w.rotation.x = -Math.PI / 2; w.position.y = 0.6; w.userData.age = 99; scene.add(w); wake.push(w); }
+      // hauteur de caméra pour que les deux îles tiennent à l'écran
+      const tanV = Math.tan((48 / 2) * Math.PI / 180), asp = W / H;
+      const along = D + 9, across = 13;
+      camH = portrait ? Math.max(along / tanV, across / (asp * tanV)) : Math.max(along / (asp * tanV), across / tanV);
+      camH *= 1.18;
+    }
+
     // nuages
     const clouds = [];
     const rr = seeded(hash(o.island.id + 'c'));
     for (let i = 0; i < 9; i++) {
       const c = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5 + rr() * 2, 0), M(o.storm ? 0x777777 : 0xffffff));
       c.scale.y = 0.45; c.position.set((rr() - 0.5) * 70, 14 + rr() * 6, -10 - rr() * 50);
+      if (top) { c.material.transparent = true; c.material.opacity = i < 5 ? 0.2 : 0; c.position.set((rr() - 0.5) * 100, 10 + rr() * 4, (rr() - 0.5) * 100); c.scale.multiplyScalar(1.1); }
       scene.add(c); clouds.push(c);
     }
     // pluie (Grand Line orageuse)
     let rain = null;
     if (o.storm) {
       const n = 900, g = new THREE.BufferGeometry(), p = new Float32Array(n * 3);
-      for (let i = 0; i < n; i++) { p[i * 3] = (rr() - 0.5) * 50; p[i * 3 + 1] = rr() * 25; p[i * 3 + 2] = (rr() - 0.5) * 60 - 10; }
+      for (let i = 0; i < n; i++) { p[i * 3] = (rr() - 0.5) * (top ? 110 : 50); p[i * 3 + 1] = rr() * 25; p[i * 3 + 2] = (rr() - 0.5) * (top ? 110 : 60) - (top ? 0 : 10); }
       g.setAttribute('position', new THREE.BufferAttribute(p, 3));
       rain = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xcfd8dc, size: 0.12 }));
       scene.add(rain);
@@ -309,8 +346,36 @@ export function playVoyage(container, o) {
       }
       pos.needsUpdate = true;
       oGeo.computeVertexNormals();
-      // navire : du premier plan vers l'île
       const e = ease(t);
+      if (top) {
+        // navire le long d'une courbe de Bézier
+        const u = e, a = (1 - u) * (1 - u), b = 2 * (1 - u) * u, c = u * u;
+        const px = a * P0.x + b * PC.x + c * P1.x, pz = a * P0.z + b * PC.z + c * P1.z;
+        const tx = 2 * (1 - u) * (PC.x - P0.x) + 2 * u * (P1.x - PC.x), tz = 2 * (1 - u) * (PC.z - P0.z) + 2 * u * (P1.z - PC.z);
+        ship.position.set(px, Math.sin(time * 2.2) * 0.15 + 0.1, pz);
+        ship.rotation.set(Math.cos(time * 1.4) * 0.04, -Math.atan2(tz, tx), Math.sin(time * 1.8) * 0.06);
+        ship.userData.flag.rotation.y = Math.sin(time * 6) * 0.3;
+        // sillage qui s'efface
+        if (el - wakeT > 70 && t < 1) { wakeT = el; const w = wake.shift(); w.position.set(px - Math.cos(-ship.rotation.y) * 2.4, 0.6, pz - Math.sin(-ship.rotation.y) * 2.4); w.userData.age = 0; w.scale.setScalar(0.6); wake.push(w); }
+        for (const w of wake) { w.userData.age += 1; const k = w.userData.age; w.material.opacity = Math.max(0, 0.75 - k * 0.018); w.scale.setScalar(Math.min(2.6, 0.6 + k * 0.045)); }
+        island.rotation.y = 0.5 + t * 0.2;
+        if (from) from.rotation.y = 1.2 - t * 0.1;
+        for (const cl of clouds) cl.position.x += 0.03;
+        // caméra : vue plongeante, suit un peu le navire puis zoome sur l'île d'arrivée
+        const zoom = Math.max(0, (t - 0.7) / 0.3);
+        const ze = zoom * zoom * (3 - 2 * zoom);
+        center.set(px * 0.3, 0, pz * 0.3).lerp(island.position, ze * 0.85);
+        const h = camH * (1 - ze * 0.45);
+        cam.position.set(center.x, h, center.z + h * 0.22);
+        cam.lookAt(center.x, 0, center.z);
+        if (rain) { const rp = rain.geometry.attributes.position; for (let i = 0; i < rp.count; i++) { let y = rp.array[i * 3 + 1] - 0.5; if (y < 0) y = 25; rp.array[i * 3 + 1] = y; } rp.needsUpdate = true; }
+        if (o.storm && Math.random() < 0.008) scene.background = new THREE.Color(0xffffff); else scene.background = sky;
+        renderer.render(scene, cam);
+        if (t < 1) raf = requestAnimationFrame(frame);
+        else setTimeout(finish, 600);
+        return;
+      }
+      // navire : du premier plan vers l'île
       const z = 10 - e * 26;
       const x = Math.sin(e * Math.PI) * 4;
       ship.position.set(x, Math.sin(time * 2.2) * 0.15 + 0.05, z);

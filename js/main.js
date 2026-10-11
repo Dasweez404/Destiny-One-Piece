@@ -24,6 +24,7 @@ const store = {
 const U = {
   screen: 'home', modal: null, tab: 'profil', sub: null, S: null,
   anim: store.get('anim', !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches),
+  view: store.get('view', 'top'),
   form: null, voyaging: false, toast: null, posterUrl: null, saved: false,
 };
 
@@ -44,7 +45,7 @@ function render() {
   else if (U.screen === 'duel') html = vDuel();
   else if (U.screen === 'story') html = vStory();
   else if (U.screen === 'rules') html = vRules();
-  app.innerHTML = html + (U.modal ? vModal() : '') + (U.toast ? `<div class="toast">${esc(U.toast)}</div>` : '');
+  app.innerHTML = html + (U.modal ? vModal() : '');
   if (U.screen === 'game' && S?.phase === 'voyage' && !U.voyaging) runVoyage();
   if (U.screen === 'game' && S?.phase === 'end') mountPoster();
   if (U.screen === 'game' && S?.phase === 'nav' && U.anim) mountThumbs();
@@ -68,7 +69,16 @@ async function mountThumbs() {
   } catch (e) { console.warn('miniatures indisponibles', e); }
 }
 
-function toast(t) { U.toast = t; render(); setTimeout(() => { U.toast = null; render(); }, 2200); }
+// message éphémère, sans redessiner la page (sinon on casserait l'animation de voyage)
+let toastTimer = 0;
+function toast(t) {
+  let el = document.getElementById('toast');
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; document.body.appendChild(el); }
+  el.textContent = t;
+  el.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.display = 'none'; }, 2200);
+}
 
 // ───────────── accueil ─────────────
 function vHome() {
@@ -93,6 +103,7 @@ function vHome() {
         <button class="btn" data-act="go" data-arg="rules">❓ Règles</button>
       </div>
       <label class="opt"><input type="checkbox" data-act="toggleAnim" ${U.anim ? 'checked' : ''}> Animation 3D des voyages</label>
+      ${vViewPick()}
     </div>
     <p class="foot">Jeu de fan non officiel. One Piece © Eiichiro Oda / Shūeisha / Toei Animation.</p>
   </div>`;
@@ -120,6 +131,10 @@ function vRules() {
     <h3>🔀 Factions</h3>
     <p>À des moments clés, tu pourras changer de camp : Corsaire, protégé d'un Empereur, Révolution, désertion... Certains passages sont plus faciles que d'autres.</p>
   </div>`;
+}
+
+function vViewPick() {
+  return `<div class="viewpick">🎥 Vue du voyage : <button class="chip ${U.view === 'top' ? 'on' : ''}" data-act="view" data-arg="top">🗺️ Du dessus</button><button class="chip ${U.view === 'side' ? 'on' : ''}" data-act="view" data-arg="side">🌊 Ras de l'eau</button></div>`;
 }
 
 function backBar(title) {
@@ -295,15 +310,16 @@ function vSub(S) {
   if (sb.kind === 'train') return `<section class="card"><h3>🏋️ Entraînement</h3><p class="hint">Quelle caractéristique travailler ? Plus elle est haute, plus elle est dure à faire progresser.</p>
     <div class="grid2">${STAT_KEYS.map(k => `<button class="pick" data-act="train" data-arg="${k}"><span class="e">${STATS[k].emoji}</span><b>${STATS[k].name}</b><small>Actuel : ${S.hero.stats[k]}</small></button>`).join('')}</div>
     <button class="btn ghost" data-act="subcancel">Annuler</button></section>`;
-  if (sb.kind === 'tavern') return `<section class="card"><h3>🍺 Taverne</h3><p class="hint">${S.crew.length >= 10 ? 'Ton équipage est complet : une recrue amènera son propre équipage dans ta flotte.' : `${FACTIONS[S.hero.faction].crewLabel} : ${S.crew.length}/10.`} Une seule tentative.</p>
+  if (sb.kind === 'tavern') return `<section class="card"><h3>🍺 Taverne</h3><p class="hint">${S.crew.length >= 10 ? 'Ton équipage est complet : une recrue amènera son propre équipage dans ta flotte.' : `${FACTIONS[S.hero.faction].crewLabel} : ${S.crew.length}/10.`} Tu peux tenter ta chance avec chacun.</p>
     ${sb.cands.map((c, i) => {
-      const p = G.checkChance(S, { s: 'charisme', d: (c.power - tier * 3) / 2 });
+      const st = sb.status?.[i];
+      const p = G.recruitChance(S, c);
       const price = G.recruitPrice(S, c);
-      return `<div class="crewcard"><div class="ce">${c.emoji}</div><div class="ci"><b>${esc(c.name)}</b><small>${ROLES[c.role].name} · Puissance ${c.power}</small><em>${esc(c.trait)}</em></div>
-        <div class="cb"><button class="btn sm gold" data-act="hire" data-arg="${i}" ${S.hero.berrys < price ? 'disabled' : ''}>Payer ${G.fmtPrime(price)}</button>
-        <button class="btn sm" data-act="convince" data-arg="${i}">Convaincre <i class="risk ${G.riskLabel(p).k}">${Math.round(p * 100)} %</i></button></div></div>`;
+      return `<div class="crewcard ${st ? 'st-' + st : ''}"><div class="ce">${c.emoji}</div><div class="ci"><b>${esc(c.name)}</b><small>${ROLES[c.role].name} · Puissance ${c.power}</small><em>${esc(c.trait)}</em></div>
+        <div class="cb">${st === 'ok' ? '<b class="okc">✅ A rejoint ton équipage</b>' : st === 'ko' ? '<b class="koc">❌ A refusé</b>' : `<button class="btn sm gold" data-act="hire" data-arg="${i}" ${S.hero.berrys < price ? 'disabled' : ''}>Payer ${G.fmtPrime(price)}</button>
+        <button class="btn sm" data-act="convince" data-arg="${i}">Convaincre <i class="risk ${G.riskLabel(p).k}">${Math.round(p * 100)} %</i></button>`}</div></div>`;
     }).join('')}
-    <button class="btn ghost" data-act="subcancel">Partir sans recruter</button></section>`;
+    <button class="btn gold" data-act="subfinish">Quitter la taverne</button></section>`;
   if (sb.kind === 'market') return `<section class="card"><h3>🛒 ${ISLANDS[S.loc].svc?.includes('market') ? 'Marché' : 'Forge'}</h3>
     <p class="hint">Bourse : ${G.fmtPrime(S.hero.berrys)}. Les fruits achetés vont dans la cale.</p>
     ${sb.shop.fruits.length ? `<h4>🍇 Fruits du Démon</h4>${sb.shop.fruits.map((id, i) => { const f = FRUITS[id], p = fruitPrice(f); return `<div class="item"><div><b>${FRUIT_TYPES[f.type].emoji} ${esc(f.name)}</b> <small>${esc(f.jp)} · ${FRUIT_TYPES[f.type].name} · ${'★'.repeat(f.tier)}</small><em>${esc(f.desc)}</em></div><button class="btn sm gold" data-act="buy" data-k="fruit" data-arg="${i}" ${S.hero.berrys < p || sb.bought?.includes('f' + i) ? 'disabled' : ''}>${sb.bought?.includes('f' + i) ? 'Acheté' : G.fmtPrime(p)}</button></div>`; }).join('')}` : '<p class="hint">Aucun fruit du démon à vendre ici.</p>'}
@@ -360,7 +376,7 @@ async function runVoyage() {
       if (V.webglOK()) {
         used3d = true;
         el.classList.add('three');
-        await V.playVoyage(el, { island: isl, sky: sea.sky, water: sea.water, sail: FACTIONS[S.hero.faction].sail, shipTier: S.ship.tier, storm: sea.tier >= 2 && (G.hashStr(isl.id + S.turn) % 3 === 0), duration: 4200 });
+        await V.playVoyage(el, { view: U.view, from: ISLANDS[S.loc], island: isl, sky: sea.sky, water: sea.water, sail: FACTIONS[S.hero.faction].sail, shipTier: S.ship.tier, storm: sea.tier >= 2 && (G.hashStr(isl.id + S.turn) % 3 === 0), duration: 4200 });
       }
     } catch (e) { console.warn('3D indisponible', e); }
   }
@@ -441,6 +457,7 @@ function vModal() {
     <button class="btn" data-act="exam">🔍 Examiner</button>
     <button class="btn" data-act="journal">📜 Journal de bord</button>
     <label class="opt"><input type="checkbox" data-act="toggleAnim" ${U.anim ? 'checked' : ''}> Animation 3D</label>
+    ${vViewPick()}
     <button class="btn" data-act="retire">🍻 Prendre sa retraite (finir la carrière)</button>
     <button class="btn ghost" data-act="home">🏠 Sauvegarder et quitter</button>
     <button class="btn ghost" data-act="closemodal">Fermer</button></div></div>`;
@@ -636,6 +653,7 @@ function act(name, el) {
     case 'new': U.form = defaultForm('career'); U.screen = 'create'; break;
     case 'resume': U.S = store.get('save', null); if (U.S) { U.screen = 'game'; U.sub = null; U.posterUrl = null; U.saved = false; } break;
     case 'toggleAnim': U.anim = el.checked; store.set('anim', U.anim); return;
+    case 'view': U.view = arg; store.set('view', arg); break;
     case 'f': {
       const f = U.form;
       f[k] = arg;
@@ -689,8 +707,8 @@ function act(name, el) {
       save(); break;
     }
     case 'train': { const r = G.doAction(S, 'train', arg); U.sub = { kind: 'done', emoji: '🏋️', title: 'Entraînement', text: r.text, chips: r.chips }; save(); break; }
-    case 'hire': { const c = U.sub.cands[+arg]; const chips = G.buy(S, 'recruit', c); if (!chips) return; S.actionsLeft--; U.sub = { kind: 'done', emoji: '🍺', title: 'Taverne', text: `${c.name} trinque avec toi et pose son sac à bord.`, chips }; save(); break; }
-    case 'convince': { const c = U.sub.cands[+arg]; const r = G.convinceRecruit(S, c); S.actionsLeft--; U.sub = { kind: 'done', emoji: '🍺', title: 'Taverne', text: r.ok ? `Ton discours fait mouche. ${c.name} te suit !` : `${c.name} hausse les épaules et retourne à sa chope.`, chips: r.chips }; save(); break; }
+    case 'hire': { const sb = U.sub; if (sb.status?.[+arg]) return; const c = sb.cands[+arg]; const chips = G.buy(S, 'recruit', c); if (!chips) return; (sb.status ||= {})[+arg] = 'ok'; toast(`${c.name} trinque avec toi et pose son sac à bord.`); save(); break; }
+    case 'convince': { const sb = U.sub; if (sb.status?.[+arg]) return; const c = sb.cands[+arg]; const r = G.convinceRecruit(S, c); (sb.status ||= {})[+arg] = r.ok ? 'ok' : 'ko'; toast(r.ok ? `Ton discours fait mouche. ${c.name} te suit !` : `${c.name} hausse les épaules et retourne à sa chope.`); save(); break; }
     case 'buy': {
       let chips;
       if (k === 'fruit') { chips = G.buy(S, 'fruit', U.sub.shop.fruits[+arg]); if (chips) U.sub.bought.push('f' + arg); }

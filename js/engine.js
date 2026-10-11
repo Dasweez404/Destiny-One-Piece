@@ -656,7 +656,16 @@ export function canReadPone(S) {
   return S.crew.some(c => c.role === 'archeologue') || S.hero.role === 'archeologue' || S.flags.can_read_pone || S.hero.stats.intel >= 16 || (S.rel.robin || 0) >= 3;
 }
 
+// la liste est tirée une fois puis figée (sinon un nouveau tirage au clic pourrait faire disparaître l'île choisie)
 export function navOptions(S) {
+  const key = [S.turn, S.loc, S.forcedNext, S.pone.length, S.ship.coated, canReadPone(S), S.hero.faction].join('|');
+  if (S.navCache?.key === key) return S.navCache.opts;
+  const opts = computeNav(S);
+  S.navCache = { key, opts };
+  return opts;
+}
+
+function computeNav(S) {
   if (S.forcedNext) return [{ id: S.forcedNext, forced: true, label: ISLANDS[S.forcedNext].name, sub: 'Tu n\'as pas le choix.' }];
   const isl = ISLANDS[S.loc], sea = isl.sea, L = LENGTHS[S.length];
   const camp = campOf(S);
@@ -766,7 +775,7 @@ export function escaleActions(S) {
     { id: 'rest', emoji: '🍖', label: 'Festin et repos', sub: 'Soigne, remonte le moral' },
     { id: 'explore', emoji: '🗺️', label: 'Explorer l\'île', sub: 'Un nouvel événement' },
   ];
-  if (svc.has('tavern') || isl.pop >= 2) acts.push({ id: 'tavern', emoji: '🍺', label: 'Taverne', sub: S.crew.length >= 10 ? 'Équipage complet : recruter pour ta flotte' : 'Recruter' });
+  if (svc.has('tavern') || isl.pop >= 2 || S.crew.length < 3) acts.push({ id: 'tavern', emoji: '🍺', label: 'Taverne', sub: S.crew.length >= 10 ? 'Équipage complet : recruter pour ta flotte' : 'Recruter (plusieurs essais)' });
   if (svc.has('market') || svc.has('forge')) acts.push({ id: 'market', emoji: '🛒', label: svc.has('market') ? 'Marché' : 'Forge', sub: svc.has('market') ? 'Fruits, armes' : 'Armes' });
   if (svc.has('ship')) acts.push({ id: 'ship', emoji: '🔨', label: 'Chantier naval', sub: 'Réparer, améliorer, coating' });
   if (svc.has('marinebase') && camp === 'gardien') acts.push({ id: 'report', emoji: '📋', label: 'Rapport à la base', sub: 'Solde, soins, mérite' });
@@ -790,9 +799,13 @@ export function genShop(S) {
 }
 
 export function tavernCandidates(S) {
-  return [genCrew(S, {}), genCrew(S, {}), genCrew(S, { tier: tierOf(S) + 1 })];
+  const c = [genCrew(S, {}), genCrew(S, { tier: tierOf(S) + 1 })];
+  if (ISLANDS[S.loc].pop >= 3 || chance(S, 0.35)) c.splice(1, 0, genCrew(S, {}));
+  return c;
 }
-export const recruitPrice = (S, c) => Math.round(c.power * 150_000 * tierOf(S) ** 2);
+export const recruitPrice = (S, c) => Math.round(c.power * 70_000 * tierOf(S) ** 2 * (S.crew.length < 3 ? 0.6 : 1));
+// chance de convaincre : facile pour un petit équipage, plus dur pour les fortes têtes
+export const recruitChance = (S, c) => Math.min(0.95, checkChance(S, { s: 'charisme', d: (c.power - tierOf(S) * 3) / 2 + (S.crew.length - 3) * 2.5 - 1 }) + (S.hero.isCaptain ? 0.05 : 0));
 
 export function doAction(S, id, arg) {
   const chips = [];
@@ -874,7 +887,7 @@ export function buy(S, kind, id) {
 }
 
 export function convinceRecruit(S, c) {
-  const p = checkChance(S, { s: 'charisme', d: (c.power - tierOf(S) * 3) / 2 });
+  const p = recruitChance(S, c);
   const ok = chance(S, p);
   const chips = [];
   if (ok) {

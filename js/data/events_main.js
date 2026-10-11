@@ -674,8 +674,20 @@ export const GENERIC_EVENTS = [
     ],
   },
   {
+    id: 'g_volunteer', emoji: '🙋', title: 'Un volontaire sur le quai',
+    w: { test: S => S.crew.length < 6, weight: 9 },
+    x: S => `À peine amarré, quelqu'un t'attend sur le quai, sac sur l'épaule. « J'ai entendu parler de toi. Je veux partir en mer. Je sais me rendre utile. »${S.crew.length < 2 ? ' Ton navire a l\'air bien vide, il faut dire.' : ''}`,
+    ch: [
+      { t: 'Bienvenue à bord !', r: { x: 'Une poignée de main, un sac jeté sur le pont, et te voilà un de plus.', e: { recruit: true, morale: 5 } } },
+      { t: 'Lui faire passer un test d\'abord', s: 'intel', d: -4,
+        ok: { x: 'Tu as bien jugé : c\'est quelqu\'un de solide, et il en amène un autre.', e: { recruit: { tier: S => S.tier + 1 }, loyalty: 5 } },
+        ko: { x: 'Le test était trop dur. Il embarque quand même, un peu vexé.', e: { recruit: true } } },
+      { t: 'Refuser', r: { x: 'Il repart en traînant les pieds.', e: {} } },
+    ],
+  },
+  {
     id: 'g_stowaway', emoji: '🧒', title: 'Un passager clandestin',
-    w: { weight: 3 },
+    w: { weight: 4 },
     x: 'Dans un tonneau de pommes, tu trouves un gamin. Il veut rejoindre ton équipage. Il a l\'air plein de talent. Et de faim.',
     ch: [
       { t: 'L\'accepter dans l\'équipage', r: { x: 'Il saute de joie.', e: { recruit: { tier: 1 } } } },
@@ -862,7 +874,7 @@ export const SEA_EVENTS = [
   },
   {
     id: 's_survivor', emoji: '🛟', title: 'Un naufragé',
-    w: { ctx: 'sea', weight: 3 },
+    w: { ctx: 'sea', weight: 5 },
     x: 'Un homme accroché à une planche, à moitié mort. Il a l\'air de savoir se battre.',
     ch: [
       { t: 'Le repêcher', r: { x: 'Reconnaissant, il demande à rejoindre ton équipage.', e: { recruit: true } } },

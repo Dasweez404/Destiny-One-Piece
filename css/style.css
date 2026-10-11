@@ -361,3 +361,13 @@ label .inp.sm { margin-left: 8px; width: 80px; }
 .pc { list-style: none; padding: 0; margin: 0; font-size: .9em; }
 .pc li { margin: 2px 0; }
 .pc .con { color: #8a2a17; }
+
+.viewpick { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin: 8px 0; font-size: .95em; }
+.home .viewpick .chip { color: var(--foam); background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .25); }
+.home .viewpick .chip.on { color: #3a2408; background: var(--gold); }
+
+.crewcard.st-ok { background: #d6efd1; }
+.crewcard.st-ko { opacity: .6; }
+.okc { color: #1f5a1a; } .koc { color: #8a2a17; }
+/* les miniatures se chargent en différé : le clic doit toujours viser la carte entière */
+.dest > * { pointer-events: none; }
