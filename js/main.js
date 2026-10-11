@@ -1,0 +1,790 @@
+// Interface : écrans, rendu, interactions.
+import * as G from './engine.js';
+import { SEAS, ISLANDS, START_SEAS, START_ISLANDS } from './data/islands.js';
+import { FACTIONS, LEVELS, PROGRESS, ERAS, YONKO, CAMPS } from './data/factions.js';
+import { FRUITS, FRUIT_TYPES, WEAPONS, WEAPON_TYPES, SHIPS, ROLES, STATS, ITEMS, fruitPrice, weaponPrice } from './data/items.js';
+import { CHARACTERS } from './data/characters.js';
+import { LEGENDS, BADGES, DAILY_GOALS } from './data/meta.js';
+import { drawPoster, posterBlob } from './share.js';
+
+const app = document.getElementById('app');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const AVATARS = ['🧑', '👩', '🧔', '👧', '👦', '🧑‍🦰', '👩‍🦱', '🧑‍🦳', '👨‍🦲', '🧕', '🤠', '🥷', '🧛', '🧜', '🦸', '💀', '🐻', '🦊', '🐺', '🐸', '🤡', '👹'];
+const STAT_KEYS = Object.keys(STATS);
+const POINTS = 12;
+
+// ───────────── stockage local (tout est optionnel) ─────────────
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('dop.' + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('dop.' + k, JSON.stringify(v)); } catch { /* stockage indisponible */ } },
+  del(k) { try { localStorage.removeItem('dop.' + k); } catch { /* idem */ } },
+};
+
+const U = {
+  screen: 'home', modal: null, tab: 'profil', sub: null, S: null,
+  anim: store.get('anim', !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches),
+  form: null, voyaging: false, toast: null, posterUrl: null, saved: false,
+};
+
+function defaultForm(mode = 'career') {
+  return { mode, length: 'rapide', era: 'pre', name: '', emoji: '🧑', faction: 'pirate', role: 'capitaine', sea: 'east', island: 'fuchsia', stats: Object.fromEntries(STAT_KEYS.map(k => [k, 3])), shipName: '', age: 17 };
+}
+
+// ───────────── rendu ─────────────
+function render() {
+  const S = U.S;
+  let html = '';
+  if (U.screen === 'home') html = vHome();
+  else if (U.screen === 'create') html = vCreate();
+  else if (U.screen === 'game' && S) html = vGame(S);
+  else if (U.screen === 'pantheon') html = vPantheon();
+  else if (U.screen === 'badges') html = vBadges();
+  else if (U.screen === 'daily') html = vDaily();
+  else if (U.screen === 'duel') html = vDuel();
+  else if (U.screen === 'story') html = vStory();
+  else if (U.screen === 'rules') html = vRules();
+  app.innerHTML = html + (U.modal ? vModal() : '') + (U.toast ? `<div class="toast">${esc(U.toast)}</div>` : '');
+  if (U.screen === 'game' && S?.phase === 'voyage' && !U.voyaging) runVoyage();
+  if (U.screen === 'game' && S?.phase === 'end') mountPoster();
+  if (U.screen === 'game' && S?.phase === 'nav' && U.anim) mountThumbs();
+}
+
+// miniatures 3D des îles sur les cartes de destination
+const THUMBS = {};
+async function mountThumbs() {
+  const els = [...document.querySelectorAll('[data-thumb]')].filter(e => !THUMBS[e.dataset.thumb]);
+  if (!els.length) return;
+  try {
+    const V = await import('./voyage3d.js');
+    if (!V.webglOK()) return;
+    for (const el of els) {
+      const id = el.dataset.thumb, isl = ISLANDS[id], sea = SEAS[isl.sea];
+      await new Promise(r => setTimeout(r, 0));
+      THUMBS[id] = V.snapshotIsland(isl, 160, 160, sea.sky, sea.water);
+      const cur = document.querySelector(`[data-thumb="${id}"]`);
+      if (cur && THUMBS[id]) cur.innerHTML = `<img src="${THUMBS[id]}" alt="">`;
+    }
+  } catch (e) { console.warn('miniatures indisponibles', e); }
+}
+
+function toast(t) { U.toast = t; render(); setTimeout(() => { U.toast = null; render(); }, 2200); }
+
+// ───────────── accueil ─────────────
+function vHome() {
+  const save = store.get('save', null);
+  const daily = store.get('daily.' + G.todayStr(), null);
+  return `
+  <div class="home">
+    <div class="logo">
+      <div class="logo-skull">🏴‍☠️</div>
+      <h1>Destiny <span>One Piece</span></h1>
+      <p class="tag">Pirate, Marine, Révolutionnaire ou Dragon Céleste : tu choisis, la mer décide.</p>
+    </div>
+    <div class="menu">
+      ${save ? `<button class="btn big gold" data-act="resume">⏯️ Reprendre : ${esc(save.hero.name)} <small>${esc(ISLANDS[save.loc].name)} · tour ${save.turn}</small></button>` : ''}
+      <button class="btn big" data-act="new">🧭 Carrière <small>Crée ton perso et construis ta légende</small></button>
+      <button class="btn big" data-act="go" data-arg="daily">📅 Défi du jour ${daily ? '<small>✅ Joué aujourd\'hui</small>' : '<small>Un profil imposé, un objectif, le même pour tous</small>'}</button>
+      <button class="btn big" data-act="go" data-arg="duel">⚔️ Duel entre amis <small>Même départ, deux destins</small></button>
+      <button class="btn big" data-act="go" data-arg="story">📖 Mode Histoire <small>Revis une légende et fais mieux</small></button>
+      <div class="menu-row">
+        <button class="btn" data-act="go" data-arg="pantheon">🏛️ Panthéon</button>
+        <button class="btn" data-act="go" data-arg="badges">🎖️ Quêtes</button>
+        <button class="btn" data-act="go" data-arg="rules">❓ Règles</button>
+      </div>
+      <label class="opt"><input type="checkbox" data-act="toggleAnim" ${U.anim ? 'checked' : ''}> Animation 3D des voyages</label>
+    </div>
+    <p class="foot">Jeu de fan non officiel. One Piece © Eiichiro Oda / Shūeisha / Toei Animation.</p>
+  </div>`;
+}
+
+function vRules() {
+  return `${backBar('Règles')}
+  <div class="page card">
+    <h2>Comment ça marche</h2>
+    <p>Tu ne contrôles pas les combats : tu prends les <b>décisions</b>, et le destin (les dés) fait le reste. Chaque choix indique la caractéristique utilisée et le niveau de risque.</p>
+    <h3>🎯 Le but</h3>
+    <p><b>Chercheurs</b> (pirates, révolutionnaires, chasseurs, Corsaires, Empereurs) : trouver le One Piece. <b>Gardiens</b> (Marine, Gouvernement, Chevaliers Divins) : le protéger. Dans les deux cas : réunir les 4 <b>Poneglyphes routiers</b> (Zou, Totto Land, Wano, Elbaf), savoir les lire, puis atteindre <b>Laugh Tale</b>. Va le plus loin possible.</p>
+    <h3>🗺️ Le voyage</h3>
+    <p>À chaque île : un événement, puis une <b>escale</b> (entraînement, taverne, marché, chantier naval...). Ensuite tu choisis ta prochaine destination. Les Blues sont faciles, Grand Line beaucoup moins, le Nouveau Monde est un cimetière.</p>
+    <h3>🤕 Blessures et mort</h3>
+    <p>Un premier K.O. te laisse <b>blessé grave</b> (et coûte cher). Un second K.O. avant de te soigner peut être <b>fatal</b>. La mort est définitive. La capture mène à Impel Down, dont on s'évade... rarement.</p>
+    <h3>💪 Puissance</h3>
+    <p>Ton <b>indice de combat</b> combine tes caractéristiques, ton fruit du démon, ton Haki, ton arme, ton équipage, tes alliés et ta flotte. Il détermine ton niveau : Civil → Menace locale → Rookie → Supernova → Corsaire → YC3 → YC2 → YC1 → Yonko → RDP.</p>
+    <h3>🍇 Fruits du Démon</h3>
+    <p>Un seul par personne. Tu peux le refuser, le garder dans la cale, le vendre, ou le donner à un membre d'équipage. Attention aux SMILE.</p>
+    <h3>🔀 Factions</h3>
+    <p>À des moments clés, tu pourras changer de camp : Corsaire, protégé d'un Empereur, Révolution, désertion... Certains passages sont plus faciles que d'autres.</p>
+  </div>`;
+}
+
+function backBar(title) {
+  return `<div class="topbar"><button class="btn ghost" data-act="home">← Accueil</button><h2>${esc(title)}</h2></div>`;
+}
+
+// ───────────── création ─────────────
+function vCreate() {
+  const f = U.form;
+  const used = STAT_KEYS.reduce((a, k) => a + f.stats[k] - 3, 0);
+  const left = POINTS - used;
+  const isDuelJoin = f.mode === 'duel' && f.locked;
+  const lock = f.locked ? 'disabled' : '';
+  const seaOpts = START_SEAS.filter(s => s.id !== 'redline' || f.faction === 'chevalier');
+  const facs = Object.entries(FACTIONS).filter(([, x]) => x.start);
+  const rolePreview = ROLES[f.role];
+  return `${backBar(f.mode === 'duel' ? (isDuelJoin ? 'Rejoindre un duel' : 'Créer un duel') : 'Nouvelle carrière')}
+  <div class="page create">
+    ${isDuelJoin ? `<div class="card note">⚔️ Profil imposé par le code de duel. Choisis juste ton nom et ton apparence.</div>` : ''}
+    <section class="card">
+      <h3>🏷️ Identité</h3>
+      <div class="row"><input class="inp" maxlength="24" placeholder="Nom de ton personnage" value="${esc(f.name)}" data-input="name"></div>
+      <div class="avatars">${AVATARS.map(a => `<button class="av ${f.emoji === a ? 'on' : ''}" data-act="f" data-k="emoji" data-arg="${a}">${a}</button>`).join('')}</div>
+      <div class="row"><input class="inp" maxlength="28" placeholder="Nom du navire (optionnel)" value="${esc(f.shipName)}" data-input="shipName"></div>
+    </section>
+    <section class="card">
+      <h3>⏳ Partie</h3>
+      <div class="seg">${Object.entries(G.LENGTHS).map(([id, l]) => `<button class="${f.length === id ? 'on' : ''}" data-act="f" data-k="length" data-arg="${id}" ${lock}><b>${l.name}</b><small>${l.desc}</small></button>`).join('')}</div>
+      <div class="seg">${Object.values(ERAS).map(e => `<button class="${f.era === e.id ? 'on' : ''}" data-act="f" data-k="era" data-arg="${e.id}" ${lock}><b>${e.name}</b><small>${e.sub}</small></button>`).join('')}</div>
+      <p class="hint">${esc(ERAS[f.era].desc)}</p>
+    </section>
+    <section class="card">
+      <h3>🏳️ Faction</h3>
+      <div class="grid2">${facs.map(([id, x]) => `<button class="pick ${f.faction === id ? 'on' : ''}" data-act="f" data-k="faction" data-arg="${id}" ${lock}><span class="e">${x.emoji}</span><b>${x.name}</b><small>${esc(x.desc)}${x.needsOrigin ? ' (né à Marie Geoise)' : ''}</small></button>`).join('')}</div>
+      <p class="hint">Corsaire, protégé d'un Empereur et Empereur se gagnent en cours de route.</p>
+    </section>
+    <section class="card">
+      <h3>🎭 Rôle</h3>
+      <div class="chips">${Object.entries(ROLES).map(([id, r]) => `<button class="chip ${f.role === id ? 'on' : ''}" data-act="f" data-k="role" data-arg="${id}" ${lock}>${r.emoji} ${r.name}</button>`).join('')}</div>
+      <p class="hint">${rolePreview.emoji} ${esc(rolePreview.desc)} <b>+2 ${STATS[rolePreview.stat].name}</b>.${f.faction === 'pirate' && f.role !== 'capitaine' ? ' Tu commences sous les ordres d\'un autre capitaine.' : ''}</p>
+    </section>
+    <section class="card">
+      <h3>🌊 Point de départ</h3>
+      <div class="chips">${seaOpts.map(s => `<button class="chip ${f.sea === s.id ? 'on' : ''}" data-act="f" data-k="sea" data-arg="${s.id}" ${lock}>${SEAS[s.id].emoji} ${s.label}</button>`).join('')}</div>
+      <p class="hint">${esc(START_SEAS.find(s => s.id === f.sea)?.hint)}</p>
+      <select class="inp" data-input="island" ${lock}>${(START_ISLANDS[f.sea] || []).map(id => `<option value="${id}" ${f.island === id ? 'selected' : ''}>${esc(ISLANDS[id].name)} — ${esc(ISLANDS[id].sub)}</option>`).join('')}</select>
+      <p class="hint">${esc(ISLANDS[f.island]?.desc)}</p>
+      <div class="row"><label>Âge de départ <input class="inp sm" type="number" min="10" max="60" value="${f.age}" data-input="age" ${lock}></label></div>
+    </section>
+    <section class="card">
+      <h3>📊 Caractéristiques <span class="pts ${left ? '' : 'zero'}">${left} point${left > 1 ? 's' : ''} à répartir</span></h3>
+      ${STAT_KEYS.map(k => `<div class="statrow"><span>${STATS[k].emoji} ${STATS[k].name}</span>
+        <button class="sbtn" data-act="stat" data-k="${k}" data-arg="-1" ${lock || f.stats[k] <= 1 ? 'disabled' : ''}>−</button>
+        <b>${f.stats[k]}</b>
+        <button class="sbtn" data-act="stat" data-k="${k}" data-arg="1" ${lock || left <= 0 || f.stats[k] >= 10 ? 'disabled' : ''}>+</button>
+        <span class="bar"><i style="width:${f.stats[k] * 10}%"></i></span></div>`).join('')}
+      <p class="hint">Bonus automatiques : rôle (+2) et faction (+1/+1).</p>
+    </section>
+    ${f.mode === 'duel' && !f.locked ? `<p class="hint center">Une fois lancé, un code de duel apparaîtra : envoie-le à tes amis pour qu'ils partent du même profil.</p>` : ''}
+    <button class="btn big gold" data-act="launch" ${(!f.locked && left !== 0) ? 'disabled' : ''}>⛵ Prendre la mer</button>
+    ${!f.locked && left !== 0 ? `<p class="hint center">Répartis tous tes points pour partir.</p>` : ''}
+  </div>`;
+}
+
+// ───────────── jeu ─────────────
+function vHud(S) {
+  const h = S.hero;
+  const hpPct = Math.max(0, Math.round(h.hp / h.hpMax * 100));
+  const lv = LEVELS[G.levelIdxOf(S)];
+  return `<header class="hud">
+    <div class="hud-top">
+      <button class="hud-id" data-act="exam">${h.emoji}<div><b>${esc(h.name)}</b><small>${FACTIONS[h.faction].emoji} ${esc(G.rankName(S))} · ${lv.emoji} ${esc(lv.name)}</small></div></button>
+      <div class="hud-btns"><button class="btn sm" data-act="exam">🔍 Examiner</button><button class="btn sm ghost" data-act="menu">☰</button></div>
+    </div>
+    <div class="hud-stats">
+      <span class="hp ${S.flags.wounded ? 'wounded' : ''}" title="Points de vie">❤️ <span class="bar"><i style="width:${hpPct}%"></i></span> ${Math.max(0, h.hp)}/${h.hpMax}${S.flags.wounded ? ' 🤕' : ''}</span>
+      <span title="Berrys">💰 ${G.fmtPrime(h.berrys)}</span>
+      <span title="Prime">${h.faction === 'corsaire' ? '🔒' : '📜'} ${h.bounty ? G.fmtPrime(h.bounty) : '—'}</span>
+      <span title="Objectif">🗺️ ${S.progress}/9</span>
+      <span title="Îles visitées / limite">⏳ ${S.turn}/${S.maxTurns}</span>
+      <span title="Moral">${S.morale >= 60 ? '😄' : S.morale >= 30 ? '😐' : '😞'} ${S.morale}</span>
+    </div>
+  </header>`;
+}
+
+function vLoc(S) {
+  const isl = ISLANDS[S.loc], sea = SEAS[isl.sea];
+  return `<div class="loc" style="--sea:#${sea.water.toString(16).padStart(6, '0')}">
+    <div><span class="sea">${sea.emoji} ${esc(sea.name)}</span><h2>${esc(isl.name)}</h2><small>${esc(isl.sub)} · ${'★'.repeat(isl.pop)}${'☆'.repeat(3 - isl.pop)}</small></div>
+    <div class="age">${Math.floor(S.hero.age)} ans<br><small>${esc(S.ship.name)} ${SHIPS[S.ship.tier - 1].emoji}</small></div>
+  </div>`;
+}
+
+function vGame(S) {
+  if (S.phase === 'end') return vEnd(S);
+  let body = '';
+  if (S.phase === 'event') body = vEvent(S);
+  else if (S.phase === 'result') body = vResult(S);
+  else if (S.phase === 'escale') body = vEscale(S);
+  else if (S.phase === 'nav') body = vNav(S);
+  else if (S.phase === 'voyage') body = vVoyage(S);
+  return vHud(S) + `<main class="game">${S.phase !== 'voyage' ? vLoc(S) : ''}${body}</main>`;
+}
+
+const STAT_LABEL = s => (s === 'combat' ? '⚔️ Combat' : STATS[s] ? `${STATS[s].emoji} ${STATS[s].name}` : '🎲 Chance');
+
+function vEvent(S) {
+  const ev = G.curEvent(S);
+  const V = G.view(S);
+  const text = G.interp(S, typeof ev.x === 'function' ? ev.x(V) : ev.x);
+  const chs = G.choicesOf(S, ev);
+  return `<section class="card event ${S.ctx === 'sea' ? 'at-sea' : ''}">
+    ${S.ctx === 'sea' ? `<div class="kicker">🌊 En mer, vers ${esc(ISLANDS[S.next].name)}</div>` : ''}
+    <h3><span class="e">${ev.emoji || '❗'}</span> ${esc(ev.title)}</h3>
+    <p class="story">${esc(text)}</p>
+    <div class="choices">${chs.map((c, n) => `
+      <button class="choice ${c.locked ? 'locked' : ''}" data-act="choose" data-arg="${c.i}" ${c.locked ? 'disabled' : ''}>
+        <span class="num">${n + 1}</span>
+        <span class="lbl">${esc(c.label)}</span>
+        <span class="meta">
+          ${c.stat ? `<i class="tag">${STAT_LABEL(c.stat)}</i>` : ''}
+          ${!c.stat && c.risk ? `<i class="tag">🎲 Chance</i>` : ''}
+          ${c.risk ? `<i class="risk ${c.risk.k}">${c.risk.t}</i>` : ''}
+          ${c.cost ? `<i class="tag cost">💰 ${G.fmtPrime(c.cost)}</i>` : ''}
+          ${c.locked ? `<i class="tag lock">🔒 ${esc(c.lockText)}</i>` : ''}
+        </span>
+      </button>`).join('')}</div>
+  </section>`;
+}
+
+function chipsHtml(chips) {
+  return `<div class="fx">${(chips || []).map(c => `<span class="fxc ${c.k}">${esc(c.t)}</span>`).join('')}</div>`;
+}
+
+function vResult(S) {
+  const r = S.result;
+  const cls = r.ok === null ? 'neutral' : r.ok ? 'win' : 'lose';
+  return `<section class="card result ${cls}">
+    <div class="banner">${r.ok === null ? (r.emoji || '📜') + ' ' + esc(r.title) : r.ok ? '✅ Réussite' : '❌ Échec'}${r.ok !== null ? `<small>${Math.round(r.p * 100)} % de chances</small>` : ''}</div>
+    <p class="choice-made">« ${esc(r.choice)} »</p>
+    <p class="story">${esc(r.text)}</p>
+    ${chipsHtml(r.chips)}
+    <button class="btn big gold" data-act="continue">Continuer ➜</button>
+  </section>`;
+}
+
+function vEscale(S) {
+  if (U.sub) return vSub(S);
+  const acts = S.actionsLeft > 0 ? G.escaleActions(S) : [];
+  const isl = ISLANDS[S.loc];
+  return `<section class="card escale">
+    <h3>⚓ Escale ${S.actionsLeft > 0 ? `<span class="pts">${S.actionsLeft} action${S.actionsLeft > 1 ? 's' : ''}</span>` : ''}</h3>
+    <p class="hint">${esc(isl.desc)}</p>
+    ${S.flags.wounded ? '<p class="warn">🤕 Tu es <b>blessé grave</b>. Un nouveau K.O. peut être fatal : pense à te reposer (ou à embarquer un médecin).</p>' : ''}
+    <div class="acts">${acts.map(a => `<button class="act" data-act="action" data-arg="${a.id}"><span class="e">${a.emoji}</span><b>${esc(a.label)}</b><small>${esc(a.sub)}</small></button>`).join('')}</div>
+    <div class="row gap">
+      <button class="btn" data-act="exam" data-arg="cale">🎒 Cale ${S.inventory.fruits.length ? `<i class="dot">${S.inventory.fruits.length}🍇</i>` : ''}</button>
+      <button class="btn gold grow" data-act="leave">⛵ Lever l'ancre</button>
+    </div>
+  </section>`;
+}
+
+function vSub(S) {
+  const sb = U.sub;
+  const tier = G.tierOf(S);
+  if (sb.kind === 'done') return `<section class="card result neutral"><div class="banner">${sb.emoji || '⚓'} ${esc(sb.title || 'Escale')}</div><p class="story">${esc(sb.text)}</p>${chipsHtml(sb.chips)}<button class="btn big gold" data-act="subclose">OK</button></section>`;
+  if (sb.kind === 'train') return `<section class="card"><h3>🏋️ Entraînement</h3><p class="hint">Quelle caractéristique travailler ? Plus elle est haute, plus elle est dure à faire progresser.</p>
+    <div class="grid2">${STAT_KEYS.map(k => `<button class="pick" data-act="train" data-arg="${k}"><span class="e">${STATS[k].emoji}</span><b>${STATS[k].name}</b><small>Actuel : ${S.hero.stats[k]}</small></button>`).join('')}</div>
+    <button class="btn ghost" data-act="subcancel">Annuler</button></section>`;
+  if (sb.kind === 'tavern') return `<section class="card"><h3>🍺 Taverne</h3><p class="hint">${S.crew.length >= 10 ? 'Ton équipage est complet : une recrue amènera son propre équipage dans ta flotte.' : `${FACTIONS[S.hero.faction].crewLabel} : ${S.crew.length}/10.`} Une seule tentative.</p>
+    ${sb.cands.map((c, i) => {
+      const p = G.checkChance(S, { s: 'charisme', d: (c.power - tier * 3) / 2 });
+      const price = G.recruitPrice(S, c);
+      return `<div class="crewcard"><div class="ce">${c.emoji}</div><div class="ci"><b>${esc(c.name)}</b><small>${ROLES[c.role].name} · Puissance ${c.power}</small><em>${esc(c.trait)}</em></div>
+        <div class="cb"><button class="btn sm gold" data-act="hire" data-arg="${i}" ${S.hero.berrys < price ? 'disabled' : ''}>Payer ${G.fmtPrime(price)}</button>
+        <button class="btn sm" data-act="convince" data-arg="${i}">Convaincre <i class="risk ${G.riskLabel(p).k}">${Math.round(p * 100)} %</i></button></div></div>`;
+    }).join('')}
+    <button class="btn ghost" data-act="subcancel">Partir sans recruter</button></section>`;
+  if (sb.kind === 'market') return `<section class="card"><h3>🛒 ${ISLANDS[S.loc].svc?.includes('market') ? 'Marché' : 'Forge'}</h3>
+    <p class="hint">Bourse : ${G.fmtPrime(S.hero.berrys)}. Les fruits achetés vont dans la cale.</p>
+    ${sb.shop.fruits.length ? `<h4>🍇 Fruits du Démon</h4>${sb.shop.fruits.map((id, i) => { const f = FRUITS[id], p = fruitPrice(f); return `<div class="item"><div><b>${FRUIT_TYPES[f.type].emoji} ${esc(f.name)}</b> <small>${esc(f.jp)} · ${FRUIT_TYPES[f.type].name} · ${'★'.repeat(f.tier)}</small><em>${esc(f.desc)}</em></div><button class="btn sm gold" data-act="buy" data-k="fruit" data-arg="${i}" ${S.hero.berrys < p || sb.bought?.includes('f' + i) ? 'disabled' : ''}>${sb.bought?.includes('f' + i) ? 'Acheté' : G.fmtPrime(p)}</button></div>`; }).join('')}` : '<p class="hint">Aucun fruit du démon à vendre ici.</p>'}
+    <h4>⚔️ Armes</h4>${sb.shop.weapons.map((id, i) => { const w = WEAPONS[id], p = weaponPrice(w); return `<div class="item"><div><b>${esc(w.name)}</b> <small>${WEAPON_TYPES[w.type]} · ${'★'.repeat(w.tier)}${w.seastone ? ' · granit marin' : ''}${w.cursed ? ' · maudit' : ''}</small><em>${esc(w.desc)}</em></div><button class="btn sm gold" data-act="buy" data-k="weapon" data-arg="${i}" ${S.hero.berrys < p || sb.bought?.includes('w' + i) ? 'disabled' : ''}>${sb.bought?.includes('w' + i) ? 'Acheté' : G.fmtPrime(p)}</button></div>`; }).join('')}
+    <p class="hint">Arme actuelle : ${S.hero.weapon ? esc(WEAPONS[S.hero.weapon].name) + ' ' + '★'.repeat(WEAPONS[S.hero.weapon].tier) : 'aucune'}</p>
+    <button class="btn gold" data-act="subfinish">Terminer</button></section>`;
+  if (sb.kind === 'ship') {
+    const cur = SHIPS[S.ship.tier - 1], nxt = SHIPS[S.ship.tier];
+    const repair = Math.round((cur.hp - S.ship.hp) * 20_000 * tier);
+    const disc = S.loc === 'water7' ? 0.7 : 1;
+    return `<section class="card"><h3>🔨 Chantier naval</h3>
+    <p>${cur.emoji} <b>${esc(S.ship.name)}</b> — ${cur.name} · Coque ${S.ship.hp}/${cur.hp}${S.ship.coated ? ' · 🫧 enrobé' : ''}</p>
+    <div class="item"><div><b>Réparer la coque</b></div><button class="btn sm" data-act="buy" data-k="repair" ${S.ship.hp >= cur.hp || S.hero.berrys < repair ? 'disabled' : ''}>${S.ship.hp >= cur.hp ? 'Intact' : G.fmtPrime(repair)}</button></div>
+    ${nxt ? `<div class="item"><div><b>Passer au ${nxt.emoji} ${nxt.name}</b><em>Coque ${nxt.hp}${S.loc === 'water7' ? ' · remise de Water 7 !' : ''}</em></div><button class="btn sm gold" data-act="buy" data-k="upgrade" ${S.hero.berrys < nxt.price * disc ? 'disabled' : ''}>${G.fmtPrime(nxt.price * disc)}</button></div>` : '<p class="hint">Ton navire est déjà le meilleur du monde.</p>'}
+    ${!S.ship.coated ? `<div class="item"><div><b>🫧 Coating (enrobage)</b><em>Indispensable pour plonger vers l'Île des Hommes-Poissons.</em></div><button class="btn sm" data-act="buy" data-k="coating" ${S.hero.berrys < 3_000_000 ? 'disabled' : ''}>${G.fmtPrime(3_000_000)}</button></div>` : ''}
+    <button class="btn gold" data-act="subfinish">Terminer</button></section>`;
+  }
+  return '';
+}
+
+function vNav(S) {
+  const opts = G.navOptions(S);
+  const camp = G.campOf(S);
+  return `<section class="card nav">
+    <h3>🧭 Prochaine destination</h3>
+    ${opts.length === 1 && opts[0].forced ? '<p class="warn">Les événements ne te laissent pas le choix.</p>' : '<p class="hint">Les îles ★★★ sont des arcs majeurs : plus dangereuses, plus lucratives.</p>'}
+    <div class="dests">${opts.map(o => {
+      const isl = ISLANDS[o.id], sea = SEAS[isl.sea];
+      const pone = isl.pone && !S.pone.includes(isl.pone);
+      return `<button class="dest ${o.big ? 'big' : ''} ${o.locked ? 'locked' : ''} ${o.danger || o.early ? 'danger' : ''}" data-act="sail" data-arg="${o.id}" ${o.locked ? 'disabled' : ''} style="--sea:#${sea.water.toString(16).padStart(6, '0')}">
+        <span class="de" data-thumb="${o.id}">${THUMBS[o.id] ? `<img src="${THUMBS[o.id]}" alt="">` : sea.emoji}</span>
+        <span class="dt"><b>${esc(o.label)}</b><small>${esc(o.sub || isl.sub)}</small>
+        <span class="dm">${'★'.repeat(isl.pop)}${'☆'.repeat(3 - isl.pop)} · ${esc(sea.name)}${pone ? ` · 🗿 Poneglyphe ${camp === 'gardien' ? 'à sécuriser' : 'routier'}` : ''}${o.danger ? ' · ⚠️ Danger' : ''}${o.early ? ' · ⚠️ Tôt' : ''}</span></span>
+      </button>`;
+    }).join('')}</div>
+  </section>`;
+}
+
+function vVoyage(S) {
+  const isl = ISLANDS[S.next];
+  return `<div class="voyage" id="voyage"><div class="vcap"><small>${SEAS[isl.sea].emoji} ${esc(SEAS[isl.sea].name)}</small><b>Cap sur ${esc(isl.name)}</b><em>Touchez pour passer</em></div>
+    <div class="vfallback"><div class="vboat">⛵</div><div class="vwaves">〰️〰️〰️〰️〰️〰️</div></div></div>`;
+}
+
+async function runVoyage() {
+  const S = U.S;
+  U.voyaging = true;
+  const el = document.getElementById('voyage');
+  const isl = ISLANDS[S.next], sea = SEAS[isl.sea];
+  let used3d = false;
+  if (U.anim && el) {
+    try {
+      const V = await import('./voyage3d.js');
+      if (V.webglOK()) {
+        used3d = true;
+        el.classList.add('three');
+        await V.playVoyage(el, { island: isl, sky: sea.sky, water: sea.water, sail: FACTIONS[S.hero.faction].sail, shipTier: S.ship.tier, storm: sea.tier >= 2 && (G.hashStr(isl.id + S.turn) % 3 === 0), duration: 4200 });
+      }
+    } catch (e) { console.warn('3D indisponible', e); }
+  }
+  if (!used3d) await new Promise(r => setTimeout(r, U.anim ? 1400 : 250));
+  U.voyaging = false;
+  G.afterVoyage(S);
+  save();
+  render();
+  window.scrollTo(0, 0);
+}
+
+// ───────────── fin ─────────────
+function vEnd(S) {
+  const E = S.ending, h = S.hero;
+  const camp = S.endCamp;
+  const newBadges = U.newBadges || [];
+  const leg = S.legend ? LEGENDS.find(l => l.id === S.legend) : null;
+  const goal = S.daily ? DAILY_GOALS.find(g => g.id === S.daily.goal) : null;
+  return `<main class="game end">
+    <section class="card endcard ${E.kind}">
+      <div class="kicker">${E.kind === 'death' ? '⚰️' : E.kind === 'prison' ? '⛓️' : E.kind === 'onepiece' ? '🏴‍☠️' : '🌅'} Fin de carrière</div>
+      <h2>${esc(E.title)}</h2>
+      <p class="epitaph">« ${esc(E.epitaph)} »</p>
+      <div class="poster" id="poster"><div class="hint">Impression de l'avis de recherche...</div></div>
+      <div class="grade">Note <b>${E.grade}</b> <small>Score ${E.score}</small></div>
+      ${leg ? `<div class="challenge ${S.challengeOk ? 'ok' : 'ko'}">📖 ${esc(leg.name)} : ${esc(leg.target.label)} — ${S.challengeOk ? '✅ Tu as fait mieux que la légende !' : '❌ La légende reste invaincue.'}<small>Canon : ${esc(leg.canon)}</small></div>` : ''}
+      ${goal ? `<div class="challenge ${S.challengeOk ? 'ok' : 'ko'}">📅 Défi du ${esc(S.daily.date)} : ${esc(goal.label)} — ${S.challengeOk ? '✅ Réussi' : '❌ Raté'}</div>` : ''}
+      <div class="like">🪞 Ta carrière ressemble à celle de <b>${esc(E.like.n)}</b> : ${esc(E.like.why)}.</div>
+      <div class="sumgrid">
+        <div><small>Faction</small><b>${FACTIONS[h.faction].emoji} ${esc(FACTIONS[h.faction].name)}</b></div>
+        <div><small>Grade</small><b>${esc(E.rank)}</b></div>
+        <div><small>Niveau</small><b>${E.level.emoji} ${esc(E.level.name)}</b></div>
+        <div><small>Prime</small><b>${h.bounty ? G.fmtPrime(h.bounty) : '—'}</b></div>
+        <div><small>Objectif</small><b>${esc(E.progressLabel)} (${S.progress}/9)</b></div>
+        <div><small>Voyage</small><b>${S.visited.length} îles · ${Math.floor(h.age)} ans</b></div>
+        <div><small>Fruit</small><b>${h.fruit ? esc(FRUITS[h.fruit.id].name) + (h.fruit.awakened ? ' ✨' : '') : 'Aucun'}</b></div>
+        <div><small>Haki</small><b>${['obs', 'arm', 'roi'].filter(k => h.haki[k]).map(k => ({ obs: '👁️', arm: '🛡️', roi: '👑' }[k]) + h.haki[k]).join(' ') || 'Aucun'}</b></div>
+        <div><small>${FACTIONS[h.faction].crewLabel}</small><b>${S.crew.length} membre${S.crew.length > 1 ? 's' : ''}${S.fleet.length ? ` + ${S.fleet.length} en flotte` : ''}</b></div>
+        <div><small>Camp</small><b>${esc(CAMPS[camp].name)}</b></div>
+      </div>
+      ${S.hl.length ? `<h4>✨ Moments forts</h4><ul class="hl">${[...new Set(S.hl)].slice(-8).map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${newBadges.length ? `<h4>🎖️ Nouvelles quêtes accomplies</h4><div class="badges">${newBadges.map(id => { const b = BADGES.find(b => b.id === id); return `<div class="badge on"><span>${b.emoji}</span><b>${esc(b.name)}</b></div>`; }).join('')}</div>` : ''}
+      <h4>📣 Partager</h4>
+      <textarea class="share" readonly rows="9">${esc(G.shareText(S))}</textarea>
+      <div class="row gap wrap">
+        <button class="btn gold" data-act="copy">📋 Copier le texte</button>
+        <button class="btn" data-act="sharenative">📤 Partager</button>
+        <button class="btn" data-act="tweet">𝕏 Poster</button>
+        <button class="btn" data-act="dlposter">🖼️ Télécharger l'avis</button>
+      </div>
+      <div class="row gap wrap">
+        <button class="btn" data-act="journal">📜 Journal de bord</button>
+        <button class="btn gold grow" data-act="replay">🔁 Rejouer</button>
+        <button class="btn ghost" data-act="home">🏠 Accueil</button>
+      </div>
+    </section>
+  </main>`;
+}
+
+async function mountPoster() {
+  const el = document.getElementById('poster');
+  if (!el) return;
+  if (U.posterUrl) { el.innerHTML = `<img src="${U.posterUrl}" alt="Avis de recherche">`; return; }
+  const c = await drawPoster(U.S);
+  U.posterUrl = c.toDataURL('image/png');
+  const el2 = document.getElementById('poster');
+  if (el2) el2.innerHTML = `<img src="${U.posterUrl}" alt="Avis de recherche">`;
+}
+
+// ───────────── fenêtre « Examiner » ─────────────
+function vModal() {
+  if (U.modal === 'duelcode') return `<div class="modal" data-act="closemodal"><div class="sheet small">
+    <h3>⚔️ Code de duel</h3><p>Envoie ce code à tes amis : ils partiront exactement du même profil, avec la même graine.</p>
+    <textarea class="share" readonly rows="2">${esc(U.S.duelCode)}</textarea>
+    <div class="row gap"><button class="btn gold" data-act="copyduel">📋 Copier</button><button class="btn ghost" data-act="closemodal">C'est parti !</button></div></div></div>`;
+  if (U.modal === 'menu') return `<div class="modal" data-act="closemodal"><div class="sheet small">
+    <h3>☰ Menu</h3>
+    <button class="btn" data-act="exam">🔍 Examiner</button>
+    <button class="btn" data-act="journal">📜 Journal de bord</button>
+    <label class="opt"><input type="checkbox" data-act="toggleAnim" ${U.anim ? 'checked' : ''}> Animation 3D</label>
+    <button class="btn" data-act="retire">🍻 Prendre sa retraite (finir la carrière)</button>
+    <button class="btn ghost" data-act="home">🏠 Sauvegarder et quitter</button>
+    <button class="btn ghost" data-act="closemodal">Fermer</button></div></div>`;
+  if (U.modal === 'confirmRetire') return `<div class="modal" data-act="closemodal"><div class="sheet small">
+    <h3>Prendre sa retraite ?</h3><p>Ta carrière s'arrête ici, ${esc(ISLANDS[U.S.loc].name)}. Elle rejoindra le Panthéon.</p>
+    <div class="row gap"><button class="btn gold" data-act="retireYes">Oui, raccrocher</button><button class="btn ghost" data-act="closemodal">Non</button></div></div></div>`;
+  const S = U.S;
+  if (!S) return '';
+  const tabs = [['profil', '🧍 Profil'], ['niveau', '📈 Niveau'], ['equipage', '👥 Équipage'], ['cale', '🎒 Cale'], ['relations', '🤝 Relations'], ['journal', '📜 Journal']];
+  let body = '';
+  if (U.tab === 'profil') body = tProfil(S);
+  if (U.tab === 'niveau') body = tNiveau(S);
+  if (U.tab === 'equipage') body = tEquipage(S);
+  if (U.tab === 'cale') body = tCale(S);
+  if (U.tab === 'relations') body = tRelations(S);
+  if (U.tab === 'journal') body = tJournal(S);
+  return `<div class="modal" data-act="closemodal"><div class="sheet">
+    <div class="tabs">${tabs.map(([id, l]) => `<button class="${U.tab === id ? 'on' : ''}" data-act="tab" data-arg="${id}">${l}</button>`).join('')}<button class="x" data-act="closemodal">✕</button></div>
+    <div class="tabbody">${body}</div></div></div>`;
+}
+
+function tProfil(S) {
+  const h = S.hero, f = h.fruit ? FRUITS[h.fruit.id] : null, w = h.weapon ? WEAPONS[h.weapon] : null;
+  const camp = G.campOf(S);
+  const yon = h.yonko ? [...YONKO.pre, ...YONKO.post].find(y => y.id === h.yonko) : null;
+  return `<div class="prof">
+    <div class="pbig">${h.emoji}</div>
+    <div><h3>${esc(h.name)}</h3><p>${FACTIONS[h.faction].emoji} ${esc(FACTIONS[h.faction].name)} · ${esc(G.rankName(S))}${yon ? ` · ${yon.emoji} ${esc(yon.name)}` : ''}</p>
+    <p>${ROLES[h.role].emoji} ${ROLES[h.role].name}${h.isCaptain && h.faction === 'pirate' && h.role !== 'capitaine' ? ' · 🏴‍☠️ capitaine' : ''} · ${Math.floor(h.age)} ans · né(e) à ${esc(ISLANDS[h.origin].name)}</p>
+    <p>${esc(ERAS[S.era].name)} · ${G.LENGTHS[S.length].name}</p></div></div>
+  <div class="statlist">${STAT_KEYS.map(k => `<div class="statrow"><span>${STATS[k].emoji} ${STATS[k].name}</span><b>${h.stats[k]}</b><span class="bar"><i style="width:${Math.min(100, h.stats[k] / 22 * 100)}%"></i></span></div>`).join('')}</div>
+  <div class="kv">
+    <div><small>❤️ Vie</small><b>${Math.max(0, h.hp)}/${h.hpMax}${S.flags.wounded ? ' 🤕 blessé grave' : ''}</b></div>
+    <div><small>⚔️ Indice de combat</small><b>${G.combatRating(S)}</b></div>
+    <div><small>📜 Prime</small><b>${h.bounty ? G.fmtPrime(h.bounty) : '—'}${h.faction === 'corsaire' ? ' (gelée)' : ''}</b></div>
+    <div><small>🎖️ Mérite</small><b>${S.merit}</b></div>
+    <div><small>💰 Berrys</small><b>${G.fmtPrime(h.berrys)}</b></div>
+    <div><small>🌟 Réputation</small><b>${S.rep}</b></div>
+    <div><small>🍇 Fruit</small><b>${f ? `${esc(f.name)}${h.fruit.awakened ? ' ✨ éveillé' : ''}${f.id === 'smile' ? (h.fruit.smileOk ? ' (réussi)' : ' (raté 😂)') : ''}` : 'Aucun'}</b>${f ? `<em>${esc(f.desc)}</em>` : ''}</div>
+    <div><small>🗡️ Arme</small><b>${w ? `${esc(w.name)} ${'★'.repeat(w.tier)}` : 'Aucune'}</b>${w ? `<em>${WEAPON_TYPES[w.type]}</em>` : ''}</div>
+    <div><small>🌀 Haki</small><b>👁️ ${h.haki.obs} · 🛡️ ${h.haki.arm} · 👑 ${h.haki.roi || (h.roiPotential ? '?' : '0')}</b></div>
+    <div><small>🏝️ Territoires</small><b>${S.territory}</b></div>
+  </div>
+  <h4>🗺️ ${esc(CAMPS[camp].goal)}</h4>
+  <ol class="track">${PROGRESS[camp].map((p, i) => `<li class="${i <= S.progress ? 'done' : ''} ${i === S.progress + 1 ? 'next' : ''}">${i <= S.progress ? '✅' : i === S.progress + 1 ? '➡️' : '▫️'} ${esc(p)}</li>`).join('')}</ol>
+  <p class="hint">Lire les Poneglyphes : ${G.canReadPone(S) ? '✅ possible' : '❌ il te faut un archéologue (ou une grammaire, ou 16 en intelligence)'}.</p>`;
+}
+
+function tNiveau(S) {
+  const r = G.combatRating(S), li = G.levelIdxOf(S);
+  return `<p>Indice de combat : <b>${r}</b></p>
+  <ol class="ladder">${[...LEVELS].reverse().map((l) => { const i = LEVELS.indexOf(l); return `<li class="${i === li ? 'me' : i < li ? 'below' : ''}"><span>${l.emoji}</span><div><b>${esc(l.name)}</b> <small>≥ ${l.min}</small><em>${esc(l.desc)}</em></div>${i === li ? '<i>◀ toi</i>' : ''}</li>`; }).join('')}</ol>
+  <p class="hint">L'indice combine Force, Vitesse, Volonté, fruit, Haki, arme, équipage (les 3 meilleurs), alliés canon (relation ≥ 3), flotte et moral.</p>`;
+}
+
+function tEquipage(S) {
+  const sh = SHIPS[S.ship.tier - 1];
+  return `<div class="shipbox">${sh.emoji} <b>${esc(S.ship.name)}</b> — ${sh.name} · Coque ${S.ship.hp}/${sh.hp}${S.ship.coated ? ' · 🫧 enrobé' : ''}</div>
+  <h4>${FACTIONS[S.hero.faction].crewLabel} (${S.crew.length}/10)</h4>
+  ${S.crew.length ? S.crew.map(c => `<div class="crewcard"><div class="ce">${c.emoji}</div><div class="ci"><b>${esc(c.name)}${c.isCaptain ? ' 🏴‍☠️ (capitaine)' : ''}</b><small>${ROLES[c.role].name} · Puissance ${c.power} · Loyauté ${c.loyalty}${c.fruit ? ` · 🍇 ${esc(FRUITS[c.fruit].name)}` : ''}</small><em>${esc(c.trait)}</em></div></div>`).join('') : '<p class="hint">Personne pour l\'instant. La taverne, les naufragés et les rencontres sont tes meilleurs viviers.</p>'}
+  ${S.fleet.length ? `<h4>⛵ Flotte (${S.fleet.length})</h4><ul class="hl">${S.fleet.map(f => `<li>${esc(f.name)} · puissance ${f.power}</li>`).join('')}</ul>` : ''}`;
+}
+
+function tCale(S) {
+  const inv = S.inventory;
+  return `<h4>🍇 Fruits du Démon</h4>
+  ${inv.fruits.length ? inv.fruits.map((id, i) => { const f = FRUITS[id]; return `<div class="item col"><div><b>${FRUIT_TYPES[f.type].emoji} ${esc(f.name)}</b> <small>${esc(f.jp)} · ${FRUIT_TYPES[f.type].name} · ${'★'.repeat(f.tier)}</small><em>${esc(f.desc)}</em></div>
+    <div class="row gap wrap"><button class="btn sm gold" data-act="eat" data-arg="${i}" ${S.hero.fruit ? 'disabled' : ''}>${S.hero.fruit ? 'Tu as déjà un fruit' : 'Manger'}</button>
+    ${S.crew.length ? `<select class="inp sm" id="give${i}">${S.crew.map((c, j) => `<option value="${j}" ${c.fruit ? 'disabled' : ''}>${esc(c.name)}${c.fruit ? ' (a déjà un fruit)' : ''}</option>`).join('')}</select><button class="btn sm" data-act="give" data-arg="${i}">Donner</button>` : ''}
+    <button class="btn sm ghost" data-act="sellfruit" data-arg="${i}">Vendre ${G.fmtPrime(fruitPrice(f) * 0.6)}</button></div></div>`; }).join('') : '<p class="hint">Aucun fruit dans la cale.</p>'}
+  <h4>⚔️ Armes</h4>
+  ${S.hero.weapon ? `<p>Équipée : <b>${esc(WEAPONS[S.hero.weapon].name)}</b> ${'★'.repeat(WEAPONS[S.hero.weapon].tier)}</p>` : ''}
+  ${inv.weapons.length ? inv.weapons.map((id, i) => { const w = WEAPONS[id]; return `<div class="item"><div><b>${esc(w.name)}</b> <small>${WEAPON_TYPES[w.type]} · ${'★'.repeat(w.tier)}</small></div><div class="row gap"><button class="btn sm" data-act="equip" data-arg="${i}">Équiper</button><button class="btn sm ghost" data-act="sellweapon" data-arg="${i}">Vendre</button></div></div>`; }).join('') : '<p class="hint">Aucune arme de rechange.</p>'}
+  <h4>📦 Objets</h4>
+  ${inv.items.length ? `<ul class="hl">${[...new Set(inv.items)].map(id => `<li>${ITEMS[id].emoji} <b>${esc(ITEMS[id].name)}</b>${inv.items.filter(x => x === id).length > 1 ? ' ×' + inv.items.filter(x => x === id).length : ''} — ${esc(ITEMS[id].desc)}</li>`).join('')}</ul>` : '<p class="hint">Rien.</p>'}`;
+}
+
+function tRelations(S) {
+  const rels = Object.entries(S.rel).filter(([id]) => CHARACTERS[id]).sort((a, b) => b[1] - a[1]);
+  const fr = Object.entries(S.frel).filter(([, v]) => v);
+  return `${rels.length ? rels.map(([id, v]) => { const c = CHARACTERS[id]; return `<div class="relrow"><span class="ce">${c.emoji}</span><div><b>${esc(c.name)}</b><small>${esc(c.desc)}</small></div><span class="hearts ${v >= 0 ? 'pos' : 'neg'}">${v >= 0 ? '♥'.repeat(v) || '·' : '✖'.repeat(-v)}${v >= 3 ? ' <i>allié</i>' : ''}</span></div>`; }).join('') : '<p class="hint">Tu n\'as encore croisé aucune légende.</p>'}
+  ${fr.length ? `<h4>Réputation auprès des puissances</h4><ul class="hl">${fr.map(([k, v]) => `<li>${{ marine: '⚓ Marine', gov: '🕊️ Gouvernement', revo: '🐉 Révolution', pirates: '🏴‍☠️ Pirates' }[k] || k} : ${v > 0 ? '+' : ''}${v}</li>`).join('')}</ul>` : ''}
+  <p class="hint">Relation ≥ 3 avec un personnage puissant = allié : bonus de combat.</p>`;
+}
+
+function tJournal(S) {
+  return `<ol class="journal">${[...S.log].reverse().map(l => `<li class="${l.kind}"><small>${l.t}</small> ${esc(l.text)}</li>`).join('')}</ol>`;
+}
+
+// ───────────── Panthéon, badges, défi, duel, histoire ─────────────
+function vPantheon() {
+  const P = store.get('pantheon', []);
+  return `${backBar('🏛️ Panthéon')}<div class="page">
+    ${P.length ? P.map((p, i) => `<details class="card pan"><summary><span class="g">${p.grade}</span><span class="pe">${p.emoji}</span><div><b>${esc(p.name)}</b><small>${esc(p.faction)} · ${esc(p.rank)} · ${esc(p.level)} · ${p.bounty ? G.fmtPrime(p.bounty) : '—'}</small><em>${esc(p.epitaph)}</em></div><span class="sc">#${i + 1}<small>${p.score}</small></span></summary>
+      <textarea class="share" readonly rows="8">${esc(p.share)}</textarea><button class="btn sm" data-act="copytxt" data-arg="${i}">📋 Copier</button></details>`).join('') : '<div class="card"><p>Ton Panthéon est vide. Va écrire ta légende !</p></div>'}
+  </div>`;
+}
+
+function vBadges() {
+  const got = store.get('badges', []);
+  return `${backBar('🎖️ Quêtes & badges')}<div class="page"><p class="hint center">${got.length}/${BADGES.length} accomplies</p>
+    <div class="badges">${BADGES.map(b => `<div class="badge ${got.includes(b.id) ? 'on' : ''}"><span>${got.includes(b.id) ? b.emoji : '❔'}</span><b>${esc(b.name)}</b><small>${esc(b.desc)}</small></div>`).join('')}</div></div>`;
+}
+
+function vDaily() {
+  const date = G.todayStr();
+  const d = G.dailySetup(date);
+  const done = store.get('daily.' + date, null);
+  const goal = DAILY_GOALS.find(g => g.id === d.goal);
+  return `${backBar('📅 Défi du jour')}<div class="page"><div class="card">
+    <h3>Défi du ${date}</h3>
+    <p class="goal">🎯 Objectif : <b>${esc(goal.label)}</b></p>
+    <div class="kv">
+      <div><small>Faction</small><b>${FACTIONS[d.faction].emoji} ${FACTIONS[d.faction].name}</b></div>
+      <div><small>Rôle</small><b>${ROLES[d.role].emoji} ${ROLES[d.role].name}</b></div>
+      <div><small>Départ</small><b>${esc(ISLANDS[d.island].name)} (${SEAS[ISLANDS[d.island].sea].name})</b></div>
+      <div><small>Époque</small><b>${ERAS[d.era].name}</b></div>
+    </div>
+    <div class="statlist">${STAT_KEYS.map(k => `<div class="statrow"><span>${STATS[k].emoji} ${STATS[k].name}</span><b>${d.stats[k]}</b><span class="bar"><i style="width:${d.stats[k] * 10}%"></i></span></div>`).join('')}</div>
+    <p class="hint">Même profil et même graine pour tout le monde aujourd'hui. Partie rapide.</p>
+    ${done ? `<div class="challenge ${done.ok ? 'ok' : 'ko'}">${done.ok ? '✅ Réussi' : '❌ Raté'} — ${esc(done.epitaph)} (note ${done.grade})</div><textarea class="share" readonly rows="7">${esc(done.share)}</textarea><button class="btn" data-act="copydaily">📋 Copier mon résultat</button>` : ''}
+    <div class="row"><input class="inp" maxlength="24" placeholder="Ton nom de pirate" value="${esc(U.dailyName || '')}" data-input="dailyName"></div>
+    <button class="btn big gold" data-act="startDaily">${done ? '🔁 Rejouer (non compté)' : '⛵ Relever le défi'}</button>
+  </div></div>`;
+}
+
+function vDuel() {
+  return `${backBar('⚔️ Duel entre amis')}<div class="page">
+    <div class="card"><h3>Créer un duel</h3><p>Crée un personnage, lance la partie : un code s'affiche. Envoie-le à tes amis, ils partiront du même profil et de la même graine. Comparez vos destins à la fin !</p>
+      <button class="btn big gold" data-act="newduel">🧭 Créer mon profil de duel</button></div>
+    <div class="card"><h3>Rejoindre un duel</h3>
+      <div class="row"><input class="inp" placeholder="Code (OP-...)" value="${esc(U.duelCode || '')}" data-input="duelCode"></div>
+      <button class="btn big" data-act="joinduel">⚔️ Rejoindre</button></div>
+  </div>`;
+}
+
+function vStory() {
+  const done = store.get('legends', {});
+  return `${backBar('📖 Mode Histoire')}<div class="page"><p class="hint center">Revis la carrière d'une légende, avec son profil d'origine. Feras-tu mieux ?</p>
+    ${LEGENDS.map(l => `<div class="card legend">
+      <div class="lh"><span class="pe">${l.emoji}</span><div><b>${esc(l.name)}</b><small>${FACTIONS[l.faction].emoji} ${FACTIONS[l.faction].name} · ${esc(ISLANDS[l.island].name)} · ${ERAS[l.era].name}</small></div>${done[l.id] ? '<span class="ok">✅</span>' : ''}</div>
+      <p class="story">${esc(l.intro)}</p>
+      <p class="hint">Canon : ${esc(l.canon)}</p>
+      <p class="goal">🎯 Fais mieux : <b>${esc(l.target.label)}</b></p>
+      <div class="row gap"><select class="inp sm" data-input="storyLen"><option value="rapide" ${U.storyLen !== 'saga' ? 'selected' : ''}>Rapide</option><option value="saga" ${U.storyLen === 'saga' ? 'selected' : ''}>Saga</option></select>
+      <button class="btn gold grow" data-act="startStory" data-arg="${l.id}">Revivre cette histoire</button></div>
+    </div>`).join('')}</div>`;
+}
+
+// ───────────── actions ─────────────
+function save() {
+  if (U.S && U.S.phase !== 'end') store.set('save', U.S);
+}
+
+function startGame(opts) {
+  U.S = G.newGame(opts);
+  U.screen = 'game'; U.modal = null; U.sub = null; U.posterUrl = null; U.saved = false; U.newBadges = [];
+  save();
+  render();
+  window.scrollTo(0, 0);
+}
+
+function onEnd() {
+  const S = U.S;
+  if (S.phase !== 'end' || U.saved) return;
+  U.saved = true;
+  store.del('save');
+  const E = S.ending;
+  const P = store.get('pantheon', []);
+  P.push({ name: S.hero.name, emoji: S.hero.emoji, faction: FACTIONS[S.hero.faction].name, rank: E.rank, level: E.level.name, bounty: S.hero.bounty, epitaph: E.epitaph, grade: E.grade, score: E.score, share: G.shareText(S), date: Date.now(), mode: S.mode });
+  P.sort((a, b) => b.score - a.score);
+  store.set('pantheon', P.slice(0, 30));
+  const got = new Set(store.get('badges', []));
+  U.newBadges = E.badges.filter(b => !got.has(b));
+  E.badges.forEach(b => got.add(b));
+  store.set('badges', [...got]);
+  if (S.daily && !store.get('daily.' + S.daily.date, null) && !S.daily.replay) store.set('daily.' + S.daily.date, { ok: S.challengeOk, epitaph: E.epitaph, grade: E.grade, share: G.shareText(S) });
+  if (S.legend && S.challengeOk) { const L = store.get('legends', {}); L[S.legend] = true; store.set('legends', L); }
+}
+
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); toast('Copié ! 📋'); }
+  catch { toast('Copie impossible : sélectionne le texte à la main.'); }
+}
+
+function act(name, el) {
+  const arg = el.dataset.arg, k = el.dataset.k;
+  const S = U.S;
+  switch (name) {
+    case 'home': save(); U.screen = 'home'; U.modal = null; U.sub = null; break;
+    case 'go': U.screen = arg; break;
+    case 'new': U.form = defaultForm('career'); U.screen = 'create'; break;
+    case 'resume': U.S = store.get('save', null); if (U.S) { U.screen = 'game'; U.sub = null; U.posterUrl = null; U.saved = false; } break;
+    case 'toggleAnim': U.anim = el.checked; store.set('anim', U.anim); return;
+    case 'f': {
+      const f = U.form;
+      f[k] = arg;
+      if (k === 'faction') { if (arg === 'chevalier') { f.sea = 'redline'; f.island = 'marygeoise'; } else if (f.sea === 'redline') { f.sea = 'east'; f.island = 'fuchsia'; } }
+      if (k === 'sea') { f.island = START_ISLANDS[arg][0]; }
+      break;
+    }
+    case 'stat': { const f = U.form; f.stats[k] = Math.max(1, Math.min(10, f.stats[k] + +arg)); break; }
+    case 'launch': {
+      const f = U.form;
+      const o = { mode: f.mode, length: f.length, era: f.era, name: f.name.trim() || 'Sans-Nom', emoji: f.emoji, faction: f.faction, role: f.role, island: f.island, stats: { ...f.stats }, shipName: f.shipName.trim() || undefined, age: +f.age || 17 };
+      if (f.mode === 'duel') {
+        o.seed = f.seed ?? Math.floor(Math.random() * 2 ** 31);
+        o.duelCode = G.duelEncode({ seed: o.seed, faction: o.faction, role: o.role, island: o.island, era: o.era, length: o.length, stats: o.stats });
+      }
+      startGame(o);
+      if (o.duelCode) { U.modal = 'duelcode'; render(); }
+      return;
+    }
+    case 'exam': U.modal = 'exam'; U.tab = arg || U.tab || 'profil'; break;
+    case 'menu': U.modal = 'menu'; break;
+    case 'journal': U.modal = 'exam'; U.tab = 'journal'; break;
+    case 'tab': U.tab = arg; break;
+    case 'closemodal': U.modal = null; break;
+    case 'retire': U.modal = 'confirmRetire'; break;
+    case 'retireYes': U.modal = null; G.finish(S, 'retire'); onEnd(); break;
+    case 'choose': {
+      if (!S || S.phase !== 'event') return;
+      G.resolveChoice(S, +arg);
+      save(); break;
+    }
+    case 'continue':
+      G.afterResult(S);
+      if (S.phase === 'end') onEnd();
+      save(); window.scrollTo(0, 0); break;
+    case 'action': {
+      if (S.actionsLeft <= 0) return;
+      if (arg === 'train') U.sub = { kind: 'train' };
+      else if (arg === 'tavern') U.sub = { kind: 'tavern', cands: G.tavernCandidates(S) };
+      else if (arg === 'market') U.sub = { kind: 'market', shop: G.genShop(S), bought: [] };
+      else if (arg === 'ship') U.sub = { kind: 'ship' };
+      else if (arg === 'explore') {
+        if (!G.startExplore(S)) U.sub = { kind: 'done', emoji: '🗺️', title: 'Exploration', text: 'Tu fais le tour de l\'île. Rien de spécial... à part une belle vue.', chips: [] };
+      } else {
+        const titles = { rest: ['🍖', 'Festin et repos'], report: ['📋', 'Rapport'], news: ['📰', 'Le journal'], raid: ['💥', 'Attaque de la base'] };
+        const r = G.doAction(S, arg);
+        U.sub = { kind: 'done', emoji: titles[arg][0], title: titles[arg][1], text: r.text, chips: r.chips };
+        if (S.pendingEnd) { G.finish(S, S.pendingEnd.kind, S.pendingEnd.cause); U.sub = null; onEnd(); }
+      }
+      save(); break;
+    }
+    case 'train': { const r = G.doAction(S, 'train', arg); U.sub = { kind: 'done', emoji: '🏋️', title: 'Entraînement', text: r.text, chips: r.chips }; save(); break; }
+    case 'hire': { const c = U.sub.cands[+arg]; const chips = G.buy(S, 'recruit', c); if (!chips) return; S.actionsLeft--; U.sub = { kind: 'done', emoji: '🍺', title: 'Taverne', text: `${c.name} trinque avec toi et pose son sac à bord.`, chips }; save(); break; }
+    case 'convince': { const c = U.sub.cands[+arg]; const r = G.convinceRecruit(S, c); S.actionsLeft--; U.sub = { kind: 'done', emoji: '🍺', title: 'Taverne', text: r.ok ? `Ton discours fait mouche. ${c.name} te suit !` : `${c.name} hausse les épaules et retourne à sa chope.`, chips: r.chips }; save(); break; }
+    case 'buy': {
+      let chips;
+      if (k === 'fruit') { chips = G.buy(S, 'fruit', U.sub.shop.fruits[+arg]); if (chips) U.sub.bought.push('f' + arg); }
+      else if (k === 'weapon') { chips = G.buy(S, 'weapon', U.sub.shop.weapons[+arg]); if (chips) U.sub.bought.push('w' + arg); }
+      else chips = G.buy(S, k);
+      if (chips) toast(chips.map(c => c.t).join(' · ') || 'Fait');
+      save(); break;
+    }
+    case 'subfinish': S.actionsLeft--; U.sub = null; save(); break;
+    case 'subcancel': U.sub = null; break;
+    case 'subclose': U.sub = null; break;
+    case 'leave': U.sub = null; G.leaveIsland(S); if (S.phase === 'end') onEnd(); save(); window.scrollTo(0, 0); break;
+    case 'sail': if (G.chooseDestination(S, arg)) { save(); } break;
+    case 'eat': { const chips = G.eatFruit(S, +arg); toast(chips.map(c => c.t).join(' · ')); save(); break; }
+    case 'give': { const sel = document.getElementById('give' + arg); const chips = G.giveFruit(S, +arg, +(sel?.value || 0)); toast(chips.map(c => c.t).join(' · ')); save(); break; }
+    case 'sellfruit': { const chips = G.sellFruit(S, +arg); toast(chips.map(c => c.t).join(' · ')); save(); break; }
+    case 'equip': G.equipWeapon(S, +arg); save(); break;
+    case 'sellweapon': { const chips = G.sellWeapon(S, +arg); toast(chips.map(c => c.t).join(' · ')); save(); break; }
+    case 'copy': return copy(G.shareText(S));
+    case 'copytxt': return copy(store.get('pantheon', [])[+arg]?.share || '');
+    case 'copydaily': return copy(store.get('daily.' + G.todayStr(), {}).share || '');
+    case 'tweet': window.open('https://x.com/intent/post?text=' + encodeURIComponent(G.shareText(S)), '_blank', 'noopener'); return;
+    case 'sharenative': {
+      (async () => {
+        try {
+          const blob = await posterBlob(S);
+          const file = new File([blob], 'destiny-one-piece.png', { type: 'image/png' });
+          if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], text: G.shareText(S) });
+          else if (navigator.share) await navigator.share({ text: G.shareText(S) });
+          else copy(G.shareText(S));
+        } catch { /* partage annulé */ }
+      })();
+      return;
+    }
+    case 'dlposter': {
+      (async () => {
+        const c = await drawPoster(S);
+        const a = document.createElement('a');
+        a.href = c.toDataURL('image/png'); a.download = `wanted-${S.hero.name.replace(/\W+/g, '_')}.png`; a.click();
+      })();
+      return;
+    }
+    case 'replay': {
+      if (S.legend) { startStoryGame(S.legend, S.length); return; }
+      if (S.daily) { startDailyGame(true); return; }
+      U.form = defaultForm(S.mode === 'duel' ? 'duel' : 'career'); U.screen = 'create'; break;
+    }
+    case 'startDaily': startDailyGame(!!store.get('daily.' + G.todayStr(), null)); return;
+    case 'newduel': U.form = defaultForm('duel'); U.screen = 'create'; break;
+    case 'joinduel': {
+      const d = G.duelDecode(U.duelCode || '');
+      if (!d) { toast('Code invalide'); return; }
+      U.form = { ...defaultForm('duel'), ...d, sea: ISLANDS[d.island].sea, locked: true };
+      U.screen = 'create'; break;
+    }
+    case 'startStory': startStoryGame(arg, U.storyLen || 'rapide'); return;
+    default: return;
+  }
+  render();
+}
+
+function startDailyGame(replay) {
+  const d = G.dailySetup(G.todayStr());
+  startGame({ mode: 'daily', length: 'rapide', era: d.era, seed: d.seed, name: (U.dailyName || '').trim() || 'Défieur du jour', emoji: '🎯', faction: d.faction, role: d.role, island: d.island, stats: d.stats, daily: { date: d.date, goal: d.goal, replay } });
+}
+
+function startStoryGame(id, length) {
+  const L = LEGENDS.find(l => l.id === id);
+  startGame({ mode: 'story', length, era: L.era, name: L.name, emoji: L.emoji, faction: L.faction, role: L.role, island: L.island, stats: { ...L.stats }, fruit: L.fruit, weapon: L.weapon, legend: L.id, roi: !!L.roi, age: L.age });
+}
+
+// ───────────── écouteurs ─────────────
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-act]');
+  if (!t) return;
+  if (t.classList.contains('modal') && e.target !== t) return;
+  if (t.dataset.act === 'toggleAnim') return act('toggleAnim', t);
+  if (t.dataset.act === 'copyduel') return copy(U.S.duelCode);
+  if (t.disabled) return;
+  act(t.dataset.act, t);
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.act === 'toggleAnim') return act('toggleAnim', t);
+  const k = t.dataset.input;
+  if (!k) return;
+  if (k === 'island') { U.form.island = t.value; render(); }
+  else if (k === 'storyLen') U.storyLen = t.value;
+  else if (k === 'age') U.form.age = Math.max(10, Math.min(60, +t.value || 17));
+});
+document.addEventListener('input', e => {
+  const k = e.target.dataset.input;
+  if (!k) return;
+  if (k === 'name' || k === 'shipName') U.form[k] = e.target.value;
+  if (k === 'dailyName') U.dailyName = e.target.value;
+  if (k === 'duelCode') U.duelCode = e.target.value;
+});
+document.addEventListener('keydown', e => {
+  if (U.screen !== 'game' || U.modal || !U.S || e.target.matches('input, textarea, select')) return;
+  const S = U.S;
+  const n = parseInt(e.key, 10);
+  if (S.phase === 'event' && n >= 1 && n <= 9) {
+    const chs = G.choicesOf(S, G.curEvent(S));
+    const c = chs[n - 1];
+    if (c && !c.locked) { G.resolveChoice(S, c.i); save(); render(); }
+  } else if ((e.key === 'Enter' || e.key === ' ') && S.phase === 'result') { e.preventDefault(); act('continue', e.target); }
+});
+
+// démarrage
+render();
