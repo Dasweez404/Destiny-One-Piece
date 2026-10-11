@@ -13,7 +13,9 @@ Site statique, sans build : ouvrir `index.html` via un serveur (`python3 -m http
 - **Mers** : les 4 Blues, Paradise, Calm Belt, Red Line, Nouveau Monde, Laugh Tale. Départ possible directement sur Grand Line ou dans le Nouveau Monde.
 - **~60 îles canon**, des arcs majeurs aux lieux à peine mentionnés (Oykot, Tequila Wolf, Swallow, Minion, God Valley, Baterilla, Sorbet, Food Valten, Lodestar...).
 - **Factions** : pirate indépendant, sous un Empereur, Corsaire, Empereur, Révolution, chasseur de primes, Marine, Gouvernement mondial, Chevalier Divin. Changements de camp aux moments clés.
-- **Progression** : caractéristiques, fruits du démon (acheter, refuser, donner à l'équipage, SMILE), Haki (observation, armement, rois), armes, navire, équipage (10 max puis flotte), alliés canon.
+- **Races** : Humain, Homme-poisson, Sirène/Triton, Mink, Géant, Longs-Bras, Longues-Jambes, Trois-Yeux, Lunarien, Tontatta (avantages, inconvénients et événements propres ; imposée dans le Défi du jour).
+- **Vie rangée** : au bord de la mort, choisir de raccrocher plutôt que de risquer de mourir (score réduit).
+- **Progression** : caractéristiques, fruits du démon canon et inédits (acheter, refuser, donner à l'équipage, SMILE), Haki (observation, armement, rois), armes, navire, équipage (10 max puis flotte), alliés canon.
 - **Niveau** : Civil → Menace locale → Rookie → Supernova → Corsaire → YC3 → YC2 → YC1 → Yonko/Amiral → RDP.
 - **Objectif** : 4 Poneglyphes routiers, un lecteur, Laugh Tale.
 - **Voyages en 3D** (Three.js, intégré dans `js/vendor`) : un navire vers un diorama low-poly de l'île.

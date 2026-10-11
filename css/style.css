@@ -355,3 +355,9 @@ label .inp.sm { margin-left: 8px; width: 80px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+.racebox { background: rgba(255, 255, 255, .5); border-radius: 12px; padding: 8px 12px; margin-top: 8px; }
+.racebox p { margin: 0 0 4px; }
+.pc { list-style: none; padding: 0; margin: 0; font-size: .9em; }
+.pc li { margin: 2px 0; }
+.pc .con { color: #8a2a17; }

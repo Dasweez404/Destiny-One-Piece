@@ -991,3 +991,119 @@ export const SEA_EVENTS = [
     ],
   },
 ];
+
+// ═══════════════ RACES ═══════════════
+const isR = (...r) => S => r.includes(S.race);
+export const RACE_EVENTS = [
+  {
+    id: 'r_slavers', emoji: '⛓️', title: 'Des chasseurs d\'esclaves',
+    w: { test: S => ['sirene', 'troisyeux', 'lunarien', 'longbras', 'longjambes'].includes(S.race) && S.tier <= 2, weight: 5 },
+    x: S => `Trois hommes aux sourires trop larges te suivent depuis le port. Sur leur manteau : le logo d'une maison de ventes de Sabaody. Pour eux, un ${S.raceName} vaut une fortune.`,
+    ch: [
+      { t: 'Leur tendre une embuscade', s: 'combat', d: 0,
+        ok: { x: 'Ils finissent ligotés dans leurs propres filets. Tu libères deux autres prisonniers dans leur cale.', e: { glory: 3, rep: 3, recruit: true } },
+        ko: { x: 'Un filet en granit marin. Tu te débats, tu mords, tu t\'échappes de justesse.', e: { hp: -30 } } },
+      { t: 'Te fondre dans la foule', s: 'vitesse', d: 2,
+        ok: { x: 'Tu les sèmes dans les ruelles.', e: {} },
+        ko: { x: 'Ils te rattrapent. Ton équipage te récupère au prix d\'une bagarre et de beaucoup d\'argent.', e: { hp: -20, berrys: S => -S.tierPrime() / 4 } } },
+      { t: 'Les dénoncer à la Marine', s: 'charisme', d: 4,
+        ok: { x: 'Un Marine honnête existe. Il les arrête.', e: { frel: { marine: 1 } } },
+        ko: { x: 'Le Marine prend leur argent et détourne les yeux.', e: { morale: -10 } } },
+    ],
+  },
+  {
+    id: 'r_discrimination', emoji: '🦈', title: 'Pas de poissons ici',
+    w: { test: S => S.race === 'hommepoisson' && S.loc !== 'fishman', weight: 5 },
+    x: 'À l\'entrée de la taverne, une pancarte : « Interdit aux hommes-poissons ». Le patron te regarde comme un monstre. Des clients ricanent.',
+    ch: [
+      { t: 'Défoncer la pancarte', s: 'combat', d: -2,
+        ok: { x: 'La pancarte vole, la porte aussi. Personne ne rit plus. Les plus jeunes te regardent avec admiration.', e: { glory: 2, rep: -2 } },
+        ko: { x: 'Toute la taverne te tombe dessus. Tu repars avec des bleus et beaucoup de colère.', e: { hp: -20, morale: -10 } } },
+      { t: 'Rester calme, comme Otohime', s: 'volonte', d: 2,
+        ok: { x: 'Tu entres quand même et paies ta tournée. Un vieux pêcheur vient s\'asseoir avec toi. Petit à petit.', e: { stats: { volonte: 1 }, rep: 4 } },
+        ko: { x: 'Tu pars. Ça te ronge.', e: { morale: -15 } } },
+    ],
+  },
+  {
+    id: 'r_sulong', emoji: '🌕', title: 'La pleine lune',
+    w: { test: S => S.race === 'mink' && S.tier >= 2, weight: 4 },
+    x: 'Le ciel se dégage. La lune est pleine. Ton poil blanchit, tes yeux s\'allument : la forme Sulong. Une puissance immense... et un contrôle fragile.',
+    ch: [
+      { t: 'Maîtriser la Sulong', s: 'volonte', d: 4,
+        ok: { x: 'Tu gardes le contrôle. Ta force a décuplé et tu t\'en souviendras.', e: { stats: { force: 2, vitesse: 1 }, hl: 'a maîtrisé la forme Sulong' } },
+        ko: { x: 'Tu perds le contrôle et tu ravages le port. Ton équipage t\'arrose d\'eau de mer pour te calmer.', e: { hp: -20, loyalty: -10, shipHp: -20 } } },
+      { t: 'Se cacher dans la cale jusqu\'au matin', r: { x: 'Prudent. Rien ne se passe. Mais tu entends la lune t\'appeler.', e: {} } },
+    ],
+  },
+  {
+    id: 'r_giant_ship', emoji: '🗿', title: 'Trop grand pour ce navire',
+    w: { test: S => S.race === 'geant' && S.ship.tier < 3, weight: 6 },
+    x: S => `${S.ship.name} gîte dangereusement à chaque fois que tu bouges. Tu dors à moitié dans l'eau, les jambes par-dessus bord. L'équipage n'ose rien dire.`,
+    ch: [
+      { t: 'Ramer toi-même pour aller plus vite', s: 'force', d: -4,
+        ok: { x: 'Le navire file comme une flèche. L\'équipage applaudit.', e: { stats: { force: 1 }, morale: 10 } },
+        ko: { x: 'La rame casse. Et un morceau de coque.', e: { shipHp: -25 } } },
+      { t: 'Promettre un plus grand navire', r: { x: 'L\'équipage hoche la tête. Il faudra des berrys.', e: { morale: -5 } } },
+    ],
+  },
+  {
+    id: 'r_lunarien', emoji: '🔥', title: 'Les yeux du Gouvernement',
+    w: { test: S => S.race === 'lunarien', weight: 4 },
+    x: 'Un homme en costume blanc te fixe depuis le quai. Il parle à un escargophone. Tu as entendu le mot « Lunarien ». Le CP sait que tu existes.',
+    ch: [
+      { t: 'L\'éliminer avant qu\'il ne parle', s: 'combat', d: 4,
+        ok: { x: 'L\'agent ne fera pas son rapport. Mais d\'autres viendront.', e: { glory: 3, frel: { gov: -1 } } },
+        ko: { x: 'Rokushiki. Il est fort. Ta flamme te sauve de justesse.', e: { hp: -35 } } },
+      { t: 'Allumer ta flamme et l\'effrayer', s: 'charisme', d: 2,
+        ok: { x: 'Il lâche son escargophone et s\'enfuit. Le port entier a vu tes ailes noires.', e: { glory: 2, hl: 'a déployé ses ailes de Lunarien en public' } },
+        ko: { x: 'Ta flamme s\'éteint au pire moment. Il éclate de rire et prend une photo.', e: { bounty: 30_000_000 } } },
+      { t: 'Lever l\'ancre immédiatement', r: { x: 'Tu fuis. Une fois de plus.', e: { morale: -8 } } },
+    ],
+  },
+  {
+    id: 'r_tontatta', emoji: '🧚', title: 'Un marchand très convaincant',
+    w: { test: S => S.race === 'tontatta', weight: 5 },
+    x: 'Un marchand te jure que ce caillou gris est « un œuf de Roi des Mers légendaire qui exauce les vœux ». Il ne coûte que toutes tes économies. Ça a l\'air vrai.',
+    ch: [
+      { t: 'L\'acheter, évidemment !', r: { x: 'C\'était un caillou. Tu l\'as appelé Gérard. Tu l\'aimes quand même.', e: { berrys: S => -Math.min(S.hero.berrys * 0.5, S.tierPrime()), morale: 10, hl: 'a acheté un caillou nommé Gérard' } } },
+      { t: 'Demander l\'avis de l\'équipage', s: 'intel', d: 0,
+        ok: { x: 'Ton équipage t\'a sauvé de l\'arnaque. Tu es un peu vexé.', e: { loyalty: 5 } },
+        ko: { x: 'Ton équipage n\'était pas là. Tu l\'as acheté. Gérard est ton ami maintenant.', e: { berrys: S => -Math.min(S.hero.berrys * 0.5, S.tierPrime()) } } },
+    ],
+  },
+  {
+    id: 'r_troisyeux', emoji: '👁️', title: 'La voix de toutes choses',
+    w: { test: S => S.race === 'troisyeux' && S.pone.length >= 1 && !S.flags.can_read_pone, weight: 8 },
+    x: 'En touchant le relevé du Poneglyphe, ton troisième œil s\'ouvre tout seul. Les symboles se mettent à... parler. Comme une voix très ancienne.',
+    ch: [
+      { t: 'Écouter la voix', s: 'volonte', d: 2,
+        ok: { x: 'Tu comprends. Tu sais lire les Poneglyphes. Comme ton peuple l\'a toujours pu, paraît-il.', e: { flag: 'can_read_pone', haki: { obs: 1 }, hl: 'a lu un Poneglyphe grâce à son troisième œil' } },
+        ko: { x: 'La voix est trop forte. Tu t\'évanouis. Il faudra réessayer.', e: { hp: -15 } } },
+      { t: 'Refermer l\'œil, ça fait peur', r: { x: 'Tu remets ta frange. Pour l\'instant.', e: {} } },
+    ],
+  },
+  {
+    id: 'r_sirene_seaking', emoji: '🐉', title: 'Un Roi des Mers curieux',
+    w: { ctx: 'sea', test: S => S.race === 'sirene' || S.race === 'hommepoisson', weight: 4 },
+    x: 'Un Roi des Mers gigantesque remonte à côté du navire. L\'équipage panique. Toi, tu plonges : sous l\'eau, tu te sens chez toi.',
+    ch: [
+      { t: 'Lui parler', s: 'charisme', d: 6,
+        ok: { x: 'Il t\'écoute. Il guide ton navire à travers les courants les plus rapides.', e: { stats: { navigation: 2 }, hl: 'a parlé à un Roi des Mers' } },
+        ko: { x: 'Il ne comprend pas. Il te renvoie sur le pont d\'un coup de queue.', e: { hp: -20 } } },
+      { t: 'L\'éloigner du navire en nageant', s: 'vitesse', d: 0,
+        ok: { x: 'Il te suit, puis se lasse. Le navire est sauf.', e: { loyalty: 5 } },
+        ko: { x: 'Il mord la coque au passage.', e: { shipHp: -30 } } },
+    ],
+  },
+  {
+    id: 'r_elbaf_home', pri: 15, emoji: '🪓', title: 'Retour au pays',
+    w: { isl: ['elbaf'], test: S => S.race === 'geant' },
+    x: 'Les guerriers d\'Elbaf te reconnaissent comme l\'un des leurs. Ici, personne ne te trouve trop grand.',
+    ch: [
+      { t: 'Festoyer avec les guerriers', r: { x: 'Un festin de géant. Tu te sens enfin à ta taille.', e: { hp: 200, morale: 30, rel: { dorry: 2 }, flag: 'elbaf_invite' } } },
+      { t: 'Défier un champion d\'Elbaf', s: 'combat', d: 4,
+        ok: { x: 'Tu as gagné l\'honneur des géants. Ils te confieront tout.', e: { glory: 6, flag: 'elbaf_invite', rel: { dorry: 3 } } },
+        ko: { x: 'Tu perds avec honneur. C\'est ce qui compte ici.', e: { hp: -30, flag: 'elbaf_invite' } } },
+    ],
+  },
+];

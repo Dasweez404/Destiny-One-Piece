@@ -4,12 +4,13 @@ import { FACTIONS, LEVELS, levelOf, YONKO, PROGRESS } from './data/factions.js';
 import { FRUITS, WEAPONS, SHIPS, ROLES, STATS, ITEMS, fruitPower, weaponPower, fruitPrice, weaponPrice } from './data/items.js';
 import { CHARACTERS, charsAt } from './data/characters.js';
 import { ISLAND_EVENTS } from './data/events_islands.js';
-import { PONE_EVENTS, FINAL_EVENTS, PRISON_EVENTS, FACTION_EVENTS, CREW_EVENTS, GENERIC_EVENTS, SEA_EVENTS } from './data/events_main.js';
+import { PONE_EVENTS, FINAL_EVENTS, PRISON_EVENTS, FACTION_EVENTS, CREW_EVENTS, GENERIC_EVENTS, SEA_EVENTS, RACE_EVENTS } from './data/events_main.js';
+import { RACES, raceOf } from './data/races.js';
 import { CREW_FIRST, CREW_EPI, CREW_TRAITS, LEGENDS, STORY_FRUITS, CANON_CAREERS, BADGES, DAILY_GOALS } from './data/meta.js';
 
 Object.assign(FRUITS, Object.fromEntries(Object.entries(STORY_FRUITS).map(([id, f]) => [id, { ...f, id }])));
 
-export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS];
+export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS];
 export const EVENTS = Object.fromEntries(ALL_EVENTS.map(e => [e.id, e]));
 
 export const LENGTHS = {
@@ -73,6 +74,7 @@ export function combatRating(S) {
   r += Math.min(8, allies * 2);
   r += Math.min(8, S.fleet.reduce((a, f) => a + f.power, 0) / 2);
   if (h.faction === 'vassal') r += 3;
+  r += raceOf(S).combat || 0;
   r *= 0.9 + S.morale / 500;
   return Math.round(r * 10) / 10;
 }
@@ -88,6 +90,8 @@ export function statRating(S, stat) {
   if (stat === 'charisme') r += h.haki.roi * 4 + Math.min(5, Math.max(0, S.rep) / 20);
   if (stat === 'volonte') r += h.haki.roi * 2;
   if (stat === 'navigation' && S.inventory.items.includes('eternal_pose')) r += 2;
+  const race = raceOf(S);
+  if (race.mod) r += race.mod(S, stat, { th: ISLANDS[S.loc]?.th?.k }) * 1.6;
   return r;
 }
 
@@ -95,7 +99,7 @@ const val = (v, V) => (typeof v === 'function' ? v(V) : v);
 
 export function checkChance(S, ch) {
   const V = view(S);
-  if (ch.p) return Math.max(0, Math.min(1, ch.p(V)));
+  if (ch.p) return Math.max(0, Math.min(1, typeof ch.p === 'number' ? ch.p : ch.p(V)));
   const stat = val(ch.s, V);
   if (!stat) return 1;
   const tier = tierOf(S);
@@ -140,6 +144,8 @@ const VIEW = {
   lowLoyalCrew: S => () => [...S.crew].filter(c => !c.isCaptain).sort((a, b) => a.loyalty - b.loyalty)[0] || { name: 'Quelqu\'un' },
   rankName: S => () => rankName(S),
   canRead: S => canReadPone(S),
+  race: S => S.hero.race || 'humain',
+  raceName: S => raceOf(S).name,
 };
 export const view = S => new Proxy(S, { get: (t, k) => (k in VIEW ? VIEW[k](t) : t[k]) });
 
@@ -166,16 +172,18 @@ export function newGame(o) {
   const fac = o.faction;
   const stats = { ...o.stats };
   const facBonus = { pirate: { volonte: 1, navigation: 1 }, marine: { force: 1, volonte: 1 }, gouv: { vitesse: 1, intel: 1 }, revo: { charisme: 1, volonte: 1 }, chevalier: { charisme: 2 }, chasseur: { force: 1, vitesse: 1 } }[fac] || {};
+  const race = RACES[o.race] || RACES.humain;
   if (!o.legend) {
     for (const [k, v] of Object.entries(facBonus)) stats[k] += v;
     stats[ROLES[o.role].stat] += 2;
   }
+  for (const [k, v] of Object.entries(race.stats)) stats[k] = Math.max(1, stats[k] + v);
   const startTier = SEAS[ISLANDS[o.island].sea].tier;
   const S = {
     v: 1, seed, rng: seed >>> 0, mode: o.mode || 'career', length: o.length || 'rapide', era: o.era || 'pre',
     legend: o.legend || null, daily: o.daily || null, duelCode: o.duelCode || null,
     hero: {
-      name: o.name || 'Sans-Nom', emoji: o.emoji || '🧑', role: o.role, faction: fac, yonko: null,
+      name: o.name || 'Sans-Nom', emoji: o.emoji || '🧑', role: o.role, faction: fac, yonko: null, race: race.id,
       isCaptain: o.role === 'capitaine' || fac !== 'pirate',
       stats, hp: 100, hpMax: 100, fruit: null, haki: { obs: 0, arm: 0, roi: 0 }, roiPotential: false,
       weapon: o.weapon ?? (fac === 'marine' ? 'sabre_rouille' : fac === 'chevalier' ? 'pistolet_silex' : 'baton_bois'),
@@ -198,6 +206,8 @@ export function newGame(o) {
   if (o.fruit) { S.hero.fruit = { id: o.fruit, awakened: false }; }
   S.progress = { east: 0, north: 0, west: 0, south: 0, paradise: 1, calm: 1, redline: 2, nw: 3, laughtale: 8 }[ISLANDS[o.island].sea];
   if (startTier >= 2) S.hero.stats.navigation += 1;
+  if (race.obs) S.hero.haki.obs = race.obs;
+  if (race.hunted) { S.hero.bounty = 50_000_000; S.frel.gov = -3; S.hl.push('était recherché dès la naissance pour être un Lunarien'); }
   log(S, `${S.hero.emoji} ${S.hero.name} commence sa carrière : ${FACTIONS[fac].name}, ${ROLES[o.role].name.toLowerCase()}, à ${ISLANDS[o.island].name}.`, 'start');
   startIsland(S, true);
   return S;
@@ -205,7 +215,7 @@ export function newGame(o) {
 
 export function hpMaxOf(S) {
   const f = fruitOf(S);
-  return 100 + S.hero.stats.volonte * 4 + (f && f.type.startsWith('zoan') ? 25 : 0);
+  return Math.max(40, 100 + S.hero.stats.volonte * 4 + (f && f.type.startsWith('zoan') ? 25 : 0) + (raceOf(S).hp || 0));
 }
 
 export const log = (S, text, kind = 'info') => S.log.push({ t: S.turn, text, kind });
@@ -407,6 +417,8 @@ export function applyEff(S, e = {}, chips = []) {
   }
   if (E.capture) { S.forcedNext = 'impeldown'; S.flags.captured = true; chips.push({ t: '⛓️ Capturé !', k: 'bad' }); S.hl.push('a été capturé et envoyé à Impel Down'); }
   if (E.death) { S.pendingEnd = { kind: 'death', cause: E.death }; }
+  if (E.end === 'rangee') { S.pendingEnd = { kind: 'rangee', cause: 'A choisi une vie bien rangée' }; }
+  if (E.hpSet) { h.hp = E.hpSet; S.deathSaves++; chips.push({ t: `PV ${E.hpSet}`, k: 'info' }); }
   if (E.end === 'prison') { S.pendingEnd = { kind: 'prison', cause: 'Enfermé à vie au Niveau 6 d\'Impel Down' }; }
   postUpdate(S, chips);
   return chips;
@@ -444,10 +456,10 @@ export function changeFaction(S, fac, chips = []) {
 
 export function randomFruit(S, tier) {
   const owned = new Set([S.hero.fruit?.id, ...S.inventory.fruits, ...S.crew.map(c => c.fruit)].filter(Boolean));
-  const pool = Object.values(FRUITS).filter(f => !f.story && !f.canon && f.id !== 'smile' && !owned.has(f.id) && (!tier || f.tier <= tier));
+  const pool = Object.values(FRUITS).filter(f => f.id !== 'smile' && !owned.has(f.id) && (!tier || f.tier <= tier));
   if (!pool.length) return 'smile';
   const t = tier || tierOf(S) + 1;
-  return wpick(S, pool, f => (f.tier <= t ? 3 : 0.6) / (1 + Math.abs(f.tier - t)))?.id;
+  return wpick(S, pool, f => (f.tier <= t ? 3 : 0.6) / (1 + Math.abs(f.tier - t)) * (f.canon ? 0.8 : 1))?.id;
 }
 export function randomWeapon(S, tier) {
   const pool = Object.values(WEAPONS).filter(w => w.tier <= Math.max(1, tier) && w.tier >= Math.max(1, tier - 1));
@@ -562,7 +574,7 @@ function postUpdate(S, chips) {
     const pWill = Math.min(0.35, h.stats.volonte * 0.015) * 0.5 ** S.deathSaves;
     if (doc && chance(S, pDoc)) { h.hp = 15; S.deathSaves++; doc.loyalty = clamp(doc.loyalty + 15, 0, 100); chips.push({ t: `🩺 ${doc.name} t'a sauvé de la mort !`, k: 'epic' }); S.hl.push(`a été ramené d'entre les morts par son médecin ${doc.name}`); }
     else if (chance(S, pWill)) { h.hp = 1; S.deathSaves++; chips.push({ t: '🔥 Tu refuses de mourir !', k: 'epic' }); S.hl.push('a refusé de mourir'); }
-    else S.pendingEnd = { kind: 'death', cause: S.deathCause || 'Mort au combat' };
+    else S.fatal = { cause: S.deathCause || 'Mort au combat' };
   }
 }
 
@@ -618,6 +630,7 @@ export function interp(S, txt) {
 export function afterResult(S) {
   S.result = null;
   if (S.pendingEnd) return finish(S, S.pendingEnd.kind, S.pendingEnd.cause);
+  if (checkFatal(S)) return;
   if (S.progress >= 9) return finish(S, 'onepiece');
   if (S.ctx === 'sea') { S.ctx = null; const dest = S.forcedNext || S.next; S.forcedNext = null; return arrive(S, dest); }
   if (S.forcedNext && (S.forcedNext === 'impeldown' || ISLANDS[S.loc].noNav)) { S.phase = 'nav'; return; }
@@ -899,13 +912,25 @@ export function finish(S, kind, cause) {
   else if (kind === 'onepiece') {
     if (camp === 'chercheur') { title = S.hero.faction === 'revo' ? 'Libérateur du monde' : 'Roi des Pirates'; epitaph = S.flags.ending_reveal ? `A révélé la vérité du Siècle Oublié au monde, à ${age} ans.` : S.flags.ending_secret ? `Roi des Pirates à ${age} ans. N'a jamais dit ce qu'il a trouvé.` : `Roi des Pirates à ${age} ans. A ri, comme Roger.`; }
     else { title = 'Gardien du Siècle Oublié'; epitaph = S.flags.ending_destroy ? `A détruit le One Piece à ${age} ans. Le monde ne saura jamais.` : `A scellé le One Piece à ${age} ans. Im connaît son nom.`; }
+  } else if (kind === 'rangee') {
+    title = 'Une vie bien rangée';
+    const R = [
+      `A quitté la mer à ${age} ans pour ouvrir un bar à ${ISLANDS[S.loc].name}. Ne parle jamais de son passé.`,
+      `S'est retiré à ${age} ans pour élever des chèvres, comme Sengoku.`,
+      `Est devenu pêcheur à ${ISLANDS[h.origin].name} à ${age} ans. Il regarde parfois l'horizon trop longtemps.`,
+      `A ouvert une école de navigation à ${age} ans. Ses élèves ne le croient pas quand il raconte ses aventures.`,
+      `A épousé quelqu'un de bien à ${age} ans et a rangé ${h.weapon ? 'son arme' : 'ses poings'} au grenier.`,
+      `Est devenu cuisinier sur un ferry à ${age} ans. On dit qu'il frappe les clients qui gaspillent.`,
+    ];
+    epitaph = R[Math.floor(rnd(S) * R.length)];
   } else if (kind === 'retire') { title = 'Retraite anticipée'; epitaph = `A raccroché à ${age} ans pour ouvrir un bar à ${ISLANDS[S.loc].name}.`; }
   else { title = S.progress >= 4 ? 'Légende des mers' : 'Fin de l\'aventure'; epitaph = `Sa légende s'arrête à ${age} ans, ${S.progress >= 3 ? 'quelque part dans le Nouveau Monde' : 'loin du One Piece'}.`; }
   // comparaison canon
   const cands = CANON_CAREERS.map(c => ({ c, d: Math.abs(c.p - S.progress) * 1.5 + Math.abs(c.l - S.levelIdx) + (c.camp !== camp ? 4 : 0) + ((c.f === 'revo') !== (h.faction === 'revo') ? 2.5 : 0) }));
   cands.sort((a, b) => a.d - b.d);
   const like = cands[Math.floor(rnd(S) * Math.min(2, cands.length))].c;
-  const score = Math.round(S.progress * 1000 + Math.log10(h.bounty + 1) * 40 + S.levelIdx * 120 + rankIdxOf(S) * 40 + S.crew.length * 15 + S.pone.length * 100 + (kind === 'death' || kind === 'prison' ? 0 : 200));
+  const mult = { death: 0.6, prison: 0.7, rangee: 0.8, retire: 0.9 }[kind] ?? 1;
+  const score = Math.round(mult * (S.progress * 1000 + Math.log10(h.bounty + 1) * 40 + S.levelIdx * 120 + rankIdxOf(S) * 40 + S.crew.length * 15 + S.pone.length * 100 + (kind === 'death' || kind === 'prison' ? 0 : 200)));
   S.ending = { kind, title, cause, epitaph, grade: GRADES[S.progress], score, like, level: lv, rank, progressLabel: require_PROGRESS(camp)[S.progress] };
   // objectifs
   if (S.daily) { const g = DAILY_GOALS.find(g => g.id === S.daily.goal); S.challengeOk = !!g?.test(S); }
@@ -927,7 +952,7 @@ export function shareText(S) {
   const hls = [...new Set(S.hl)].slice(-3);
   const lines = [
     `🏴‍☠️ DESTINY ONE PIECE${S.daily ? ' · Défi du ' + S.daily.date : ''}${S.legend ? ' · Histoire : ' + LEGENDS.find(l => l.id === S.legend).name : ''}`,
-    `${h.emoji} ${h.name} — ${FACTIONS[h.faction].emoji} ${E.rank}`,
+    `${h.emoji} ${h.name} (${raceOf(S).name}) — ${FACTIONS[h.faction].emoji} ${E.rank}`,
     `${E.level.emoji} Niveau ${E.level.name} · 💰 ${h.bounty ? fmtPrime(h.bounty) : 'Pas de prime'}`,
     `🗺️ ${E.progressLabel} (${S.progress}/9) · 🏝️ ${S.visited.length} îles · 👥 ${S.crew.length}`,
     `🍇 ${f} · Haki ${haki}`,
@@ -959,7 +984,8 @@ export function dailySetup(date) {
   const camp = FACTIONS[faction].camp;
   const goals = DAILY_GOALS.filter(g => !g.camp || g.camp === camp);
   const goal = pick(T, goals).id;
-  return { date, faction, sea, island, role, stats, era: pick(T, ['pre', 'post']), length: 'rapide', seed: hashStr('seed-' + date), goal };
+  const race = faction === 'chevalier' || chance(T, 0.45) ? 'humain' : pick(T, Object.keys(RACES).filter(r => r !== 'humain'));
+  return { date, faction, sea, island, role, stats, race, era: pick(T, ['pre', 'post']), length: 'rapide', seed: hashStr('seed-' + date), goal };
 }
 
 const b64e = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -967,14 +993,33 @@ const b64d = s => decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_
 const STAT_KEYS = ['force', 'vitesse', 'intel', 'charisme', 'navigation', 'volonte'];
 
 export function duelEncode(o) {
-  const p = [o.seed.toString(36), o.faction, o.role, o.island, o.era, o.length, STAT_KEYS.map(k => o.stats[k]).join('.')].join('~');
+  const p = [o.seed.toString(36), o.faction, o.role, o.island, o.era, o.length, STAT_KEYS.map(k => o.stats[k]).join('.'), o.race || 'humain'].join('~');
   return 'OP-' + b64e(p);
 }
 export function duelDecode(code) {
   try {
-    const [seed, faction, role, island, era, length, st] = b64d(code.trim().replace(/^OP-/i, '')).split('~');
+    const [seed, faction, role, island, era, length, st, race] = b64d(code.trim().replace(/^OP-/i, '')).split('~');
     const v = st.split('.').map(Number);
     if (!FACTIONS[faction] || !ROLES[role] || !ISLANDS[island] || !LENGTHS[length] || v.length !== 6) return null;
-    return { seed: parseInt(seed, 36), faction, role, island, era: era === 'post' ? 'post' : 'pre', length, stats: Object.fromEntries(STAT_KEYS.map((k, i) => [k, v[i]])) };
+    return { seed: parseInt(seed, 36), faction, role, island, era: era === 'post' ? 'post' : 'pre', length, stats: Object.fromEntries(STAT_KEYS.map((k, i) => [k, v[i]])), race: RACES[race] ? race : 'humain' };
   } catch { return null; }
+}
+
+// ───────────── au bord de la mort : mourir ou ranger les voiles ─────────────
+export function checkFatal(S) {
+  if (!S.fatal) return false;
+  const cause = S.fatal.cause;
+  S.fatal = null;
+  const doc = S.crew.some(c => c.role === 'medecin');
+  const p = Math.max(0.08, Math.min(0.6, 0.2 + S.hero.stats.volonte * 0.015 + (doc ? 0.12 : 0)) * 0.75 ** S.deathSaves);
+  S.cur = { gen: {
+    id: 'fatal', emoji: '💀', title: 'Au bord du gouffre',
+    x: `Tu es à terre. Le sang, le sel, le bruit lointain de ton équipage qui crie ton nom. Encore un coup et c'est fini (${cause.toLowerCase()}). Une petite voix te souffle qu'il existe une autre vie : une maison, un jardin, des journées sans canons.`,
+    ch: [
+      { t: 'Ranger les voiles : choisir une vie bien rangée', r: { x: 'Tu lâches prise. Ton équipage te ramène à terre. Tu ne reprendras jamais la mer. Ta légende s\'arrête là, mais toi, tu vis.', e: { end: 'rangee' } } },
+      { t: 'Se relever une dernière fois', p, ok: { x: 'Tu te relèves. Personne ne comprend comment. Toi non plus. Mais tu es debout.', e: { hpSet: 15, hl: 's\'est relevé alors qu\'il était déjà mort' } }, ko: { x: 'Tu essaies. Ton corps refuse.', e: { death: cause } } },
+    ],
+  } };
+  S.phase = 'event';
+  return true;
 }

@@ -5,6 +5,7 @@ import { FACTIONS, LEVELS, PROGRESS, ERAS, YONKO, CAMPS } from './data/factions.
 import { FRUITS, FRUIT_TYPES, WEAPONS, WEAPON_TYPES, SHIPS, ROLES, STATS, ITEMS, fruitPrice, weaponPrice } from './data/items.js';
 import { CHARACTERS } from './data/characters.js';
 import { LEGENDS, BADGES, DAILY_GOALS } from './data/meta.js';
+import { RACES } from './data/races.js';
 import { drawPoster, posterBlob } from './share.js';
 
 const app = document.getElementById('app');
@@ -27,7 +28,7 @@ const U = {
 };
 
 function defaultForm(mode = 'career') {
-  return { mode, length: 'rapide', era: 'pre', name: '', emoji: '🧑', faction: 'pirate', role: 'capitaine', sea: 'east', island: 'fuchsia', stats: Object.fromEntries(STAT_KEYS.map(k => [k, 3])), shipName: '', age: 17 };
+  return { mode, length: 'rapide', era: 'pre', name: '', emoji: '🧑', race: 'humain', faction: 'pirate', role: 'capitaine', sea: 'east', island: 'fuchsia', stats: Object.fromEntries(STAT_KEYS.map(k => [k, 3])), shipName: '', age: 17 };
 }
 
 // ───────────── rendu ─────────────
@@ -106,10 +107,12 @@ function vRules() {
     <p><b>Chercheurs</b> (pirates, révolutionnaires, chasseurs, Corsaires, Empereurs) : trouver le One Piece. <b>Gardiens</b> (Marine, Gouvernement, Chevaliers Divins) : le protéger. Dans les deux cas : réunir les 4 <b>Poneglyphes routiers</b> (Zou, Totto Land, Wano, Elbaf), savoir les lire, puis atteindre <b>Laugh Tale</b>. Va le plus loin possible.</p>
     <h3>🗺️ Le voyage</h3>
     <p>À chaque île : un événement, puis une <b>escale</b> (entraînement, taverne, marché, chantier naval...). Ensuite tu choisis ta prochaine destination. Les Blues sont faciles, Grand Line beaucoup moins, le Nouveau Monde est un cimetière.</p>
-    <h3>🤕 Blessures et mort</h3>
-    <p>Un premier K.O. te laisse <b>blessé grave</b> (et coûte cher). Un second K.O. avant de te soigner peut être <b>fatal</b>. La mort est définitive. La capture mène à Impel Down, dont on s'évade... rarement.</p>
+    <h3>🤕 Blessures, mort... ou vie rangée</h3>
+    <p>Un premier K.O. te laisse <b>blessé grave</b> (et coûte cher). Un second K.O. avant de te soigner te met <b>au bord du gouffre</b> : tu peux tenter de te relever (et risquer la mort définitive) ou <b>choisir une vie bien rangée</b>, qui termine la carrière avec un score réduit. Tu peux aussi prendre ta retraite à tout moment depuis le menu ☰. La capture mène à Impel Down, dont on s'évade... rarement.</p>
     <h3>💪 Puissance</h3>
     <p>Ton <b>indice de combat</b> combine tes caractéristiques, ton fruit du démon, ton Haki, ton arme, ton équipage, tes alliés et ta flotte. Il détermine ton niveau : Civil → Menace locale → Rookie → Supernova → Corsaire → YC3 → YC2 → YC1 → Yonko → RDP.</p>
+    <h3>🧬 Races</h3>
+    <p>Humain (la référence), Homme-poisson, Sirène, Mink, Géant, Longs-Bras, Longues-Jambes, Trois-Yeux, Lunarien, Tontatta. Chaque race a ses avantages et ses inconvénients, et ses propres événements. Imposée dans le Défi du jour.</p>
     <h3>🍇 Fruits du Démon</h3>
     <p>Un seul par personne. Tu peux le refuser, le garder dans la cale, le vendre, ou le donner à un membre d'équipage. Attention aux SMILE.</p>
     <h3>🔀 Factions</h3>
@@ -139,6 +142,12 @@ function vCreate() {
       <div class="row"><input class="inp" maxlength="24" placeholder="Nom de ton personnage" value="${esc(f.name)}" data-input="name"></div>
       <div class="avatars">${AVATARS.map(a => `<button class="av ${f.emoji === a ? 'on' : ''}" data-act="f" data-k="emoji" data-arg="${a}">${a}</button>`).join('')}</div>
       <div class="row"><input class="inp" maxlength="28" placeholder="Nom du navire (optionnel)" value="${esc(f.shipName)}" data-input="shipName"></div>
+    </section>
+    <section class="card">
+      <h3>🧬 Race</h3>
+      <div class="grid2">${Object.values(RACES).map(r => `<button class="pick ${f.race === r.id ? 'on' : ''}" data-act="f" data-k="race" data-arg="${r.id}" ${lock || (f.faction === 'chevalier' && r.id !== 'humain') ? 'disabled' : ''}><span class="e">${r.emoji}</span><b>${r.name}</b><small>${esc(r.desc)}</small></button>`).join('')}</div>
+      ${(() => { const r = RACES[f.race]; const st = Object.entries(r.stats).map(([k, v]) => `${v > 0 ? '+' : ''}${v} ${STATS[k].name}`).join(', '); return `<div class="racebox"><p><b>${r.emoji} ${r.name}</b>${st ? ` · ${st}` : ''}${r.hp ? ` · ${r.hp > 0 ? '+' : ''}${r.hp} PV` : ''}${r.combat ? ` · +${r.combat} combat` : ''}</p><ul class="pc">${r.pros.map(x => `<li class="pro">✅ ${esc(x)}</li>`).join('')}${r.cons.map(x => `<li class="con">⚠️ ${esc(x)}</li>`).join('')}</ul></div>`; })()}
+      ${f.faction === 'chevalier' ? '<p class="hint">Les Dragons Célestes sont tous humains.</p>' : ''}
     </section>
     <section class="card">
       <h3>⏳ Partie</h3>
@@ -458,7 +467,7 @@ function tProfil(S) {
   return `<div class="prof">
     <div class="pbig">${h.emoji}</div>
     <div><h3>${esc(h.name)}</h3><p>${FACTIONS[h.faction].emoji} ${esc(FACTIONS[h.faction].name)} · ${esc(G.rankName(S))}${yon ? ` · ${yon.emoji} ${esc(yon.name)}` : ''}</p>
-    <p>${ROLES[h.role].emoji} ${ROLES[h.role].name}${h.isCaptain && h.faction === 'pirate' && h.role !== 'capitaine' ? ' · 🏴‍☠️ capitaine' : ''} · ${Math.floor(h.age)} ans · né(e) à ${esc(ISLANDS[h.origin].name)}</p>
+    <p>${RACES[h.race || 'humain'].emoji} ${RACES[h.race || 'humain'].name} · ${ROLES[h.role].emoji} ${ROLES[h.role].name}${h.isCaptain && h.faction === 'pirate' && h.role !== 'capitaine' ? ' · 🏴‍☠️ capitaine' : ''} · ${Math.floor(h.age)} ans · né(e) à ${esc(ISLANDS[h.origin].name)}</p>
     <p>${esc(ERAS[S.era].name)} · ${G.LENGTHS[S.length].name}</p></div></div>
   <div class="statlist">${STAT_KEYS.map(k => `<div class="statrow"><span>${STATS[k].emoji} ${STATS[k].name}</span><b>${h.stats[k]}</b><span class="bar"><i style="width:${Math.min(100, h.stats[k] / 22 * 100)}%"></i></span></div>`).join('')}</div>
   <div class="kv">
@@ -545,6 +554,7 @@ function vDaily() {
     <div class="kv">
       <div><small>Faction</small><b>${FACTIONS[d.faction].emoji} ${FACTIONS[d.faction].name}</b></div>
       <div><small>Rôle</small><b>${ROLES[d.role].emoji} ${ROLES[d.role].name}</b></div>
+      <div><small>Race</small><b>${RACES[d.race].emoji} ${RACES[d.race].name}</b></div>
       <div><small>Départ</small><b>${esc(ISLANDS[d.island].name)} (${SEAS[ISLANDS[d.island].sea].name})</b></div>
       <div><small>Époque</small><b>${ERAS[d.era].name}</b></div>
     </div>
@@ -627,17 +637,17 @@ function act(name, el) {
     case 'f': {
       const f = U.form;
       f[k] = arg;
-      if (k === 'faction') { if (arg === 'chevalier') { f.sea = 'redline'; f.island = 'marygeoise'; } else if (f.sea === 'redline') { f.sea = 'east'; f.island = 'fuchsia'; } }
+      if (k === 'faction') { if (arg === 'chevalier') { f.sea = 'redline'; f.island = 'marygeoise'; f.race = 'humain'; } else if (f.sea === 'redline') { f.sea = 'east'; f.island = 'fuchsia'; } }
       if (k === 'sea') { f.island = START_ISLANDS[arg][0]; }
       break;
     }
     case 'stat': { const f = U.form; f.stats[k] = Math.max(1, Math.min(10, f.stats[k] + +arg)); break; }
     case 'launch': {
       const f = U.form;
-      const o = { mode: f.mode, length: f.length, era: f.era, name: f.name.trim() || 'Sans-Nom', emoji: f.emoji, faction: f.faction, role: f.role, island: f.island, stats: { ...f.stats }, shipName: f.shipName.trim() || undefined, age: +f.age || 17 };
+      const o = { mode: f.mode, length: f.length, era: f.era, name: f.name.trim() || 'Sans-Nom', emoji: f.emoji, race: f.race, faction: f.faction, role: f.role, island: f.island, stats: { ...f.stats }, shipName: f.shipName.trim() || undefined, age: +f.age || 17 };
       if (f.mode === 'duel') {
         o.seed = f.seed ?? Math.floor(Math.random() * 2 ** 31);
-        o.duelCode = G.duelEncode({ seed: o.seed, faction: o.faction, role: o.role, island: o.island, era: o.era, length: o.length, stats: o.stats });
+        o.duelCode = G.duelEncode({ seed: o.seed, faction: o.faction, role: o.role, island: o.island, era: o.era, length: o.length, stats: o.stats, race: o.race });
       }
       startGame(o);
       if (o.duelCode) { U.modal = 'duelcode'; render(); }
@@ -672,6 +682,7 @@ function act(name, el) {
         const r = G.doAction(S, arg);
         U.sub = { kind: 'done', emoji: titles[arg][0], title: titles[arg][1], text: r.text, chips: r.chips };
         if (S.pendingEnd) { G.finish(S, S.pendingEnd.kind, S.pendingEnd.cause); U.sub = null; onEnd(); }
+        else if (G.checkFatal(S)) U.sub = null;
       }
       save(); break;
     }
@@ -741,7 +752,7 @@ function act(name, el) {
 
 function startDailyGame(replay) {
   const d = G.dailySetup(G.todayStr());
-  startGame({ mode: 'daily', length: 'rapide', era: d.era, seed: d.seed, name: (U.dailyName || '').trim() || 'Défieur du jour', emoji: '🎯', faction: d.faction, role: d.role, island: d.island, stats: d.stats, daily: { date: d.date, goal: d.goal, replay } });
+  startGame({ mode: 'daily', length: 'rapide', era: d.era, seed: d.seed, name: (U.dailyName || '').trim() || 'Défieur du jour', emoji: '🎯', race: d.race, faction: d.faction, role: d.role, island: d.island, stats: d.stats, daily: { date: d.date, goal: d.goal, replay } });
 }
 
 function startStoryGame(id, length) {
