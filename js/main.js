@@ -6,6 +6,7 @@ import { FRUITS, FRUIT_TYPES, WEAPONS, WEAPON_TYPES, SHIPS, ROLES, STATS, ITEMS,
 import { CHARACTERS } from './data/characters.js';
 import { LEGENDS, BADGES, DAILY_GOALS } from './data/meta.js';
 import { RACES } from './data/races.js';
+import { GROUPS, groupOfChar, standingOf } from './data/groups.js';
 import { drawPoster, posterBlob } from './share.js';
 
 const app = document.getElementById('app');
@@ -231,7 +232,7 @@ function vLoc(S) {
   const isl = ISLANDS[S.loc], sea = SEAS[isl.sea];
   return `<div class="loc" style="--sea:#${sea.water.toString(16).padStart(6, '0')}">
     <span class="locthumb" data-thumb="${S.loc}">${THUMBS[S.loc] ? `<img src="${THUMBS[S.loc]}" alt="">` : sea.emoji}</span>
-    <div class="locmain"><span class="sea">${sea.emoji} ${esc(sea.name)}</span><h2>${esc(isl.name)}</h2><small>${esc(isl.sub)} · ${'★'.repeat(isl.pop)}${'☆'.repeat(3 - isl.pop)}</small></div>
+    <div class="locmain"><span class="sea">${sea.emoji} ${esc(sea.name)}${G.groupsHere(S).map(g => { const st = standingOf(G.grel(S, g.id)); return ` <i class="gtag ${st.k}" title="${esc(g.name)} : ${st.name}">${g.emoji} ${st.emoji}</i>`; }).join('')}</span><h2>${esc(isl.name)}</h2><small>${esc(isl.sub)} · ${'★'.repeat(isl.pop)}${'☆'.repeat(3 - isl.pop)}</small></div>
     <div class="age">${Math.floor(S.hero.age)} ans<br><small>${esc(S.ship.name)} ${G.shipModel(S).emoji}</small></div>
   </div>`;
 }
@@ -311,6 +312,19 @@ function vSub(S) {
   const sb = U.sub;
   const tier = G.tierOf(S);
   if (sb.kind === 'done') return `<section class="card result neutral"><div class="banner">${sb.emoji || '⚓'} ${esc(sb.title || 'Escale')}</div><p class="story">${esc(sb.text)}</p>${chipsHtml(sb.chips)}<button class="btn big gold" data-act="subclose">OK</button></section>`;
+  if (sb.kind === 'job') {
+    const tp = { 1: 3_000_000, 2: 30_000_000, 3: 150_000_000, 4: 500_000_000 }[tier];
+    const pp = G.checkChance(S, { s: 'combat', d: 0 }), pc = G.checkChance(S, { s: 'charisme', d: -2 });
+    const opt = (id, e, t, sub, risk) => `<button class="act" data-act="job" data-arg="${id}"><span class="e">${e}</span><b>${t}</b><small>${sub}</small>${risk ? `<i class="risk ${G.riskLabel(risk).k}">${Math.round(risk * 100)} %</i>` : ''}</button>`;
+    return `<section class="card"><h3>💼 Gagner des berrys</h3><p class="hint">Bourse : ${G.fmtPrime(S.hero.berrys)}. Une seule activité par escale.</p>
+      <div class="acts">
+        ${opt('port', '⚓', 'Travailler au port', `Sûr · +${G.fmtPrime(tp / 10)}`)}
+        ${opt('prime', '🎯', 'Chasser une prime locale', `Combat · +${G.fmtPrime(tp / 2.5)}`, pp)}
+        ${opt('commerce', '💰', 'Faire du commerce', `Charisme · jusqu'à +${G.fmtPrime(tp / 4 * (1 + G.shipBonus(S, 'income') * 5))}`, pc)}
+        ${opt('casino', '🎰', 'Jouer au casino', `45 % de chances · mise ${G.fmtPrime(Math.min(S.hero.berrys, tp / 3))}`)}
+      </div>
+      <button class="btn ghost" data-act="subcancel">← Retour</button></section>`;
+  }
   if (sb.kind === 'train') return `<section class="card"><h3>🏋️ Entraînement</h3><p class="hint">Quelle caractéristique travailler ? Plus elle est haute, plus elle est dure à faire progresser.</p>
     <div class="grid2">${STAT_KEYS.map(k => `<button class="pick" data-act="train" data-arg="${k}"><span class="e">${STATS[k].emoji}</span><b>${STATS[k].name}</b><small>Actuel : ${S.hero.stats[k]}</small></button>`).join('')}</div>
     <button class="btn ghost" data-act="subcancel">Annuler</button></section>`;
@@ -323,13 +337,13 @@ function vSub(S) {
         <div class="cb">${st === 'ok' ? '<b class="okc">✅ A rejoint ton équipage</b>' : st === 'ko' ? '<b class="koc">❌ A refusé</b>' : `<button class="btn sm gold" data-act="hire" data-arg="${i}" ${S.hero.berrys < price ? 'disabled' : ''}>Payer ${G.fmtPrime(price)}</button>
         <button class="btn sm" data-act="convince" data-arg="${i}">Convaincre <i class="risk ${G.riskLabel(p).k}">${Math.round(p * 100)} %</i></button>`}</div></div>`;
     }).join('')}
-    <button class="btn gold" data-act="subfinish">Quitter la taverne</button></section>`;
+    <button class="btn gold" data-act="subfinish">${sb.used ? 'Quitter la taverne' : '← Retour (sans utiliser d\'action)'}</button></section>`;
   if (sb.kind === 'market') return `<section class="card"><h3>🛒 ${ISLANDS[S.loc].svc?.includes('market') ? 'Marché' : 'Forge'}</h3>
     <p class="hint">Bourse : ${G.fmtPrime(S.hero.berrys)}. Les fruits achetés vont dans la cale.</p>
-    ${sb.shop.fruits.length ? `<h4>🍇 Fruits du Démon</h4>${sb.shop.fruits.map((id, i) => { const f = FRUITS[id], p = fruitPrice(f); return `<div class="item"><div><b>${FRUIT_TYPES[f.type].emoji} ${esc(f.name)}</b> <small>${esc(f.jp)} · ${FRUIT_TYPES[f.type].name} · ${'★'.repeat(f.tier)}</small><em>${esc(f.desc)}</em></div><button class="btn sm gold" data-act="buy" data-k="fruit" data-arg="${i}" ${S.hero.berrys < p || sb.bought?.includes('f' + i) ? 'disabled' : ''}>${sb.bought?.includes('f' + i) ? 'Acheté' : G.fmtPrime(p)}</button></div>`; }).join('')}` : '<p class="hint">Aucun fruit du démon à vendre ici.</p>'}
-    <h4>⚔️ Armes</h4>${sb.shop.weapons.map((id, i) => { const w = WEAPONS[id], p = weaponPrice(w); return `<div class="item"><div><b>${esc(w.name)}</b> <small>${WEAPON_TYPES[w.type]} · ${'★'.repeat(w.tier)}${w.seastone ? ' · granit marin' : ''}${w.cursed ? ' · maudit' : ''}</small><em>${esc(w.desc)}</em></div><button class="btn sm gold" data-act="buy" data-k="weapon" data-arg="${i}" ${S.hero.berrys < p || sb.bought?.includes('w' + i) ? 'disabled' : ''}>${sb.bought?.includes('w' + i) ? 'Acheté' : G.fmtPrime(p)}</button></div>`; }).join('')}
+    ${sb.shop.fruits.length ? `<h4>🍇 Fruits du Démon</h4>${sb.shop.fruits.map((id, i) => { const f = FRUITS[id], p = G.price(S, fruitPrice(f)); return `<div class="item"><div><b>${FRUIT_TYPES[f.type].emoji} ${esc(f.name)}</b> <small>${esc(f.jp)} · ${FRUIT_TYPES[f.type].name} · ${'★'.repeat(f.tier)}</small><em>${esc(f.desc)}</em></div><button class="btn sm gold" data-act="buy" data-k="fruit" data-arg="${i}" ${S.hero.berrys < p || sb.bought?.includes('f' + i) ? 'disabled' : ''}>${sb.bought?.includes('f' + i) ? 'Acheté' : G.fmtPrime(p)}</button></div>`; }).join('')}` : '<p class="hint">Aucun fruit du démon à vendre ici.</p>'}
+    <h4>⚔️ Armes</h4>${sb.shop.weapons.map((id, i) => { const w = WEAPONS[id], p = G.price(S, weaponPrice(w)); return `<div class="item"><div><b>${esc(w.name)}</b> <small>${WEAPON_TYPES[w.type]} · ${'★'.repeat(w.tier)}${w.seastone ? ' · granit marin' : ''}${w.cursed ? ' · maudit' : ''}</small><em>${esc(w.desc)}</em></div><button class="btn sm gold" data-act="buy" data-k="weapon" data-arg="${i}" ${S.hero.berrys < p || sb.bought?.includes('w' + i) ? 'disabled' : ''}>${sb.bought?.includes('w' + i) ? 'Acheté' : G.fmtPrime(p)}</button></div>`; }).join('')}
     <p class="hint">Arme actuelle : ${S.hero.weapon ? esc(WEAPONS[S.hero.weapon].name) + ' ' + '★'.repeat(WEAPONS[S.hero.weapon].tier) : 'aucune'}</p>
-    <button class="btn gold" data-act="subfinish">Terminer</button></section>`;
+    <button class="btn gold" data-act="subfinish">${sb.used ? 'Terminer' : '← Retour (sans utiliser d\'action)'}</button></section>`;
   if (sb.kind === 'ship') return vShipyard(S, sb);
   return '';
 }
@@ -460,7 +474,7 @@ function vModal() {
     <div class="row gap"><button class="btn gold" data-act="retireYes">Oui, raccrocher</button><button class="btn ghost" data-act="closemodal">Non</button></div></div></div>`;
   const S = U.S;
   if (!S) return '';
-  const tabs = [['profil', '🧍 Profil'], ['niveau', '📈 Niveau'], ['equipage', '⛵ Navire & équipage'], ['cale', '🎒 Cale'], ['relations', '🤝 Relations'], ['journal', '📜 Journal']];
+  const tabs = [['profil', '🧍 Profil'], ['niveau', '📈 Niveau'], ['equipage', '⛵ Navire & équipage'], ['cale', '🎒 Cale'], ['relations', '🤝 Puissances'], ['journal', '📜 Journal']];
   let body = '';
   if (U.tab === 'profil') body = tProfil(S);
   if (U.tab === 'niveau') body = tNiveau(S);
@@ -529,11 +543,17 @@ function tCale(S) {
 }
 
 function tRelations(S) {
-  const rels = Object.entries(S.rel).filter(([id]) => CHARACTERS[id]).sort((a, b) => b[1] - a[1]);
-  const fr = Object.entries(S.frel).filter(([, v]) => v);
-  return `${rels.length ? rels.map(([id, v]) => { const c = CHARACTERS[id]; return `<div class="relrow"><span class="ce">${c.emoji}</span><div><b>${esc(c.name)}</b><small>${esc(c.desc)}</small></div><span class="hearts ${v >= 0 ? 'pos' : 'neg'}">${v >= 0 ? '♥'.repeat(v) || '·' : '✖'.repeat(-v)}${v >= 3 ? ' <i>allié</i>' : ''}</span></div>`; }).join('') : '<p class="hint">Tu n\'as encore croisé aucune légende.</p>'}
-  ${fr.length ? `<h4>Réputation auprès des puissances</h4><ul class="hl">${fr.map(([k, v]) => `<li>${{ marine: '⚓ Marine', gov: '🕊️ Gouvernement', revo: '🐉 Révolution', pirates: '🏴‍☠️ Pirates' }[k] || k} : ${v > 0 ? '+' : ''}${v}</li>`).join('')}</ul>` : ''}
-  <p class="hint">Relation ≥ 3 avec un personnage puissant = allié : bonus de combat.</p>`;
+  const groups = Object.values(GROUPS).map(g => ({ g, v: G.grel(S, g.id), chars: Object.entries(S.rel).filter(([id]) => CHARACTERS[id] && groupOfChar(id, S.era) === g.id) })).filter(x => x.v || x.chars.length).sort((a, b) => b.v - a.v);
+  const loose = Object.entries(S.rel).filter(([id]) => CHARACTERS[id] && !groupOfChar(id, S.era));
+  const charRow = ([id, v]) => { const c = CHARACTERS[id]; return `<div class="relrow small"><span class="ce">${c.emoji}</span><div><b>${esc(c.name.split(',')[0])}</b></div><span class="hearts ${v >= 0 ? 'pos' : 'neg'}">${v >= 0 ? '♥'.repeat(v) || '·' : '✖'.repeat(-v)}</span></div>`; };
+  return `<p class="hint">Ta réputation se joue auprès des <b>puissances</b> : chaque rencontre avec un de leurs membres compte pour tout le groupe.</p>
+  <div class="legend-st"><span class="gtag ally">🤝 Allié (≥ 6)</span> renforts en combat (35 %), +3 combat, -30 % sur leurs îles, grosse faveur, aide à Impel Down · <span class="gtag friend">🙂 Ami (≥ 3)</span> +1 combat, -15 % et petite faveur sur leurs îles · <span class="gtag hostile">😠 Hostile (≤ -3)</span> embuscades et +30 % sur leurs îles</div>
+  ${groups.length ? groups.map(({ g, v, chars }) => { const st = standingOf(v); const terr = g.terr[S.era] || []; return `<div class="grp ${st.k}">
+    <div class="grph"><span class="ge">${g.emoji}</span><div><b>${esc(g.name)}</b><small>${terr.length ? 'Territoire : ' + terr.map(t => esc(ISLANDS[t].name)).join(', ') : 'Pas de territoire'}</small></div><span class="gtag ${st.k}">${st.emoji} ${st.name} <small>${v > 0 ? '+' : ''}${v}</small></span></div>
+    <div class="gbar"><i style="left:50%;width:${Math.abs(v) * 5}%;${v < 0 ? 'transform:translateX(-100%)' : ''}"></i></div>
+    ${chars.length ? chars.sort((a, b) => b[1] - a[1]).map(charRow).join('') : ''}
+  </div>`; }).join('') : '<p class="hint">Aucune puissance ne te connaît encore.</p>'}
+  ${loose.length ? `<h4>Autres rencontres</h4>${loose.map(charRow).join('')}` : ''}`;
 }
 
 function tJournal(S) {
@@ -658,7 +678,7 @@ function vShipyard(S, sb) {
     <p class="hint">Bourse : ${G.fmtPrime(S.hero.berrys)}${sb.limited ? ' · Ton charpentier bricole ce qu\'il peut ici (+30 % sur les aménagements, pas de nouveau navire).' : ''}</p>
     <div class="tabs inline">${tabs.map(([id, l]) => `<button class="${t === id ? 'on' : ''}" data-act="shiptab" data-arg="${id}">${l}</button>`).join('')}</div>
     ${body}
-    <button class="btn gold" data-act="subfinish">Terminer</button></section>`;
+    <button class="btn gold" data-act="subfinish">${sb.used ? 'Terminer' : '← Retour (sans utiliser d\'action)'}</button></section>`;
 }
 
 function vRecap(f) {
@@ -772,13 +792,15 @@ function act(name, el) {
     case 'action': {
       if (S.actionsLeft <= 0) return;
       if (arg === 'train') U.sub = { kind: 'train' };
-      else if (arg === 'tavern') U.sub = { kind: 'tavern', cands: G.tavernCandidates(S) };
-      else if (arg === 'market') U.sub = { kind: 'market', shop: G.genShop(S), bought: [] };
+      else if (arg === 'tavern') { if (S.escCache?.turn !== S.turn) S.escCache = { turn: S.turn }; S.escCache.tavern ||= { cands: G.tavernCandidates(S), status: {} }; U.sub = { kind: 'tavern', cands: S.escCache.tavern.cands, status: S.escCache.tavern.status }; }
+      else if (arg === 'market') { if (S.escCache?.turn !== S.turn) S.escCache = { turn: S.turn }; S.escCache.shop ||= { shop: G.genShop(S), bought: [] }; U.sub = { kind: 'market', shop: S.escCache.shop.shop, bought: S.escCache.shop.bought }; }
+      else if (arg === 'job') U.sub = { kind: 'job' };
       else if (arg === 'ship') U.sub = { kind: 'ship', limited: !ISLANDS[S.loc].svc?.includes('ship') };
       else if (arg === 'explore') {
         if (!G.startExplore(S)) U.sub = { kind: 'done', emoji: '🗺️', title: 'Exploration', text: 'Tu fais le tour de l\'île. Rien de spécial... à part une belle vue.', chips: [] };
       } else {
-        const titles = { rest: ['🍖', 'Festin et repos'], report: ['📋', 'Rapport'], news: ['📰', 'Le journal'], raid: ['💥', 'Attaque de la base'] };
+        const fr = G.friendHere(S);
+        const titles = { rest: ['🍖', 'Festin et repos'], report: ['📋', 'Rapport'], news: ['📰', 'Le journal'], raid: ['💥', 'Attaque de la base'], favor: [fr?.emoji || '🤝', 'Faveur'] };
         const r = G.doAction(S, arg);
         U.sub = { kind: 'done', emoji: titles[arg][0], title: titles[arg][1], text: r.text, chips: r.chips };
         if (S.pendingEnd) { G.finish(S, S.pendingEnd.kind, S.pendingEnd.cause); U.sub = null; onEnd(); }
@@ -786,19 +808,20 @@ function act(name, el) {
       }
       save(); break;
     }
+    case 'job': { const titles = { port: '⚓ Travail au port', prime: '🎯 Chasse à la prime', casino: '🎰 Casino', commerce: '💰 Commerce' }; const r = G.doAction(S, 'job', arg); U.sub = { kind: 'done', emoji: '💼', title: titles[arg], text: r.text, chips: r.chips }; if (S.pendingEnd) { G.finish(S, S.pendingEnd.kind, S.pendingEnd.cause); U.sub = null; onEnd(); } else if (G.checkFatal(S)) U.sub = null; save(); break; }
     case 'train': { const r = G.doAction(S, 'train', arg); U.sub = { kind: 'done', emoji: '🏋️', title: 'Entraînement', text: r.text, chips: r.chips }; save(); break; }
-    case 'hire': { const sb = U.sub; if (sb.status?.[+arg]) return; const c = sb.cands[+arg]; const chips = G.buy(S, 'recruit', c); if (!chips) return; (sb.status ||= {})[+arg] = 'ok'; toast(`${c.name} trinque avec toi et pose son sac à bord.`); save(); break; }
-    case 'convince': { const sb = U.sub; if (sb.status?.[+arg]) return; const c = sb.cands[+arg]; const r = G.convinceRecruit(S, c); (sb.status ||= {})[+arg] = r.ok ? 'ok' : 'ko'; toast(r.ok ? `Ton discours fait mouche. ${c.name} te suit !` : `${c.name} hausse les épaules et retourne à sa chope.`); save(); break; }
+    case 'hire': { const sb = U.sub; if (sb.status?.[+arg]) return; const c = sb.cands[+arg]; const chips = G.buy(S, 'recruit', c); if (!chips) return; (sb.status ||= {})[+arg] = 'ok'; sb.used = true; toast(`${c.name} trinque avec toi et pose son sac à bord.`); save(); break; }
+    case 'convince': { const sb = U.sub; if (sb.status?.[+arg]) return; const c = sb.cands[+arg]; const r = G.convinceRecruit(S, c); (sb.status ||= {})[+arg] = r.ok ? 'ok' : 'ko'; sb.used = true; toast(r.ok ? `Ton discours fait mouche. ${c.name} te suit !` : `${c.name} hausse les épaules et retourne à sa chope.`); save(); break; }
     case 'buy': {
       let chips;
       if (k === 'fruit') { chips = G.buy(S, 'fruit', U.sub.shop.fruits[+arg]); if (chips) U.sub.bought.push('f' + arg); }
       else if (k === 'weapon') { chips = G.buy(S, 'weapon', U.sub.shop.weapons[+arg]); if (chips) U.sub.bought.push('w' + arg); }
       else if (k === 'mod' && U.sub.limited) { const p = Math.round(G.modPrice(S, arg) * 0.3); if (S.hero.berrys < G.modPrice(S, arg) + p) return; S.hero.berrys -= p; chips = G.buy(S, 'mod', arg); if (!chips) S.hero.berrys += p; }
       else chips = G.buy(S, k, arg);
-      if (chips) toast(chips.map(c => c.t).join(' · ') || 'Fait');
+      if (chips) { toast(chips.map(c => c.t).join(' · ') || 'Fait'); U.sub.used = true; }
       save(); break;
     }
-    case 'subfinish': S.actionsLeft--; U.sub = null; save(); break;
+    case 'subfinish': if (U.sub?.used) S.actionsLeft--; U.sub = null; save(); break;
     case 'shiptab': U.sub.tab = arg; break;
     case 'rename': { const v = document.getElementById('shipname')?.value.trim(); if (v) { S.ship.name = v.slice(0, 28); toast('Navire renommé : ' + S.ship.name); save(); } break; }
     case 'beginIntro': U.intro = false; window.scrollTo(0, 0); break;

@@ -411,3 +411,26 @@ label .inp.sm { margin-left: 8px; width: 80px; }
 .intro h2 { font-size: 2rem; margin: 0; }
 .intro .pc { margin: 10px 0; }
 @media (max-width: 480px) { .shipcard { grid-template-columns: 1fr; } .shipprev { width: 100%; height: 140px; } }
+
+/* ───── puissances ───── */
+.gtag { font-style: normal; font-size: .78em; padding: 2px 8px; border-radius: 99px; background: rgba(59, 42, 26, .1); white-space: nowrap; }
+.loc .gtag { background: rgba(255, 255, 255, .18); color: #fff; margin-left: 4px; }
+.gtag.ally { background: #c8e6c9; color: #1b5e20; }
+.gtag.friend { background: #e6f2c7; color: #4b5e12; }
+.gtag.hostile { background: #f9d1c6; color: #8a2a17; }
+.gtag.enemy { background: #3b2a1a; color: #ffd2c4; }
+.loc .gtag.ally, .loc .gtag.friend { background: rgba(130, 220, 130, .35); color: #fff; }
+.loc .gtag.hostile, .loc .gtag.enemy { background: rgba(255, 100, 80, .45); color: #fff; }
+.legend-st { font-size: .82em; color: var(--ink-soft); line-height: 1.9; margin-bottom: 8px; }
+.grp { background: rgba(255, 255, 255, .5); border-radius: 12px; padding: 10px; margin: 8px 0; border-left: 5px solid #bcaaa4; }
+.grp.ally { border-left-color: #2e7d32; } .grp.friend { border-left-color: #9ccc65; } .grp.hostile { border-left-color: #e57373; } .grp.enemy { border-left-color: #3b2a1a; }
+.grph { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; }
+.grph .ge { font-size: 1.8rem; }
+.grph small { display: block; color: var(--ink-soft); font-size: .78em; }
+.gbar { position: relative; height: 6px; background: rgba(59, 42, 26, .12); border-radius: 3px; margin: 6px 0; }
+.gbar::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: rgba(59, 42, 26, .4); }
+.gbar i { position: absolute; top: 0; bottom: 0; background: var(--gold); border-radius: 3px; }
+.grp.hostile .gbar i, .grp.enemy .gbar i { background: #e57373; }
+.relrow.small { padding: 3px 0; font-size: .9em; }
+.relrow.small .ce { font-size: 1.3rem; }
+.act .risk { margin-top: 4px; }

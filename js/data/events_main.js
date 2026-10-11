@@ -148,7 +148,8 @@ export const PRISON_EVENTS = [
       { t: 'Tenter l\'évasion', p: S => {
         let p = 0.06 + S.hero.stats.intel * 0.004 + S.hero.stats.force * 0.004;
         for (const c of ['ivankov', 'baggy', 'luffy', 'jinbe', 'crocodile']) if ((S.rel[c] || 0) >= 2) p += 0.04;
-        return Math.min(0.3, p);
+        p += (S.allyCount || 0) * 0.04;
+        return Math.min(0.35, p);
       },
         ok: { x: 'Tu bats des gardes, traverses le Niveau 5 gelé, échappes au poison de Magellan, voles un navire de la Marine et sautes dans la mer. TU T\'ES ÉVADÉ D\'IMPEL DOWN.', e: { glory: 15, bounty: 50_000_000, flag: 'escaped_impel', goto: 'random_paradise', hp: -30, hl: 'S\'EST ÉVADÉ D\'IMPEL DOWN' } },
         ko: { x: 'Magellan te rattrape. Son Hydra de poison est la dernière chose que tu vois.', e: { death: 'Mort empoisonné par Magellan pendant une tentative d\'évasion d\'Impel Down' } } },
@@ -158,7 +159,8 @@ export const PRISON_EVENTS = [
         let p = 0.02;
         for (const c of ['luffy', 'ivankov', 'baggy', 'garp', 'dragon', 'sabo', 'shanks', 'marco']) if ((S.rel[c] || 0) >= 3) p += 0.12;
         if (S.crew.length >= 5) p += 0.05;
-        return Math.min(0.6, p);
+        p += (S.allyCount || 0) * 0.15;
+        return Math.min(0.7, p);
       },
         ok: { x: 'Un jour, les murs tremblent. Tes alliés sont venus te chercher. Tu sors avec eux, au milieu du chaos.', e: { goto: 'random_paradise', glory: 10, hl: 'a été libéré d\'Impel Down par ses alliés' } },
         ko: { x: 'Personne ne vient. Les années passent. Tu deviens une légende oubliée du Niveau 6.', e: { end: 'prison' } } },
@@ -674,8 +676,22 @@ export const GENERIC_EVENTS = [
     ],
   },
   {
+    id: 'g_ambush', pri: 11, repeat: true, oncePerTurn: true, emoji: '😠', title: 'Territoire hostile',
+    w: { test: S => !!S.hostileId },
+    x: S => `${S.hostileEmoji} Ici, c'est le territoire de ${S.hostileName}. Et ils n'ont pas oublié ce que tu leur as fait. Une dizaine d'hommes t'attendent sur le quai.`,
+    ch: [
+      { t: 'Leur passer sur le corps', s: 'combat', d: 4,
+        ok: { x: 'Le quai est à toi. Ils s\'en souviendront. Toi aussi : tu as gagné le respect de personne.', e: { glory: 3, frel: S => ({ [S.hostileId]: -1 }) } },
+        ko: { x: 'Ils étaient prêts. Tu fuis en laissant du sang sur les planches.', e: { hp: -35 } } },
+      { t: 'Négocier une trêve', s: 'charisme', d: 4,
+        ok: { x: 'Quelques mots bien choisis, une poignée de main tendue. La tension retombe un peu.', e: { frel: S => ({ [S.hostileId]: 2 }) } },
+        ko: { x: 'Ils ne veulent rien entendre. Tu repars sous les insultes.', e: { morale: -10 } } },
+      { t: 'Payer un tribut', c: S => S.tierPrime() / 4, r: { x: 'L\'argent apaise les rancunes. Un peu.', e: { frel: S => ({ [S.hostileId]: 2 }) } } },
+    ],
+  },
+  {
     id: 'g_volunteer', emoji: '🙋', title: 'Un volontaire sur le quai',
-    w: { test: S => S.crew.length < 6, weight: 9 },
+    w: { test: S => S.crew.length < 4, weight: 5 },
     x: S => `À peine amarré, quelqu'un t'attend sur le quai, sac sur l'épaule. « J'ai entendu parler de toi. Je veux partir en mer. Je sais me rendre utile. »${S.crew.length < 2 ? ' Ton navire a l\'air bien vide, il faut dire.' : ''}`,
     ch: [
       { t: 'Bienvenue à bord !', r: { x: 'Une poignée de main, un sac jeté sur le pont, et te voilà un de plus.', e: { recruit: true, morale: 5 } } },
