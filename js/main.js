@@ -511,7 +511,7 @@ function tProfil(S) {
   </div>
   <h4>🗺️ ${esc(CAMPS[camp].goal)}</h4>
   <ol class="track">${PROGRESS[camp].map((p, i) => `<li class="${i <= S.progress ? 'done' : ''} ${i === S.progress + 1 ? 'next' : ''}">${i <= S.progress ? '✅' : i === S.progress + 1 ? '➡️' : '▫️'} ${esc(p)}</li>`).join('')}</ol>
-  <p class="hint">Lire les Poneglyphes : ${G.canReadPone(S) ? '✅ possible' : '❌ il te faut un archéologue (ou une grammaire, ou 16 en intelligence)'}.</p>`;
+  <p class="hint">Lire les Poneglyphes : ${G.canReadPone(S) ? '✅ possible' : '❌ il te faut un archéologue (ou une grammaire, ou 18 en intelligence)'}.</p>`;
 }
 
 function tNiveau(S) {

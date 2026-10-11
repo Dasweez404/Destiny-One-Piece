@@ -4,7 +4,7 @@ import { FACTIONS, LEVELS, levelOf, YONKO, PROGRESS } from './data/factions.js';
 import { FRUITS, WEAPONS, SHIPS, ROLES, STATS, ITEMS, fruitPower, weaponPower, fruitPrice, weaponPrice, SHIP_MODELS, SHIP_MODS, DEFAULT_MODEL, FIGUREHEADS, SAIL_COLORS } from './data/items.js';
 import { CHARACTERS, charsAt } from './data/characters.js';
 import { ISLAND_EVENTS } from './data/events_islands.js';
-import { PONE_EVENTS, FINAL_EVENTS, PRISON_EVENTS, FACTION_EVENTS, CREW_EVENTS, GENERIC_EVENTS, SEA_EVENTS, RACE_EVENTS, LOOT_EVENTS } from './data/events_main.js';
+import { PONE_EVENTS, FINAL_EVENTS, PRISON_EVENTS, FACTION_EVENTS, CREW_EVENTS, GENERIC_EVENTS, SEA_EVENTS, RACE_EVENTS, LOOT_EVENTS, GARDIEN_EVENTS } from './data/events_main.js';
 import { RACES, raceOf } from './data/races.js';
 import { GROUPS, groupOfChar, groupOfFaction, groupOfYonko, standingOf } from './data/groups.js';
 import { ALT_EVENTS, PUFFING_EVENTS } from './data/events_alt.js';
@@ -12,17 +12,17 @@ import { CREW_FIRST, CREW_EPI, CREW_TRAITS, LEGENDS, STORY_FRUITS, CANON_CAREERS
 
 Object.assign(FRUITS, Object.fromEntries(Object.entries(STORY_FRUITS).map(([id, f]) => [id, { ...f, id }])));
 
-export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS];
+export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS];
 export const EVENTS = Object.fromEntries(ALL_EVENTS.map(e => [e.id, e]));
 
 export const LENGTHS = {
-  rapide: { name: 'Rapide', maxTurns: 18, actions: 1, age: 0.6, blueMin: 1, paraMin: 3, desc: '≈ 10 minutes. Une carrière éclair.' },
-  saga: { name: 'Vraie saga', maxTurns: 48, actions: 2, age: 0.25, blueMin: 3, paraMin: 7, desc: '≈ 40 minutes. Le grand voyage.' },
+  rapide: { name: 'Rapide', maxTurns: 20, actions: 1, age: 0.6, blueMin: 1, paraMin: 3, desc: '≈ 10 minutes. Une carrière éclair.' },
+  saga: { name: 'Vraie saga', maxTurns: 42, actions: 2, age: 0.25, blueMin: 3, paraMin: 7, desc: '≈ 40 minutes. Le grand voyage.' },
 };
 
-const STAT_DC = { 1: 9, 2: 14, 3: 19, 4: 24 };
+const STAT_DC = { 1: 9, 2: 14, 3: 18, 4: 22 };
 const COMBAT_DC = { 1: 12, 2: 20, 3: 31, 4: 45 };
-const GLORY = { 1: 1_500_000, 2: 12_000_000, 3: 50_000_000, 4: 150_000_000 };
+const GLORY = { 1: 1_500_000, 2: 12_000_000, 3: 35_000_000, 4: 100_000_000 };
 const TIER_PRIME = { 1: 3_000_000, 2: 30_000_000, 3: 150_000_000, 4: 500_000_000 };
 const RANK_MERIT = [0, 4, 10, 18, 28, 40, 55, 72, 92, 115, 140, 170];
 
@@ -132,7 +132,7 @@ export const levelIdxOf = S => LEVELS.indexOf(levelOf(combatRating(S)));
 const ROLE_FOR_STAT = { navigation: ['navigateur', 'timonier'], intel: ['medecin', 'archeologue'], charisme: ['musicien'], force: ['charpentier', 'combattant', 'bretteur'], vitesse: ['sniper'], volonte: ['cuisinier'] };
 export function statRating(S, stat) {
   const h = S.hero;
-  let r = h.stats[stat] * 1.6;
+  let r = h.stats[stat] * 1.6 + levelIdxOf(S) * 0.6; // l'expérience aide en tout
   const helpers = S.crew.filter(c => ROLE_FOR_STAT[stat]?.includes(c.role));
   if (helpers.length) r += Math.min(5, Math.max(...helpers.map(c => c.power)) / 3);
   if (stat === 'vitesse') r += h.haki.obs * 2;
@@ -241,7 +241,7 @@ export function newGame(o) {
       name: o.name || 'Sans-Nom', emoji: o.emoji || '🧑', role: o.role, faction: fac, yonko: null, race: race.id,
       isCaptain: o.role === 'capitaine' || fac !== 'pirate',
       stats, hp: 100, hpMax: 100, fruit: null, haki: { obs: 0, arm: 0, roi: 0 }, roiPotential: false,
-      weapon: o.weapon ?? (fac === 'marine' ? 'sabre_rouille' : fac === 'chevalier' ? 'pistolet_silex' : 'baton_bois'),
+      weapon: o.weapon ?? (fac === 'marine' ? 'sabre_rouille' : fac === 'chevalier' ? 'pistolet_silex' : fac === 'chasseur' ? 'wazamono' : 'baton_bois'),
       bounty: 0, berrys: { pirate: 1_000_000, marine: 2_000_000, gouv: 3_000_000, revo: 1_000_000, chevalier: 500_000_000, chasseur: 1_500_000 }[fac], age: o.age || 17,
       origin: o.island,
     },
@@ -264,6 +264,9 @@ export function newGame(o) {
   if (startTier >= 2) S.hero.stats.navigation += 1;
   if (race.obs) S.hero.haki.obs = race.obs;
   addGrel(S, groupOfFaction(fac, null, S.era), 4);
+  // hostilités de départ
+  const START_REL = { pirate: { marine: -2, gov: -1 }, chasseur: { pirates: -2 }, revo: { gov: -4, marine: -2 }, marine: { pirates: -3, revo: -2 }, gouv: { revo: -4, pirates: -2 }, chevalier: { revo: -4, pirates: -2 } }[fac] || {};
+  for (const [g, v] of Object.entries(START_REL)) addGrel(S, g, v);
   if (race.hunted) { S.hero.bounty = 50_000_000; S.frel.gov = -3; S.hl.push('était recherché dès la naissance pour être un Lunarien'); }
   log(S, `${S.hero.emoji} ${S.hero.name} (${race.name}) commence sa carrière : ${FACTIONS[fac].name}, ${ROLES[o.role].name.toLowerCase()}, à ${ISLANDS[o.island].name}.`, 'start');
   startIsland(S, true);
@@ -486,6 +489,7 @@ export function applyEff(S, e = {}, chips = []) {
   if (E.death) { S.pendingEnd = { kind: 'death', cause: E.death }; }
   if (E.end === 'rangee') { S.pendingEnd = { kind: 'rangee', cause: 'A choisi une vie bien rangée' }; }
   if (E.heal) { delete S.flags.wounded; }
+  if (E.evac) S.evacs = (S.evacs || 0) + 1;
   if (E.hpSet) { h.hp = E.hpSet; S.deathSaves++; chips.push({ t: `PV ${E.hpSet}`, k: 'info' }); }
   if (E.end === 'prison') { S.pendingEnd = { kind: 'prison', cause: 'Enfermé à vie au Niveau 6 d\'Impel Down' }; }
   postUpdate(S, chips);
@@ -683,6 +687,7 @@ export function resolveChoice(S, i) {
   applyEff(S, e, chips);
   S.seen[ev.id] = (S.seen[ev.id] || 0) + 1;
   if (ev.oncePerTurn) (S.turnSeen ||= {})[ev.id] = S.turn;
+  if (ev.id.startsWith('pone_') && ok === false && !c.r) (S.poneTry ||= {})[S.loc] = S.turn;
   log(S, `${ev.emoji || '•'} ${ev.title} — ${val(c.t, V)} → ${c.r ? 'fait' : ok ? 'réussi' : 'échec'}.`, ok ? 'ok' : 'ko');
   if (reinf) chips.unshift({ t: `🤝 Renforts : ${reinf.emoji} ${reinf.name} !`, k: 'epic' });
   S.result = { title: ev.title, emoji: ev.emoji, choice: val(c.t, V), text: reinf ? `${reinf.emoji} Au pire moment, des renforts de ${reinf.name} surgissent et retournent la situation ! ` + text : text, chips, ok: c.r ? null : ok, p, roll, reinf: reinf?.name, stat: stat || (c.p ? 'chance' : null), next: res.next };
@@ -732,7 +737,7 @@ export function leaveIsland(S) {
 
 // ───────────── navigation ─────────────
 export function canReadPone(S) {
-  return S.crew.some(c => c.role === 'archeologue') || S.hero.role === 'archeologue' || S.flags.can_read_pone || S.hero.stats.intel >= 16 || (S.rel.robin || 0) >= 3;
+  return S.crew.some(c => c.role === 'archeologue') || S.hero.role === 'archeologue' || S.flags.can_read_pone || S.hero.stats.intel >= 18 || (S.rel.robin || 0) >= 3;
 }
 
 // la liste est tirée une fois puis figée (sinon un nouveau tirage au clic pourrait faire disparaître l'île choisie)
@@ -781,7 +786,7 @@ function computeNav(S) {
       }
     }
   } else if (sea === 'redline' || sea === 'nw' || sea === 'laughtale') {
-    let rest = islandsOf('nw', S.era).filter(i => i.id !== S.loc && !i.noNav && (nv(i.id) || (i.pone && !S.pone.includes(i.pone))));
+    let rest = islandsOf('nw', S.era).filter(i => i.id !== S.loc && !i.noNav && (nv(i.id) || (i.pone && !S.pone.includes(i.pone) && (S.poneTry?.[i.id] ?? -9) <= S.turn - 6)));
     if (!rest.length) rest = islandsOf('nw', S.era).filter(i => i.id !== S.loc && !i.noNav);
     sample(rest, 3).forEach(i => enter(i));
     if (sea === 'nw' && S.pone.length >= 4 && canReadPone(S)) enter(ISLANDS.laughtale, { big: true, label: 'Cap sur Laugh Tale', sub: 'Les quatre relevés indiquent la route' });
@@ -1167,16 +1172,17 @@ export function checkFatal(S) {
 function submitChoices(S) {
   const out = [];
   const camp = campOf(S), fac = S.hero.faction;
-  if (camp === 'chercheur' && fac !== 'vassal' && fac !== 'empereur' && tierOf(S) >= 2) {
+  if (camp === 'chercheur' && fac !== 'vassal' && fac !== 'empereur' && tierOf(S) >= 2 && !S.flags.submitted) {
     const ys = YONKO[S.era];
     const y = [...ys].sort((a, b) => grel(S, groupOfYonko(b.id, S.era)) - grel(S, groupOfYonko(a.id, S.era)))[0];
-    out.push({ t: `Se soumettre à ${y.name} pour survivre`, r: { x: `Tu plantes le drapeau de ${y.name} sur ton mât. Ses hommes te ramassent, ses médecins te recousent. Tu es en vie... et tu as un maître. Pour l'instant.`, e: { yonko: y.id, hpSet: 60, heal: true, morale: -20, hl: `s'est soumis à ${y.name} pour survivre` } } });
+    out.push({ t: `Se soumettre à ${y.name} pour survivre`, r: { x: `Tu plantes le drapeau de ${y.name} sur ton mât. Ses hommes te ramassent, ses médecins te recousent. Tu es en vie... et tu as un maître. Pour l'instant.`, e: { yonko: y.id, hpSet: 60, heal: true, morale: -20, flag: 'submitted', hl: `s'est soumis à ${y.name} pour survivre` } } });
   }
-  if (camp === 'chercheur' && S.era === 'pre' && fac !== 'corsaire' && S.hero.bounty >= 30_000_000) {
-    out.push({ t: 'Accepter de devenir Corsaire (laisse du Gouvernement)', r: { x: 'Un agent du Gouvernement s\'agenouille à côté de toi. « Signez, et on vous soigne. » Tu signes. Tu es Corsaire. Ta liberté a un prix.', e: { faction: 'corsaire', hpSet: 60, heal: true, morale: -15, hl: 'est devenu Corsaire pour sauver sa peau' } } });
+  if (camp === 'chercheur' && S.era === 'pre' && fac !== 'corsaire' && S.hero.bounty >= 30_000_000 && !S.flags.was_corsaire) {
+    out.push({ t: 'Accepter de devenir Corsaire (laisse du Gouvernement)', r: { x: 'Un agent du Gouvernement s\'agenouille à côté de toi. « Signez, et on vous soigne. » Tu signes. Tu es Corsaire. Ta liberté a un prix.', e: { faction: 'corsaire', hpSet: 60, heal: true, morale: -15, flag: 'was_corsaire', hl: 'est devenu Corsaire pour sauver sa peau' } } });
   }
   if (camp === 'gardien') {
-    out.push({ t: 'Appeler une évacuation d\'urgence', r: { x: 'Un navire de secours te récupère. Tu survis, mais ton dossier en prend un coup.', e: { hpSet: 50, heal: true, merit: -10, morale: -15 } } });
+    const n = S.evacs || 0;
+    out.push({ t: `Appeler une évacuation d'urgence${n ? ' (encore ?)' : ''}`, p: Math.max(0.1, 0.75 - n * 0.3), ok: { x: 'Un navire de secours te récupère à temps. Tu survis, mais ton dossier en prend un coup.', e: { hpSet: 50, heal: true, merit: -10 - n * 10, morale: -15, evac: true } }, ko: { x: 'Les secours arrivent trop tard.', e: { death: 'Mort en attendant une évacuation qui n\'est jamais venue' } } });
   }
   return out;
 }
