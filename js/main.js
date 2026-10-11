@@ -2,7 +2,7 @@
 import * as G from './engine.js';
 import { SEAS, ISLANDS, START_SEAS, START_ISLANDS } from './data/islands.js';
 import { FACTIONS, LEVELS, PROGRESS, ERAS, YONKO, CAMPS } from './data/factions.js';
-import { FRUITS, FRUIT_TYPES, WEAPONS, WEAPON_TYPES, SHIPS, ROLES, STATS, ITEMS, fruitPrice, weaponPrice } from './data/items.js';
+import { FRUITS, FRUIT_TYPES, WEAPONS, WEAPON_TYPES, SHIPS, ROLES, STATS, ITEMS, fruitPrice, weaponPrice, SHIP_MODELS, SHIP_MODS, FIGUREHEADS, SAIL_COLORS } from './data/items.js';
 import { CHARACTERS } from './data/characters.js';
 import { LEGENDS, BADGES, DAILY_GOALS } from './data/meta.js';
 import { RACES } from './data/races.js';
@@ -48,7 +48,7 @@ function render() {
   app.innerHTML = html + (U.modal ? vModal() : '');
   if (U.screen === 'game' && S?.phase === 'voyage' && !U.voyaging) runVoyage();
   if (U.screen === 'game' && S?.phase === 'end') mountPoster();
-  if (U.screen === 'game' && S?.phase === 'nav' && U.anim) mountThumbs();
+  if (U.screen === 'game' && U.anim) { mountThumbs(); mountShipPrev(); }
 }
 
 // miniatures 3D des îles sur les cartes de destination
@@ -199,6 +199,7 @@ function vCreate() {
         <span class="bar"><i style="width:${f.stats[k] * 10}%"></i></span></div>`).join('')}
       <p class="hint">Bonus automatiques : rôle (+2) et faction (+1/+1).</p>
     </section>
+    ${vRecap(f)}
     ${f.mode === 'duel' && !f.locked ? `<p class="hint center">Une fois lancé, un code de duel apparaîtra : envoie-le à tes amis pour qu'ils partent du même profil.</p>` : ''}
     <button class="btn big gold" data-act="launch" ${(!f.locked && left !== 0) ? 'disabled' : ''}>⛵ Prendre la mer</button>
     ${!f.locked && left !== 0 ? `<p class="hint center">Répartis tous tes points pour partir.</p>` : ''}
@@ -212,30 +213,32 @@ function vHud(S) {
   const lv = LEVELS[G.levelIdxOf(S)];
   return `<header class="hud">
     <div class="hud-top">
-      <button class="hud-id" data-act="exam">${h.emoji}<div><b>${esc(h.name)}</b><small>${FACTIONS[h.faction].emoji} ${esc(G.rankName(S))} · ${lv.emoji} ${esc(lv.name)}</small></div></button>
+      <button class="hud-id" data-act="exam">${h.emoji}<div><b>${esc(h.name)}</b><small>${RACES[h.race || 'humain'].emoji} ${esc(RACES[h.race || 'humain'].name)} · ${FACTIONS[h.faction].emoji} ${esc(G.rankName(S))}</small><small>${lv.emoji} ${esc(lv.name)}</small></div></button>
       <div class="hud-btns"><button class="btn sm" data-act="exam">🔍 Examiner</button><button class="btn sm ghost" data-act="menu">☰</button></div>
     </div>
     <div class="hud-stats">
       <span class="hp ${S.flags.wounded ? 'wounded' : ''}" title="Points de vie">❤️ <span class="bar"><i style="width:${hpPct}%"></i></span> ${Math.max(0, h.hp)}/${h.hpMax}${S.flags.wounded ? ' 🤕' : ''}</span>
       <span title="Berrys">💰 ${G.fmtPrime(h.berrys)}</span>
       <span title="Prime">${h.faction === 'corsaire' ? '🔒' : '📜'} ${h.bounty ? G.fmtPrime(h.bounty) : '—'}</span>
-      <span title="Objectif">🗺️ ${S.progress}/9</span>
       <span title="Îles visitées / limite">⏳ ${S.turn}/${S.maxTurns}</span>
       <span title="Moral">${S.morale >= 60 ? '😄' : S.morale >= 30 ? '😐' : '😞'} ${S.morale}</span>
     </div>
+    <div class="goalbar" title="${esc(PROGRESS[G.campOf(S)][Math.min(9, S.progress + 1)] || '')}">${PROGRESS[G.campOf(S)].map((x, i) => `<i class="${i <= S.progress ? 'on' : ''} ${i === S.progress + 1 ? 'next' : ''}" title="${esc(x)}"></i>`).join('')}<span>🗺️ ${esc(PROGRESS[G.campOf(S)][S.progress])} <small>→ ${esc(PROGRESS[G.campOf(S)][Math.min(9, S.progress + 1)])}</small></span></div>
   </header>`;
 }
 
 function vLoc(S) {
   const isl = ISLANDS[S.loc], sea = SEAS[isl.sea];
   return `<div class="loc" style="--sea:#${sea.water.toString(16).padStart(6, '0')}">
-    <div><span class="sea">${sea.emoji} ${esc(sea.name)}</span><h2>${esc(isl.name)}</h2><small>${esc(isl.sub)} · ${'★'.repeat(isl.pop)}${'☆'.repeat(3 - isl.pop)}</small></div>
-    <div class="age">${Math.floor(S.hero.age)} ans<br><small>${esc(S.ship.name)} ${SHIPS[S.ship.tier - 1].emoji}</small></div>
+    <span class="locthumb" data-thumb="${S.loc}">${THUMBS[S.loc] ? `<img src="${THUMBS[S.loc]}" alt="">` : sea.emoji}</span>
+    <div class="locmain"><span class="sea">${sea.emoji} ${esc(sea.name)}</span><h2>${esc(isl.name)}</h2><small>${esc(isl.sub)} · ${'★'.repeat(isl.pop)}${'☆'.repeat(3 - isl.pop)}</small></div>
+    <div class="age">${Math.floor(S.hero.age)} ans<br><small>${esc(S.ship.name)} ${G.shipModel(S).emoji}</small></div>
   </div>`;
 }
 
 function vGame(S) {
   if (S.phase === 'end') return vEnd(S);
+  if (U.intro) return vHud(S) + `<main class="game">${vIntro(S)}</main>`;
   let body = '';
   if (S.phase === 'event') body = vEvent(S);
   else if (S.phase === 'result') body = vResult(S);
@@ -281,6 +284,7 @@ function vResult(S) {
   return `<section class="card result ${cls}">
     <div class="banner">${r.ok === null ? (r.emoji || '📜') + ' ' + esc(r.title) : r.ok ? '✅ Réussite' : '❌ Échec'}${r.ok !== null ? `<small>${Math.round(r.p * 100)} % de chances</small>` : ''}</div>
     <p class="choice-made">« ${esc(r.choice)} »</p>
+    ${r.roll !== null && r.roll !== undefined ? `<div class="roll"><div class="rollbar"><div class="zone" style="width:${Math.round(r.p * 100)}%"></div><div class="mark" style="left:${Math.round(r.roll * 100)}%"></div></div><small>${r.stat && r.stat !== 'chance' ? STAT_LABEL(r.stat) + ' · ' : ''}il fallait tomber dans la zone verte</small></div>` : ''}
     <p class="story">${esc(r.text)}</p>
     ${chipsHtml(r.chips)}
     <button class="btn big gold" data-act="continue">Continuer ➜</button>
@@ -326,17 +330,7 @@ function vSub(S) {
     <h4>⚔️ Armes</h4>${sb.shop.weapons.map((id, i) => { const w = WEAPONS[id], p = weaponPrice(w); return `<div class="item"><div><b>${esc(w.name)}</b> <small>${WEAPON_TYPES[w.type]} · ${'★'.repeat(w.tier)}${w.seastone ? ' · granit marin' : ''}${w.cursed ? ' · maudit' : ''}</small><em>${esc(w.desc)}</em></div><button class="btn sm gold" data-act="buy" data-k="weapon" data-arg="${i}" ${S.hero.berrys < p || sb.bought?.includes('w' + i) ? 'disabled' : ''}>${sb.bought?.includes('w' + i) ? 'Acheté' : G.fmtPrime(p)}</button></div>`; }).join('')}
     <p class="hint">Arme actuelle : ${S.hero.weapon ? esc(WEAPONS[S.hero.weapon].name) + ' ' + '★'.repeat(WEAPONS[S.hero.weapon].tier) : 'aucune'}</p>
     <button class="btn gold" data-act="subfinish">Terminer</button></section>`;
-  if (sb.kind === 'ship') {
-    const cur = SHIPS[S.ship.tier - 1], nxt = SHIPS[S.ship.tier];
-    const repair = Math.round((cur.hp - S.ship.hp) * 20_000 * tier);
-    const disc = S.loc === 'water7' ? 0.7 : 1;
-    return `<section class="card"><h3>🔨 Chantier naval</h3>
-    <p>${cur.emoji} <b>${esc(S.ship.name)}</b> — ${cur.name} · Coque ${S.ship.hp}/${cur.hp}${S.ship.coated ? ' · 🫧 enrobé' : ''}</p>
-    <div class="item"><div><b>Réparer la coque</b></div><button class="btn sm" data-act="buy" data-k="repair" ${S.ship.hp >= cur.hp || S.hero.berrys < repair ? 'disabled' : ''}>${S.ship.hp >= cur.hp ? 'Intact' : G.fmtPrime(repair)}</button></div>
-    ${nxt ? `<div class="item"><div><b>Passer au ${nxt.emoji} ${nxt.name}</b><em>Coque ${nxt.hp}${S.loc === 'water7' ? ' · remise de Water 7 !' : ''}</em></div><button class="btn sm gold" data-act="buy" data-k="upgrade" ${S.hero.berrys < nxt.price * disc ? 'disabled' : ''}>${G.fmtPrime(nxt.price * disc)}</button></div>` : '<p class="hint">Ton navire est déjà le meilleur du monde.</p>'}
-    ${!S.ship.coated ? `<div class="item"><div><b>🫧 Coating (enrobage)</b><em>Indispensable pour plonger vers l'Île des Hommes-Poissons.</em></div><button class="btn sm" data-act="buy" data-k="coating" ${S.hero.berrys < 3_000_000 ? 'disabled' : ''}>${G.fmtPrime(3_000_000)}</button></div>` : ''}
-    <button class="btn gold" data-act="subfinish">Terminer</button></section>`;
-  }
+  if (sb.kind === 'ship') return vShipyard(S, sb);
   return '';
 }
 
@@ -376,7 +370,7 @@ async function runVoyage() {
       if (V.webglOK()) {
         used3d = true;
         el.classList.add('three');
-        await V.playVoyage(el, { view: U.view, from: ISLANDS[S.loc], island: isl, sky: sea.sky, water: sea.water, sail: FACTIONS[S.hero.faction].sail, shipTier: S.ship.tier, storm: sea.tier >= 2 && (G.hashStr(isl.id + S.turn) % 3 === 0), duration: 4200 });
+        await V.playVoyage(el, { view: U.view, from: ISLANDS[S.loc], island: isl, sky: sea.sky, water: sea.water, sail: G.shipSail(S), shipTier: S.ship.tier, look: shipLook(S), storm: sea.tier >= 2 && (G.hashStr(isl.id + S.turn) % 3 === 0), duration: 4200 });
       }
     } catch (e) { console.warn('3D indisponible', e); }
   }
@@ -466,7 +460,7 @@ function vModal() {
     <div class="row gap"><button class="btn gold" data-act="retireYes">Oui, raccrocher</button><button class="btn ghost" data-act="closemodal">Non</button></div></div></div>`;
   const S = U.S;
   if (!S) return '';
-  const tabs = [['profil', '🧍 Profil'], ['niveau', '📈 Niveau'], ['equipage', '👥 Équipage'], ['cale', '🎒 Cale'], ['relations', '🤝 Relations'], ['journal', '📜 Journal']];
+  const tabs = [['profil', '🧍 Profil'], ['niveau', '📈 Niveau'], ['equipage', '⛵ Navire & équipage'], ['cale', '🎒 Cale'], ['relations', '🤝 Relations'], ['journal', '📜 Journal']];
   let body = '';
   if (U.tab === 'profil') body = tProfil(S);
   if (U.tab === 'niveau') body = tNiveau(S);
@@ -514,8 +508,7 @@ function tNiveau(S) {
 }
 
 function tEquipage(S) {
-  const sh = SHIPS[S.ship.tier - 1];
-  return `<div class="shipbox">${sh.emoji} <b>${esc(S.ship.name)}</b> — ${sh.name} · Coque ${S.ship.hp}/${sh.hp}${S.ship.coated ? ' · 🫧 enrobé' : ''}</div>
+  return `${vShipCard(S)}
   <h4>${FACTIONS[S.hero.faction].crewLabel} (${S.crew.length}/10)</h4>
   ${S.crew.length ? S.crew.map(c => `<div class="crewcard"><div class="ce">${c.emoji}</div><div class="ci"><b>${esc(c.name)}${c.isCaptain ? ' 🏴‍☠️ (capitaine)' : ''}</b><small>${ROLES[c.role].name} · Puissance ${c.power} · Loyauté ${c.loyalty}${c.fruit ? ` · 🍇 ${esc(FRUITS[c.fruit].name)}` : ''}</small><em>${esc(c.trait)}</em></div></div>`).join('') : '<p class="hint">Personne pour l\'instant. La taverne, les naufragés et les rencontres sont tes meilleurs viviers.</p>'}
   ${S.fleet.length ? `<h4>⛵ Flotte (${S.fleet.length})</h4><ul class="hl">${S.fleet.map(f => `<li>${esc(f.name)} · puissance ${f.power}</li>`).join('')}</ul>` : ''}`;
@@ -608,6 +601,93 @@ function vStory() {
     </div>`).join('')}</div>`;
 }
 
+// ───────────── navire : aperçu, fiche, chantier ─────────────
+function shipLook(S) {
+  return { tier: S.ship.tier, model: S.ship.model, figure: S.ship.figure, figColor: FIGUREHEADS[S.ship.figure]?.color, sail: G.shipSail(S), striped: S.ship.sail === 'rayé' };
+}
+const SHIPPREV = {};
+async function mountShipPrev() {
+  const els = [...document.querySelectorAll('[data-shipprev]')];
+  if (!els.length || !U.S) return;
+  const look = shipLook(U.S), key = JSON.stringify(look);
+  if (!SHIPPREV[key]) {
+    try {
+      const V = await import('./voyage3d.js');
+      if (!V.webglOK()) return;
+      SHIPPREV[key] = V.snapshotShip(look, 360, 200);
+    } catch { return; }
+  }
+  for (const el of document.querySelectorAll('[data-shipprev]')) el.innerHTML = `<img src="${SHIPPREV[key]}" alt="Ton navire">`;
+}
+const BONUS_TXT = { hp: v => `${v > 0 ? '+' : ''}${v} coque`, nav: v => `+${v} navigation`, combat: v => `+${v} combat`, morale: v => `+${v} moral/escale`, heal: v => `+${v} PV/escale`, income: v => `commerce +${Math.round(v * 100)} %`, stealth: v => `+${v} discrétion`, coated: () => 'enrobé', lookout: () => 'moins de mauvaises rencontres', vault: () => 'berrys protégés' };
+const bonusText = b => Object.entries(b || {}).map(([k, v]) => BONUS_TXT[k]?.(v)).filter(Boolean).join(' · ') || 'aucun bonus';
+
+function vShipCard(S) {
+  const m = G.shipModel(S);
+  return `<div class="shipcard">
+    <div class="shipprev" data-shipprev>${m.emoji}</div>
+    <div><b>${esc(S.ship.name)}</b><small>${m.emoji} ${esc(m.name)} · rang ${S.ship.tier} · coque ${S.ship.hp}/${G.shipMaxHp(S)}${S.ship.coated ? ' · 🫧 enrobé' : ''}</small>
+    <small>${FIGUREHEADS[S.ship.figure]?.emoji || ''} ${esc(FIGUREHEADS[S.ship.figure]?.name || '')} · voiles ${S.ship.sail ? esc(S.ship.sail) : 'aux couleurs de ta faction'}</small>
+    <small>${esc(bonusText(m.bonus))}</small>
+    ${S.ship.mods.length ? `<div class="mods">${S.ship.mods.map(id => `<span class="chip on">${SHIP_MODS[id].emoji} ${esc(SHIP_MODS[id].name)}</span>`).join('')}</div>` : ''}</div>
+  </div>`;
+}
+
+function vShipyard(S, sb) {
+  const max = G.shipMaxHp(S);
+  const repair = Math.round((max - S.ship.hp) * 20_000 * G.tierOf(S));
+  const models = sb.limited ? [] : Object.values(SHIP_MODELS).filter(m => m.id !== S.ship.model && (m.tier === S.ship.tier || m.tier === S.ship.tier + 1));
+  const mods = Object.entries(SHIP_MODS);
+  const tabs = [['coque', '🔨 Coque'], ...(sb.limited ? [] : [['modele', '🚢 Navires']]), ['amenag', '⚙️ Modules'], ['look', '🎨 Style']];
+  const t = sb.tab || 'coque';
+  let body = '';
+  if (t === 'coque') body = `
+    <div class="item"><div><b>Réparer la coque</b><em>${S.ship.hp}/${max}</em></div><button class="btn sm" data-act="buy" data-k="repair" ${S.ship.hp >= max || S.hero.berrys < repair ? 'disabled' : ''}>${S.ship.hp >= max ? 'Intact' : G.fmtPrime(repair)}</button></div>
+    ${!S.ship.coated && !sb.limited ? `<div class="item"><div><b>🫧 Coating (enrobage)</b><em>Indispensable pour plonger vers l'Île des Hommes-Poissons.</em></div><button class="btn sm" data-act="buy" data-k="coating" ${S.hero.berrys < 3_000_000 ? 'disabled' : ''}>${G.fmtPrime(3_000_000)}</button></div>` : ''}`;
+  if (t === 'modele') body = models.length ? models.map(m => { const p = G.modelPrice(S, m.id); return `<div class="item"><div><b>${m.emoji} ${esc(m.name)}</b> <small>${m.tier > S.ship.tier ? '⬆️ rang supérieur' : '↔️ même rang'} · coque ${SHIPS[m.tier - 1].hp + (m.bonus.hp || 0)}</small><em>${esc(m.desc)} <b>${esc(bonusText(m.bonus))}</b></em></div><button class="btn sm gold" data-act="buy" data-k="model" data-arg="${m.id}" ${S.hero.berrys < p ? 'disabled' : ''}>${G.fmtPrime(p)}</button></div>`; }).join('') + (S.loc === 'water7' ? '<p class="hint">Remise de Water 7 : -30 % !</p>' : '') + '<p class="hint">Tes aménagements suivent sur le nouveau navire. Le coating, lui, est à refaire (sauf sous-marin).</p>' : '<p class="hint">Ton navire est déjà le meilleur du monde.</p>';
+  if (t === 'amenag') body = mods.map(([id, m]) => { const own = S.ship.mods.includes(id); const p = Math.round(G.modPrice(S, id) * (sb.limited ? 1.3 : 1)); return `<div class="item"><div><b>${m.emoji} ${esc(m.name)}</b><em>${esc(m.desc)}</em></div>${own ? '<span class="okc">✅ Installé</span>' : `<button class="btn sm gold" data-act="buy" data-k="mod" data-arg="${id}" ${S.hero.berrys < p ? 'disabled' : ''}>${G.fmtPrime(p)}</button>`}</div>`; }).join('');
+  if (t === 'look') body = `
+    <h4>Figure de proue <small>(1 M ฿)</small></h4>
+    <div class="chips">${Object.entries(FIGUREHEADS).map(([id, f]) => `<button class="chip ${S.ship.figure === id ? 'on' : ''}" data-act="buy" data-k="figure" data-arg="${id}" ${S.ship.figure === id || S.hero.berrys < 1_000_000 ? 'disabled' : ''}>${f.emoji} ${esc(f.name)}</button>`).join('')}</div>
+    <h4>Couleur des voiles <small>(300 k ฿)</small></h4>
+    <div class="chips">${Object.entries(SAIL_COLORS).map(([id, c]) => `<button class="chip sailchip ${S.ship.sail === id ? 'on' : ''}" data-act="buy" data-k="sail" data-arg="${id}" ${S.ship.sail === id || S.hero.berrys < 300_000 ? 'disabled' : ''}><i style="background:${id === 'rayé' ? 'repeating-linear-gradient(0deg,#e0e0e0 0 4px,#c62828 4px 8px)' : c}"></i>${esc(id)}</button>`).join('')}</div>
+    <h4>Nom du navire <small>(gratuit)</small></h4>
+    <div class="row gap"><input class="inp" maxlength="28" id="shipname" value="${esc(S.ship.name)}"><button class="btn sm" data-act="rename">Renommer</button></div>`;
+  return `<section class="card"><h3>🔨 ${sb.limited ? 'Atelier du charpentier' : 'Chantier naval'}</h3>
+    ${vShipCard(S)}
+    <p class="hint">Bourse : ${G.fmtPrime(S.hero.berrys)}${sb.limited ? ' · Ton charpentier bricole ce qu\'il peut ici (+30 % sur les aménagements, pas de nouveau navire).' : ''}</p>
+    <div class="tabs inline">${tabs.map(([id, l]) => `<button class="${t === id ? 'on' : ''}" data-act="shiptab" data-arg="${id}">${l}</button>`).join('')}</div>
+    ${body}
+    <button class="btn gold" data-act="subfinish">Terminer</button></section>`;
+}
+
+function vRecap(f) {
+  const r = RACES[f.race], fa = FACTIONS[f.faction], ro = ROLES[f.role], isl = ISLANDS[f.island];
+  return `<section class="card recap">
+    <div class="pbig">${f.emoji}</div>
+    <div><h3>${esc(f.name || 'Sans-Nom')}</h3>
+    <p>${r.emoji} <b>${esc(r.name)}</b> · ${fa.emoji} ${esc(fa.name)} · ${ro.emoji} ${esc(ro.name)}</p>
+    <p>${SEAS[isl.sea].emoji} ${esc(isl.name)} · ${f.age} ans · ${esc(ERAS[f.era].name)} · ${G.LENGTHS[f.length].name}</p></div>
+  </section>`;
+}
+
+function vIntro(S) {
+  const h = S.hero, r = RACES[h.race || 'humain'], camp = G.campOf(S), isl = ISLANDS[S.loc];
+  const L = S.legend ? LEGENDS.find(l => l.id === S.legend) : null;
+  return `<section class="card intro">
+    <div class="kicker">${S.mode === 'daily' ? '📅 Défi du jour' : S.mode === 'story' ? '📖 Mode Histoire' : S.mode === 'duel' ? '⚔️ Duel' : '🧭 Nouvelle carrière'}</div>
+    <div class="recap"><div class="pbig">${h.emoji}</div><div><h2>${esc(h.name)}</h2>
+      <p>${r.emoji} <b>${esc(r.name)}</b> · ${FACTIONS[h.faction].emoji} ${esc(FACTIONS[h.faction].name)} · ${ROLES[h.role].emoji} ${esc(ROLES[h.role].name)}</p>
+      <p>${Math.floor(h.age)} ans · ${SEAS[isl.sea].emoji} ${esc(isl.name)}</p></div></div>
+    <p class="story">${L ? esc(L.intro) : `${esc(isl.desc)} C'est ici que tout commence. ${camp === 'gardien' ? 'Ton serment : protéger le secret du One Piece, quoi qu\'il en coûte.' : 'Ton rêve : trouver le One Piece. Ou au moins une bonne histoire à raconter.'}`}</p>
+    ${S.daily ? `<p class="goal">🎯 ${esc(DAILY_GOALS.find(g => g.id === S.daily.goal).label)}</p>` : ''}
+    ${L ? `<p class="goal">🎯 ${esc(L.target.label)}</p>` : `<p class="goal">🎯 ${esc(CAMPS[camp].goal)} : 4 Poneglyphes routiers, puis Laugh Tale.</p>`}
+    <ul class="pc">${r.pros.map(x => `<li class="pro">✅ ${esc(x)}</li>`).join('')}${r.cons.map(x => `<li class="con">⚠️ ${esc(x)}</li>`).join('')}</ul>
+    ${vShipCard(S)}
+    <button class="btn big gold" data-act="beginIntro">⚓ Lever l'ancre !</button>
+  </section>`;
+}
+
 // ───────────── actions ─────────────
 function save() {
   if (U.S && U.S.phase !== 'end') store.set('save', U.S);
@@ -615,7 +695,7 @@ function save() {
 
 function startGame(opts) {
   U.S = G.newGame(opts);
-  U.screen = 'game'; U.modal = null; U.sub = null; U.posterUrl = null; U.saved = false; U.newBadges = [];
+  U.screen = 'game'; U.modal = null; U.sub = null; U.posterUrl = null; U.saved = false; U.newBadges = []; U.intro = true;
   save();
   render();
   window.scrollTo(0, 0);
@@ -694,7 +774,7 @@ function act(name, el) {
       if (arg === 'train') U.sub = { kind: 'train' };
       else if (arg === 'tavern') U.sub = { kind: 'tavern', cands: G.tavernCandidates(S) };
       else if (arg === 'market') U.sub = { kind: 'market', shop: G.genShop(S), bought: [] };
-      else if (arg === 'ship') U.sub = { kind: 'ship' };
+      else if (arg === 'ship') U.sub = { kind: 'ship', limited: !ISLANDS[S.loc].svc?.includes('ship') };
       else if (arg === 'explore') {
         if (!G.startExplore(S)) U.sub = { kind: 'done', emoji: '🗺️', title: 'Exploration', text: 'Tu fais le tour de l\'île. Rien de spécial... à part une belle vue.', chips: [] };
       } else {
@@ -713,11 +793,15 @@ function act(name, el) {
       let chips;
       if (k === 'fruit') { chips = G.buy(S, 'fruit', U.sub.shop.fruits[+arg]); if (chips) U.sub.bought.push('f' + arg); }
       else if (k === 'weapon') { chips = G.buy(S, 'weapon', U.sub.shop.weapons[+arg]); if (chips) U.sub.bought.push('w' + arg); }
-      else chips = G.buy(S, k);
+      else if (k === 'mod' && U.sub.limited) { const p = Math.round(G.modPrice(S, arg) * 0.3); if (S.hero.berrys < G.modPrice(S, arg) + p) return; S.hero.berrys -= p; chips = G.buy(S, 'mod', arg); if (!chips) S.hero.berrys += p; }
+      else chips = G.buy(S, k, arg);
       if (chips) toast(chips.map(c => c.t).join(' · ') || 'Fait');
       save(); break;
     }
     case 'subfinish': S.actionsLeft--; U.sub = null; save(); break;
+    case 'shiptab': U.sub.tab = arg; break;
+    case 'rename': { const v = document.getElementById('shipname')?.value.trim(); if (v) { S.ship.name = v.slice(0, 28); toast('Navire renommé : ' + S.ship.name); save(); } break; }
+    case 'beginIntro': U.intro = false; window.scrollTo(0, 0); break;
     case 'subcancel': U.sub = null; break;
     case 'subclose': U.sub = null; break;
     case 'leave': U.sub = null; G.leaveIsland(S); if (S.phase === 'end') onEnd(); save(); window.scrollTo(0, 0); break;

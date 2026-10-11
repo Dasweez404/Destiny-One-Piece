@@ -205,30 +205,75 @@ export function buildDiorama(isl) {
   return G;
 }
 
-function buildShip(sailColor, tier) {
+function buildShip(sailColor, tier, look = {}) {
   const s = new THREE.Group();
-  const hullGeo = new THREE.BoxGeometry(3, 0.9, 1.3, 2, 1, 1);
+  const model = look.model || '';
+  const figColor = look.figColor ?? 0xfff3e0;
+  if (model === 'sousmarin') {
+    const body = mesh(new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.55, 2.2, 4, 10) : new THREE.CylinderGeometry(0.55, 0.55, 2.8, 10), M(0xfdd835), 0, 0.35, 0);
+    body.rotation.z = Math.PI / 2; s.add(body);
+    s.add(mesh(new THREE.BoxGeometry(0.7, 0.6, 0.5), M(0xfbc02d), -0.1, 1, 0));
+    s.add(mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.8, 4), M(0x555555), -0.1, 1.6, 0));
+    const flag = mesh(new THREE.BoxGeometry(0.02, 0.25, 0.4), M(new THREE.Color(sailColor).getHex()), -0.1, 1.9, 0.2); s.add(flag);
+    s.userData.flag = flag;
+    return s;
+  }
+  const hullColor = { radeau: 0xa1887f, baleine: 0xeceff1, celeste: 0xffffff, adam: 0x8d6e63, galion: 0x4e342e, marchand: 0x795548 }[model] ?? (tier >= 5 ? 0x8d6e63 : 0x6d4c41);
+  const L = 3 + Math.max(0, tier - 2) * 0.35;
+  const hullGeo = new THREE.BoxGeometry(L, model === 'radeau' ? 0.35 : 0.9, 1.3 + tier * 0.05, 2, 1, 1);
   const pos = hullGeo.attributes.position;
-  for (let i = 0; i < pos.count; i++) {
+  if (model !== 'radeau') for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), y = pos.getY(i);
     if (y < 0) pos.setZ(i, pos.getZ(i) * 0.45);
-    if (x > 1.2) { pos.setZ(i, pos.getZ(i) * 0.3); pos.setY(i, y + 0.15); }
+    if (x > L / 2 - 0.3) { pos.setZ(i, pos.getZ(i) * 0.3); pos.setY(i, y + 0.15); }
   }
   hullGeo.computeVertexNormals();
-  s.add(mesh(hullGeo, M(tier >= 5 ? 0x8d6e63 : 0x6d4c41), 0, 0.3, 0));
-  s.add(mesh(new THREE.BoxGeometry(2.6, 0.08, 1.1), M(0xd7b98e), -0.1, 0.78, 0));
-  const masts = tier >= 3 ? [-0.6, 0.6] : [0];
+  s.add(mesh(hullGeo, M(hullColor), 0, 0.3, 0));
+  s.add(mesh(new THREE.BoxGeometry(L - 0.4, 0.08, 1.1), M(0xd7b98e), -0.1, model === 'radeau' ? 0.5 : 0.78, 0));
+  if (model === 'restaurant' || model === 'marchand') s.add(mesh(new THREE.BoxGeometry(1.2, 0.6, 0.9), M(0xfff8e1), -0.7, 1.1, 0));
+  if (model === 'aubes') for (const z of [-0.75, 0.75]) { const w = mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.15, 10), M(0x8d6e63), 0, 0.5, z); w.rotation.x = Math.PI / 2; s.add(w); }
+  const nm = model === 'radeau' || tier <= 2 ? 1 : tier <= 3 ? 2 : 3;
+  const masts = nm === 1 ? [0] : nm === 2 ? [-0.6, 0.6] : [-1, 0, 0.9];
+  const sail = look.striped ? 0xe0e0e0 : new THREE.Color(sailColor).getHex();
   for (const x of masts) {
-    s.add(mesh(new THREE.CylinderGeometry(0.05, 0.06, 2.6, 5), M(0x4e342e), x, 2, 0));
-    const sail = mesh(new THREE.BoxGeometry(0.06, 1.3, 1.5), M(sailColor), x + 0.05, 2.1, 0);
-    s.add(sail);
+    const h = 2.6 + (x === 0 && nm === 3 ? 0.5 : 0);
+    s.add(mesh(new THREE.CylinderGeometry(0.05, 0.06, h, 5), M(0x4e342e), x, 0.7 + h / 2, 0));
+    s.add(mesh(new THREE.BoxGeometry(0.06, 1.3, 1.5), M(sail), x + 0.05, 2.1, 0));
+    if (look.striped) s.add(mesh(new THREE.BoxGeometry(0.07, 0.3, 1.52), M(0xc62828), x + 0.05, 2.1, 0));
   }
+  if (model === 'celeste') for (let i = 0; i < 4; i++) s.add(mesh(new THREE.IcosahedronGeometry(0.4, 0), M(0xffffff), -1.2 + i * 0.8, 0.1, (i % 2 ? 0.7 : -0.7)));
   // figure de proue
-  s.add(mesh(new THREE.SphereGeometry(0.25, 8, 6), M(0xfff3e0), 1.65, 0.85, 0));
+  const fx = L / 2 + 0.15;
+  if (model === 'baleine') s.add(mesh(new THREE.SphereGeometry(0.75, 10, 8), M(0xeceff1), fx - 0.2, 0.7, 0));
+  else if (look.figure === 'dragon' || look.figure === 'serpent') { const c = mesh(new THREE.ConeGeometry(0.22, 0.8, 6), M(figColor), fx, 1, 0); c.rotation.z = -Math.PI / 3; s.add(c); }
+  else if (look.figure === 'lion') { s.add(mesh(new THREE.SphereGeometry(0.28, 8, 6), M(0xffe082), fx, 0.9, 0)); const t = mesh(new THREE.TorusGeometry(0.3, 0.1, 6, 12), M(0xef6c00), fx - 0.02, 0.9, 0); t.rotation.y = Math.PI / 2; s.add(t); }
+  else if (look.figure && look.figure !== 'aucune') s.add(mesh(new THREE.SphereGeometry(0.28, 8, 6), M(figColor), fx, 0.9, 0));
+  else s.add(mesh(new THREE.SphereGeometry(0.2, 8, 6), M(0xfff3e0), fx - 0.1, 0.85, 0));
   const flag = mesh(new THREE.BoxGeometry(0.02, 0.3, 0.5), M(0x111111), masts[masts.length - 1], 3.4, 0.25);
   s.add(flag);
   s.userData.flag = flag;
   return s;
+}
+
+// Aperçu du navire (chantier naval, fiche)
+export function snapshotShip(look, w = 320, h = 200) {
+  if (!webglOK()) return null;
+  if (!snapR) snapR = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  const rd = snapR;
+  rd.setSize(w, h);
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x8fd3ff);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x335577, 1));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(6, 10, 8); scene.add(sun);
+  const sea = new THREE.Mesh(new THREE.CircleGeometry(30, 24).rotateX(-Math.PI / 2), M(0x2a8fd4)); scene.add(sea);
+  const ship = buildShip(look.sail || '#f5f5f5', look.tier || 1, look); ship.rotation.y = -0.5; scene.add(ship);
+  const cam = new THREE.PerspectiveCamera(38, w / h, 0.1, 100);
+  cam.position.set(5.5, 3.6, 6.5); cam.lookAt(0, 1.3, 0);
+  rd.render(scene, cam);
+  const url = rd.domElement.toDataURL('image/png');
+  scene.traverse(obj => { if (obj.geometry) obj.geometry.dispose(); if (obj.material) obj.material.dispose(); });
+  rd.renderLists.dispose();
+  return url;
 }
 
 export function playVoyage(container, o) {
@@ -271,7 +316,7 @@ export function playVoyage(container, o) {
     island.rotation.y = 0.5;
     scene.add(island);
 
-    const ship = buildShip(o.sail ?? '#f5f5f5', o.shipTier || 1);
+    const ship = buildShip(o.sail ?? '#f5f5f5', o.shipTier || 1, o.look || {});
     ship.rotation.y = Math.PI / 2;
     scene.add(ship);
 

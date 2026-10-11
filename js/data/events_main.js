@@ -1119,3 +1119,103 @@ export const RACE_EVENTS = [
     ],
   },
 ];
+
+// ═══════════════ FRUITS DU DÉMON & NAVIRES : plus d'occasions ═══════════════
+export const LOOT_EVENTS = [
+  {
+    id: 'f_tree', emoji: '🍇', title: 'Un fruit aux motifs de spirale',
+    w: { weight: 7 },
+    x: 'Au fond d\'un verger abandonné, un fruit étrange pend à une branche : des spirales sur toute la peau. Les oiseaux l\'évitent. Un fruit du démon ?',
+    ch: [
+      { t: 'Le cueillir', s: 'vitesse', d: -2,
+        ok: { x: 'Il est à toi. Il a un goût d\'ordure, paraît-il. Tu décideras plus tard.', e: { fruit: 'random' } },
+        ko: { x: 'Un singe est plus rapide que toi. Il le mange. Il s\'envole. Tu as vu un singe s\'envoler.', e: { morale: -5, hl: 'a vu un singe manger un fruit du démon sous son nez' } } },
+      { t: 'Le laisser : trop risqué', r: { x: 'La mer, c\'est quand même pratique.', e: {} } },
+    ],
+  },
+  {
+    id: 'f_merchant', emoji: '🧺', title: 'Le marchand de fruits ambulant',
+    w: { weight: 6 },
+    x: S => `Un vieil homme pousse une charrette couverte d'un drap. « Psst. Des fruits du démon, garantis. Enfin... presque tous. » Il soulève le drap : trois fruits bizarres.`,
+    ch: [
+      { t: 'Acheter le plus cher', c: S => S.tierPrime() * 0.8, r: { x: 'Tu repars avec un fruit du démon. Le vieux compte ses billets en souriant.', e: { fruit: S => `random${Math.min(5, S.tier + 2)}` } } },
+      { t: 'Acheter le moins cher', c: S => S.tierPrime() / 5, r: { x: 'Un fruit du démon pour une bouchée de pain. C\'est sûrement une arnaque. Ou pas.', e: { fruit: S => S.chance(0.6) ? `random${Math.min(5, S.tier)}` : 'smile' } } },
+      { t: 'Marchander', s: 'charisme', d: 2,
+        ok: { x: 'Il finit par te le céder à moitié prix.', e: { fruit: S => `random${Math.min(5, S.tier + 1)}`, berrys: S => -S.tierPrime() / 4 } },
+        ko: { x: 'Il te traite de radin et repart.', e: {} } },
+    ],
+  },
+  {
+    id: 'f_fishbelly', emoji: '🐟', title: 'Dans le ventre du poisson',
+    w: { ctx: 'sea', weight: 5 },
+    x: 'Ton cuisinier vide un énorme poisson pêché le matin. Il pousse un cri : dans l\'estomac, un fruit intact, couvert de spirales.',
+    ch: [
+      { t: 'Le garder dans la cale', r: { x: 'Un fruit du démon tombé du ciel. Ou plutôt de la mer.', e: { fruit: 'random' } } },
+      { t: 'Le revendre au prochain port', r: { x: 'Tu le revends à un collectionneur.', e: { berrys: S => S.tierPrime() / 2 } } },
+    ],
+  },
+  {
+    id: 'f_float', emoji: '🌊', title: 'Un coffret à la dérive',
+    w: { ctx: 'sea', weight: 4 },
+    x: 'Un petit coffret verrouillé flotte près de la coque, frappé du sceau du Gouvernement Mondial. Un transport de fruits du démon aurait coulé dans le coin.',
+    ch: [
+      { t: 'Le repêcher et l\'ouvrir', s: 'force', d: 0,
+        ok: { x: 'Le cadenas cède. À l\'intérieur, sur du velours : un fruit du démon.', e: { fruit: S => `random${Math.min(5, S.tier + 1)}` } },
+        ko: { x: 'Le cadenas est en granit marin. Tu le gardes en espérant un jour l\'ouvrir.', e: { item: 'seastone_menottes' } } },
+      { t: 'Le rendre à la Marine', req: S => S.camp === 'gardien', rq: 'Gardiens uniquement', r: { x: 'Le contenu est confisqué... et ton supérieur te le confie « pour les besoins de la mission ».', e: { fruit: 'random', merit: 3 } } },
+      { t: 'Le laisser couler', r: { x: 'C\'était peut-être un piège.', e: {} } },
+    ],
+  },
+  {
+    id: 'f_auction', emoji: '🔨', title: 'Une vente aux enchères',
+    w: { minTier: 2, weight: 4 },
+    x: 'Une vente aux enchères clandestine se tient dans l\'arrière-salle d\'un casino. Le lot vedette : un fruit du démon « de catégorie légendaire ». Les enchères montent vite.',
+    ch: [
+      { t: 'Enchérir jusqu\'au bout', c: S => S.tierPrime() * 1.5, r: { x: 'Adjugé ! Le commissaire-priseur te remet le fruit sous les applaudissements.', e: { fruit: 'random5', hl: 'a remporté un fruit légendaire aux enchères' } } },
+      { t: 'Voler le lot pendant la vente', s: 'vitesse', d: 6, req: S => S.hero.faction !== 'marine', rq: 'Pas pour un Marine',
+        ok: { x: 'Les lumières s\'éteignent, le fruit disparaît. Toi aussi.', e: { fruit: 'random4', rep: -3 } },
+        ko: { x: 'Les gardes du casino te tombent dessus.', e: { hp: -35 } } },
+      { t: 'Regarder', r: { x: 'Le fruit part pour une fortune.', e: {} } },
+    ],
+  },
+  {
+    id: 'sh_wright', emoji: '🔧', title: 'Un charpentier itinérant',
+    w: { weight: 4 },
+    x: S => `Un charpentier barbu, caisse à outils sur l'épaule, fait le tour du port. Il regarde ${S.ship.name} d'un œil critique. « Joli bateau. Mais il lui manque quelque chose. Je te fais un prix. »`,
+    ch: [
+      { t: 'Le laisser installer un aménagement', c: S => S.tierPrime() / 4, r: { x: 'Trois jours de marteau et de jurons. Ton navire a un nouvel équipement.', e: { ship: { mod: 'random' }, shipHp: 30 } } },
+      { t: 'Lui demander une révision complète', c: S => S.tierPrime() / 8, r: { x: 'La coque est comme neuve.', e: { shipHp: 300 } } },
+      { t: 'L\'engager', s: 'charisme', d: 2,
+        ok: { x: 'Il range ses outils dans ta cale. Il fait partie de l\'équipage.', e: { recruit: { role: 'charpentier' } } },
+        ko: { x: 'Il préfère sa liberté.', e: {} } },
+    ],
+  },
+  {
+    id: 'sh_sale', emoji: '🏷️', title: 'Navire à vendre',
+    w: { test: S => S.ship.tier < 5, weight: 4 },
+    x: S => `Sur le quai, un navire flambant neuf avec une pancarte : « À VENDRE, propriétaire parti précipitamment ». Le capitaine du port te fait un clin d'œil : il veut s'en débarrasser vite.`,
+    ch: [
+      { t: 'L\'acheter à prix cassé', c: S => [0, 2_000_000, 12_000_000, 50_000_000, 160_000_000][S.ship.tier], r: { x: 'Tu signes. Un nouveau navire, et une affaire en or.', e: { ship: { tier: '+1' } } } },
+      { t: 'Le voler', s: 'navigation', d: 4, req: S => S.camp === 'chercheur', rq: 'Chercheurs uniquement',
+        ok: { x: 'Tu largues les amarres en pleine nuit. Personne ne t\'a vu.', e: { ship: { tier: '+1' }, rep: -3 } },
+        ko: { x: 'Les gardes du port t\'attendaient.', e: { hp: -25 } } },
+      { t: 'Passer', r: { x: 'Ton navire te suffit. Il est fidèle.', e: { morale: 3 } } },
+    ],
+  },
+  {
+    id: 'sh_wreck', emoji: '⚓', title: 'Une épave intacte',
+    w: { ctx: 'sea', weight: 3 },
+    x: 'Un navire échoué sur un banc de sable, sans équipage. La coque est intacte, les canons aussi. Que s\'est-il passé ? Mystère.',
+    ch: [
+      { t: 'Récupérer son équipement', s: 'force', d: 0,
+        ok: { x: 'Tu démontes ce qui peut l\'être et l\'installes sur ton navire.', e: { ship: { mod: 'random' } } },
+        ko: { x: 'Le banc de sable s\'effondre. Tu repars avec quelques planches.', e: { shipHp: 30 } } },
+      { t: 'Le renflouer et en faire ton navire', s: 'navigation', d: 4, req: S => S.ship.tier < 5, rq: 'Ton navire est déjà le meilleur',
+        ok: { x: 'Marée haute, cordes tendues, l\'épave flotte. Elle est à toi.', e: { ship: { tier: '+1' } } },
+        ko: { x: 'Tu as abîmé ton propre navire en essayant.', e: { shipHp: -30 } } },
+      { t: 'Fouiller la cabine du capitaine', s: 'intel', d: 2,
+        ok: { x: 'Un journal de bord et un coffre.', e: { berrys: S => S.tierPrime() / 3, stats: { navigation: 1 } } },
+        ko: { x: 'La porte était piégée.', e: { hp: -20 } } },
+    ],
+  },
+];

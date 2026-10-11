@@ -180,3 +180,55 @@ export const ITEMS = {
   wanted_poster: { name: 'Avis de recherche encadré', emoji: '🖼️', desc: 'Ta première prime. Tu l\'as encadrée.' },
   seastone_menottes: { name: 'Menottes en granit marin', emoji: '⛓️', desc: 'Pour capturer un utilisateur de fruit. Ou être capturé.' },
 };
+
+// ───────────── Personnalisation du navire ─────────────
+// Modèles par rang : chaque amélioration propose plusieurs coques au choix.
+// bonus : hp (coque), nav (navigation), combat, morale (par escale), heal (PV par escale), income (berrys par escale, x prime du rang), stealth (vitesse), coated
+export const SHIP_MODELS = {
+  barque:     { tier: 1, name: 'Barque', emoji: '🛶', desc: 'Deux rames, une voile, beaucoup d\'espoir.', bonus: {} },
+  radeau:     { tier: 1, name: 'Radeau de fortune', emoji: '🪵', desc: 'Des tonneaux, des cordes, et ça flotte. La plupart du temps.', bonus: { hp: -10, morale: 1 } },
+  canot:      { tier: 1, name: 'Canot de pêche', emoji: '🎣', desc: 'Il sent le poisson, mais on mange toujours.', bonus: { heal: 4 } },
+  caravelle:  { tier: 2, name: 'Caravelle', emoji: '⛵', desc: 'Le navire des débuts de légende. Équilibré.', bonus: { hp: 15 } },
+  sloop:      { tier: 2, name: 'Sloop rapide', emoji: '💨', desc: 'Fin et nerveux, il remonte au vent.', bonus: { nav: 2 } },
+  cotre:      { tier: 2, name: 'Cotre de contrebandier', emoji: '🕶️', desc: 'Un double fond pour cacher ce qui doit l\'être.', bonus: { stealth: 2, income: 0.02 }, price: 0.8 },
+  brick:      { tier: 3, name: 'Brick de combat', emoji: '🚢', desc: 'Deux mâts et une batterie de canons.', bonus: { combat: 2 } },
+  sousmarin:  { tier: 3, name: 'Sous-marin', emoji: '🟡', desc: 'Comme celui d\'un certain chirurgien. Discret, et déjà prêt pour les profondeurs.', bonus: { stealth: 3, coated: true, hp: -10 } },
+  restaurant: { tier: 3, name: 'Navire-restaurant', emoji: '🍽️', desc: 'Une vraie cuisine à bord. L\'équipage ne veut plus en descendre.', bonus: { morale: 4, heal: 8 } },
+  galion:     { tier: 4, name: 'Galion de guerre', emoji: '🛳️', desc: 'Trois ponts, quarante canons. On l\'entend arriver.', bonus: { combat: 4 } },
+  marchand:   { tier: 4, name: 'Galion marchand', emoji: '💰', desc: 'Une cale immense : tu commerces à chaque escale.', bonus: { income: 0.08, hp: 20 } },
+  aubes:      { tier: 4, name: 'Navire à aubes de Water 7', emoji: '⚙️', desc: 'Des roues à aubes et un moteur au cola. Il avance même sans vent.', bonus: { nav: 3, hp: 10 } },
+  adam:       { tier: 5, name: 'Navire en bois d\'Adam', emoji: '🌳', desc: 'Le bois le plus solide du monde. Le rêve de tout charpentier.', bonus: { hp: 40, nav: 2, combat: 2, morale: 2 } },
+  baleine:    { tier: 5, name: 'Navire-baleine', emoji: '🐋', desc: 'Une forteresse flottante à tête de baleine, comme le Moby Dick.', bonus: { hp: 80, combat: 5 } },
+  celeste:    { tier: 5, name: 'Navire-nuage', emoji: '☁️', desc: 'Des Dials de vent et des voiles de nuage de Skypiea. Rapide comme la brise.', bonus: { nav: 5, stealth: 2 } },
+};
+for (const [id, m] of Object.entries(SHIP_MODELS)) m.id = id;
+export const DEFAULT_MODEL = { 1: 'barque', 2: 'caravelle', 3: 'brick', 4: 'galion', 5: 'adam' };
+
+// Aménagements à installer au chantier naval
+export const SHIP_MODS = {
+  canons:     { name: 'Batterie de canons', emoji: '💣', price: 4_000_000, desc: '+2 au combat.', bonus: { combat: 2 } },
+  coque:      { name: 'Coque renforcée', emoji: '🛡️', price: 3_000_000, desc: '+40 de coque.', bonus: { hp: 40 } },
+  voiles:     { name: 'Voilure de course', emoji: '🪁', price: 3_000_000, desc: '+2 en navigation.', bonus: { nav: 2 } },
+  infirmerie: { name: 'Infirmerie', emoji: '🩺', price: 2_500_000, desc: '+8 PV à chaque escale.', bonus: { heal: 8 } },
+  cuisine:    { name: 'Grande cuisine', emoji: '🍖', price: 2_000_000, desc: '+3 de moral à chaque escale.', bonus: { morale: 3 } },
+  vigie:      { name: 'Nid-de-pie', emoji: '🔭', price: 1_500_000, desc: 'Moins de mauvaises rencontres en mer.', bonus: { lookout: true } },
+  cale:       { name: 'Cale secrète', emoji: '🗝️', price: 2_000_000, desc: 'Moitié moins de berrys perdus quand tu es mis K.O.', bonus: { vault: true } },
+  burst:      { name: 'Coup de Burst', emoji: '🚀', price: 12_000_000, desc: 'Un canon à air qui fait voler le navire : +3 navigation.', bonus: { nav: 3 } },
+  aquarium:   { name: 'Aquarium-salon', emoji: '🐠', price: 6_000_000, desc: 'Un salon avec vue sur un aquarium. +2 de moral à chaque escale.', bonus: { morale: 2, heal: 3 } },
+};
+
+export const FIGUREHEADS = {
+  aucune: { name: 'Aucune', emoji: '▫️', color: 0xfff3e0 },
+  mouton: { name: 'Tête de mouton', emoji: '🐑', color: 0xffffff },
+  lion:   { name: 'Lion solaire', emoji: '🦁', color: 0xffa726 },
+  dragon: { name: 'Dragon', emoji: '🐉', color: 0x43a047 },
+  sirene: { name: 'Sirène', emoji: '🧜', color: 0xf48fb1 },
+  crane:  { name: 'Crâne', emoji: '💀', color: 0xeeeeee },
+  mouette:{ name: 'Mouette', emoji: '🕊️', color: 0x90caf9 },
+  baleine:{ name: 'Baleine', emoji: '🐳', color: 0x78909c },
+  serpent:{ name: 'Serpent de mer', emoji: '🐍', color: 0x7e57c2 },
+};
+
+export const SAIL_COLORS = {
+  noir: '#1b1b1b', blanc: '#f5f5f5', rouge: '#b71c1c', bleu: '#1565c0', vert: '#2e7d32', violet: '#6a1b9a', or: '#f9a825', rose: '#f06292', rayé: '#e0e0e0',
+};
