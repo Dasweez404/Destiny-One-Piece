@@ -105,6 +105,8 @@ function vRules() {
     <p>Tu ne contrôles pas les combats : tu prends les <b>décisions</b>, et le destin (les dés) fait le reste. Chaque choix indique la caractéristique utilisée et le niveau de risque.</p>
     <h3>🎯 Le but</h3>
     <p><b>Chercheurs</b> (pirates, révolutionnaires, chasseurs, Corsaires, Empereurs) : trouver le One Piece. <b>Gardiens</b> (Marine, Gouvernement, Chevaliers Divins) : le protéger. Dans les deux cas : réunir les 4 <b>Poneglyphes routiers</b> (Zou, Totto Land, Wano, Elbaf), savoir les lire, puis atteindre <b>Laugh Tale</b>. Va le plus loin possible.</p>
+    <h3>🧭 Tu n'es pas Luffy</h3>
+    <p>Tu choisis ta route. Sur les grandes îles, le destin tire au sort entre l'arc que l'on connaît (Arlong, Crocodile, Enies Lobby...) et une autre histoire. Tu peux revivre le parcours canon... ou pas du tout.</p>
     <h3>🗺️ Le voyage</h3>
     <p>À chaque île : un événement, puis une <b>escale</b> (entraînement, taverne, marché, chantier naval...). Ensuite tu choisis ta prochaine destination. Les Blues sont faciles, Grand Line beaucoup moins, le Nouveau Monde est un cimetière.</p>
     <h3>🤕 Blessures, mort... ou vie rangée</h3>

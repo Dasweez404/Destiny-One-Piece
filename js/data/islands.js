@@ -68,6 +68,9 @@ export const ISLANDS = {
   torino:     { sea: 'paradise', pop: 1, name: 'Royaume de Torino', sub: 'Paradise', desc: 'Une île d\'oiseaux géants où les humains sont minuscules... et parfois au menu.', th: { k: 'jungle', g: 0xaed581, a: 0xff7043 }, svc: ['rest'] },
   banaro:     { sea: 'paradise', pop: 1, name: 'Île de Banaro', sub: 'Paradise', desc: 'Les ruines d\'un village rasé par un duel entre le feu et les ténèbres.', th: { k: 'ruines', g: 0x8d6e63, a: 0xff5722 }, svc: ['rest'] },
   kuraigana:  { sea: 'paradise', pop: 1, name: 'Île de Kuraigana', sub: 'Château de Shikkearu', desc: 'Un royaume en ruine peuplé de babouins qui imitent les sabreurs.', th: { k: 'ruines', g: 0x5d4037, a: 0x212121 }, svc: ['dojo', 'rest'] },
+  pucci:      { sea: 'paradise', pop: 1, name: 'Pucci', sub: 'Ville gourmande', desc: 'Une escale du Puffing Tom, réputée pour sa gastronomie.', th: { k: 'ville', g: 0xc5e1a5, a: 0xef6c00 }, svc: ['tavern', 'market', 'rest'] },
+  sanfaldo:   { sea: 'paradise', pop: 1, name: 'San Faldo', sub: 'Ville du carnaval', desc: 'Une escale du Puffing Tom où tout le monde porte un masque.', th: { k: 'ville', g: 0xd7ccc8, a: 0x8e24aa }, svc: ['market', 'tavern', 'rest'] },
+  stpoplar:   { sea: 'paradise', pop: 1, name: 'St. Poplar', sub: 'Ville du printemps', desc: 'Une escale du Puffing Tom, fleurie toute l\'année.', th: { k: 'village', g: 0xaed581, a: 0xf48fb1 }, svc: ['ship', 'rest'] },
   marineford: { sea: 'paradise', pop: 3, name: 'Marineford', sub: 'Quartier Général de la Marine', desc: 'La forteresse de la Justice, au cœur de Paradise.', th: { k: 'forteresse', g: 0xcfd8dc, a: 0x0d47a1 }, svc: ['marinebase', 'forge', 'rest'], era: 'pre' },
 
   // ───────────── CALM BELT ─────────────
