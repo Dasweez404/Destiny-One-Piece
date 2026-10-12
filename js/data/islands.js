@@ -166,3 +166,9 @@ for (const isl of Object.values(EXTRA_ISLANDS).sort((a, b) => (a.ch ?? 1e9) - (b
   while (EXTRA_ISLANDS[r[at + 1]] && (EXTRA_ISLANDS[r[at + 1]].ch ?? 1e9) <= (isl.ch ?? 1e9)) at++;
   r.splice(at + 1, 0, isl.id);
 }
+
+// les îles importées de popularité ≥ 2 peuvent aussi servir de départ (sauf dans le dernier tiers de leur route, trop avancé)
+for (const [sea, list] of Object.entries(START_ISLANDS)) {
+  const r = ROUTES[sea] || [];
+  r.forEach((id, k) => { const i = ISLANDS[id]; if (i?.generated && i.pop >= 2 && !i.era && k < Math.max(3, r.length * 0.66) && !list.includes(id)) list.push(id); });
+}
