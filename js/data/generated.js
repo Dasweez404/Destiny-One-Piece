@@ -2,6 +2,156 @@
 // Corrections : tools/overrides.json. Source des faits : One Piece Encyclopédie (wiki Fandom francophone), texte sous licence CC BY-SA 3.0.
 // ch = chapitre de première apparition (sert à ordonner les routes).
 export const EXTRA_ISLANDS = {
+ "acacia": {
+  "id": "acacia",
+  "sea": "nw",
+  "pop": 1,
+  "name": "Acacia",
+  "sub": "Nouveau Monde",
+  "desc": "Acacia est la ville portuaire du royaume de Dressrosa où l'équipage de Chapeau de paille, accompagné de Law et Kinemon a accosté.",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 701,
+  "generated": true
+ },
+ "alubarna": {
+  "id": "alubarna",
+  "sea": "paradise",
+  "pop": 3,
+  "name": "Alubarna",
+  "sub": "Paradis",
+  "desc": "Alubarna est la capitale d'Alabasta. Elle a été construite il y a environ 4 000 ans.",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "tavern",
+   "market",
+   "rest"
+  ],
+  "ch": 129,
+  "generated": true
+ },
+ "big_horn": {
+  "id": "big_horn",
+  "sea": "paradise",
+  "pop": 1,
+  "name": "Big Horn",
+  "sub": "Paradis",
+  "desc": "Big Horn est une ville située près des côtes de l'Île de Drum. La ville est relativement proche des montagnes Drum Rockies.",
+  "th": {
+   "k": "montagne",
+   "g": 8281445,
+   "a": 11809818
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 133,
+  "generated": true
+ },
+ "bilca": {
+  "id": "bilca",
+  "sea": "paradise",
+  "pop": 2,
+  "name": "Bilca",
+  "sub": "Île Céleste",
+  "desc": "Bilca était une île céleste loin au sud-est de Skypiea. Elle a été seulement mentionnée dans la série et n'est jamais apparue. Ses habitants sont les Bilcans. L'île partage son nom avec une ancienne ville sur la Lune.",
+  "th": {
+   "k": "ciel",
+   "g": 16777215,
+   "a": 16766293
+  },
+  "svc": [
+   "tavern",
+   "market",
+   "rest"
+  ],
+  "ch": 279,
+  "generated": true
+ },
+ "cactus_island": {
+  "id": "cactus_island",
+  "sea": "paradise",
+  "pop": 2,
+  "name": "L'Île Cactus",
+  "sub": "Paradis",
+  "desc": "Cactus Island est une île situé sur Grand Line, à Paradis plus précisément, c'est également l'île où se trouve la ville de Whiskey Peak.",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "tavern",
+   "market",
+   "rest"
+  ],
+  "ch": 106,
+  "generated": true
+ },
+ "carta": {
+  "id": "carta",
+  "sea": "nw",
+  "pop": 1,
+  "name": "Carta",
+  "sub": "Nouveau Monde",
+  "desc": "Carta est une ville portuaire située dans la partie orientale de Dressrosa.",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 743,
+  "generated": true
+ },
+ "crevardie": {
+  "id": "crevardie",
+  "sea": "paradise",
+  "pop": 1,
+  "name": "Crevardie",
+  "sub": "Paradis",
+  "desc": "La Crevardie , \"le pays de la misère\", est un pays de l'île de Neurasthénia, sur Grand Line. Les habitants qui y vivent vouent un vrai culte à Satan.",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 524,
+  "generated": true
+ },
+ "downs": {
+  "id": "downs",
+  "sea": "north",
+  "pop": 1,
+  "name": "Downs",
+  "sub": "North Blue",
+  "desc": "Downs est une île du North Blue où Donquixote Doflamingo a formé une association criminelle.",
+  "th": {
+   "k": "village",
+   "g": 8305770,
+   "a": 14194790
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 782,
+  "generated": true
+ },
  "eaten_up_island": {
   "id": "eaten_up_island",
   "sea": "east",
@@ -20,6 +170,44 @@ export const EXTRA_ISLANDS = {
   "ch": 2,
   "generated": true
  },
+ "guanhao": {
+  "id": "guanhao",
+  "sea": "paradise",
+  "pop": 2,
+  "name": "Guanhao",
+  "sub": "Paradis",
+  "desc": "Guanhao est une île de Grand Line où le Gouvernement mondial entraîne les futures recrues du CP9.",
+  "th": {
+   "k": "futur",
+   "g": 14811135,
+   "a": 16744448
+  },
+  "svc": [
+   "tavern",
+   "market",
+   "rest"
+  ],
+  "ch": 518,
+  "generated": true
+ },
+ "kamigata": {
+  "id": "kamigata",
+  "sea": "west",
+  "pop": 1,
+  "name": "Kamigata",
+  "sub": "West Blue",
+  "desc": "Le Royaume de Kamigata est un pays situé dans une région indéterminée de West Blue.",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 1185,
+  "generated": true
+ },
  "kyuka_island": {
   "id": "kyuka_island",
   "sea": "paradise",
@@ -36,6 +224,98 @@ export const EXTRA_ISLANDS = {
    "rest"
   ],
   "ch": 117,
+  "generated": true
+ },
+ "las_camp": {
+  "id": "las_camp",
+  "sea": "west",
+  "pop": 1,
+  "name": "Las Camp",
+  "sub": "West Blue",
+  "desc": "Las Camp est une île de West Blue. Après la mort de Barbe Blanche, les pirates ont attaqué cette île et la Marine a beaucoup de difficulté à les repousser.",
+  "th": {
+   "k": "village",
+   "g": 8305770,
+   "a": 14194790
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 582,
+  "generated": true
+ },
+ "miccuo": {
+  "id": "miccuo",
+  "sea": "north",
+  "pop": 1,
+  "name": "Miccuo",
+  "sub": "North Blue",
+  "desc": "Miccuo, la Terre du Nord, est une région à la localisation inconnue qui fut mentionnée pour la première fois par Fullbody.",
+  "th": {
+   "k": "village",
+   "g": 8305770,
+   "a": 14194790
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 292.1,
+  "generated": true
+ },
+ "nakrowa": {
+  "id": "nakrowa",
+  "sea": "paradise",
+  "pop": 1,
+  "name": "Nakrowa",
+  "sub": "Paradis",
+  "desc": "Nakrowa Mugenkyõ, qui signifie littéralement «pays des merveilles») est une île connue comme \"l'île des illusions\".",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 643,
+  "generated": true
+ },
+ "north_blue": {
+  "id": "north_blue",
+  "sea": "north",
+  "pop": 2,
+  "name": "Océan du Nord",
+  "sub": "North Blue",
+  "desc": "North Blue (, Nōsu Burū) est un océan sur la Planète Bleue.",
+  "th": {
+   "k": "village",
+   "g": 8305770,
+   "a": 14194790
+  },
+  "svc": [
+   "tavern",
+   "market",
+   "rest"
+  ],
+  "ch": 292,
+  "generated": true
+ },
+ "notice": {
+  "id": "notice",
+  "sea": "north",
+  "pop": 1,
+  "name": "Notice",
+  "sub": "North Blue",
+  "desc": "Notice est une ville riche située dans la région de North Blue. C'est la ville natale de l'Équipage du New Age, qui ont trouvé la ville ennuyante et l'ont laissé pour vivre une vie de pirates comme dans leur jeunesse.",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 769,
   "generated": true
  },
  "pays_des_dieux_erbaf": {
@@ -92,6 +372,60 @@ export const EXTRA_ISLANDS = {
    "rest"
   ],
   "ch": 820,
+  "generated": true
+ },
+ "primula": {
+  "id": "primula",
+  "sea": "nw",
+  "pop": 1,
+  "name": "Primula",
+  "sub": "Nouveau Monde",
+  "desc": "Primula est une ville située dans la partie nord-ouest de Dressrosa.",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 743,
+  "generated": true
+ },
+ "rakesh": {
+  "id": "rakesh",
+  "sea": "north",
+  "pop": 1,
+  "name": "Rakesh",
+  "sub": "North Blue",
+  "desc": "Rakesh est une ville portuaire située dans la région de North Blue.",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 762,
+  "generated": true
+ },
+ "renaisse": {
+  "id": "renaisse",
+  "sea": "paradise",
+  "pop": 1,
+  "name": "Renaisse",
+  "sub": "Paradis",
+  "desc": "Renaisse est une île de Grand Line encore inconnue.",
+  "th": {
+   "k": "village",
+   "g": 8305770,
+   "a": 14194790
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 128,
   "generated": true
  },
  "royaume_d_esperia": {
@@ -264,6 +598,80 @@ export const EXTRA_ISLANDS = {
   "ch": 711,
   "generated": true
  },
+ "saint_reia": {
+  "id": "saint_reia",
+  "sea": "south",
+  "pop": 1,
+  "name": "Saint Reia",
+  "sub": "South Blue",
+  "desc": "Saint Reia est une île située dans la région de South Blue.",
+  "th": {
+   "k": "village",
+   "g": 8305770,
+   "a": 14194790
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 550.6,
+  "generated": true
+ },
+ "sevio": {
+  "id": "sevio",
+  "sea": "nw",
+  "pop": 1,
+  "name": "Sevio",
+  "sub": "Nouveau Monde",
+  "desc": "Sevio est une ville localisée dans le sud de Dressrosa. Ce fut dans cette ville que le Roi Riku, contrôlé par les pouvoirs de Doflamingo, a attaqué ses propres concitoyens.",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 727,
+  "generated": true
+ },
+ "shandora": {
+  "id": "shandora",
+  "sea": "paradise",
+  "pop": 2,
+  "name": "Shandora",
+  "sub": "Paradis",
+  "desc": "La cité d'or de Shandora est un lieu mythique gardé par la tribu de Calgara et ses descendants depuis des siècles.",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "tavern",
+   "market",
+   "rest"
+  ],
+  "ch": 268,
+  "generated": true
+ },
+ "tumi": {
+  "id": "tumi",
+  "sea": "south",
+  "pop": 1,
+  "name": "Tumi",
+  "sub": "South Blue",
+  "desc": "Tumi est un pays situé dans South Blue. Elle a été conquise par l'Armée Révolutionnaire il y a environ douze ans.",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 1098,
+  "generated": true
+ },
  "ukkari_hot_spring_island": {
   "id": "ukkari_hot_spring_island",
   "sea": "paradise",
@@ -280,6 +688,24 @@ export const EXTRA_ISLANDS = {
    "rest"
   ],
   "ch": 315,
+  "generated": true
+ },
+ "vila": {
+  "id": "vila",
+  "sea": "paradise",
+  "pop": 1,
+  "name": "Vila",
+  "sub": "Paradis",
+  "desc": "Vila est un petit pays situé sur Grand Line.",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 96,
   "generated": true
  },
  "village_blacksmith": {
@@ -338,26 +764,6 @@ export const EXTRA_ISLANDS = {
   "ch": 914,
   "generated": true
  },
- "ville_de_nazawaka": {
-  "id": "ville_de_nazawaka",
-  "sea": "east",
-  "pop": 3,
-  "name": "Ville de Nazawaka",
-  "sub": "East Blue",
-  "desc": "La ville de Nazawaka est une ville de taille moyenne située dans le nord d'East Blue. Elle abrite le Musée commémoratif Mihawk.",
-  "th": {
-   "k": "ville",
-   "g": 10265195,
-   "a": 14935240
-  },
-  "svc": [
-   "tavern",
-   "market",
-   "rest"
-  ],
-  "ch": 1,
-  "generated": true
- },
  "winner_island": {
   "id": "winner_island",
   "sea": "nw",
@@ -374,6 +780,26 @@ export const EXTRA_ISLANDS = {
    "rest"
   ],
   "ch": 1063,
+  "generated": true
+ },
+ "yuba": {
+  "id": "yuba",
+  "sea": "paradise",
+  "pop": 2,
+  "name": "Yuba",
+  "sub": "Paradis",
+  "desc": "Yuba est une ville-oasis située dans le désert d'Alabasta.",
+  "th": {
+   "k": "desert",
+   "g": 15123066,
+   "a": 7163969
+  },
+  "svc": [
+   "tavern",
+   "market",
+   "rest"
+  ],
+  "ch": 162,
   "generated": true
  },
  "ile_foolshout": {
@@ -1015,9 +1441,11 @@ export const EXTRA_CHARACTERS = {
   "align": "yonko",
   "power": 8,
   "isl": {
-   "pre": [],
+   "pre": [
+    "north_blue"
+   ],
    "post": [
-    "elbaf"
+    "north_blue"
    ]
   },
   "quote": "...",
@@ -1527,11 +1955,13 @@ export const EXTRA_CHARACTERS = {
   "isl": {
    "pre": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ],
    "post": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ]
   },
   "quote": "...",
@@ -1585,11 +2015,13 @@ export const EXTRA_CHARACTERS = {
   "isl": {
    "pre": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ],
    "post": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ]
   },
   "quote": "...",
@@ -1820,11 +2252,13 @@ export const EXTRA_CHARACTERS = {
   "isl": {
    "pre": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ],
    "post": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ]
   },
   "quote": "...",
@@ -2271,11 +2705,13 @@ export const EXTRA_CHARACTERS = {
   "isl": {
    "pre": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ],
    "post": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ]
   },
   "quote": "...",
@@ -2362,11 +2798,13 @@ export const EXTRA_CHARACTERS = {
   "isl": {
    "pre": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ],
    "post": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ]
   },
   "quote": "...",
@@ -2381,12 +2819,10 @@ export const EXTRA_CHARACTERS = {
   "power": 24,
   "isl": {
    "pre": [
-    "sabaody",
-    "whisky"
+    "north_blue"
    ],
    "post": [
-    "sabaody",
-    "whisky"
+    "north_blue"
    ]
   },
   "quote": "...",
@@ -2401,10 +2837,12 @@ export const EXTRA_CHARACTERS = {
   "power": 24,
   "isl": {
    "pre": [
-    "jaya"
+    "jaya",
+    "north_blue"
    ],
    "post": [
-    "jaya"
+    "jaya",
+    "north_blue"
    ]
   },
   "quote": "...",
@@ -2701,11 +3139,13 @@ export const EXTRA_CHARACTERS = {
   "isl": {
    "pre": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ],
    "post": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ]
   },
   "quote": "Seul, je peux m'en occuper !",
@@ -3192,11 +3632,13 @@ export const EXTRA_CHARACTERS = {
   "isl": {
    "pre": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ],
    "post": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ]
   },
   "quote": "...",
@@ -3415,11 +3857,13 @@ export const EXTRA_CHARACTERS = {
   "isl": {
    "pre": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ],
    "post": [
     "spidermiles",
-    "dressrosa"
+    "dressrosa",
+    "north_blue"
    ]
   },
   "quote": "...",
@@ -3523,10 +3967,10 @@ export const EXTRA_CHARACTERS = {
   "power": 8,
   "isl": {
    "pre": [
-    "sphinx"
+    "north_blue"
    ],
    "post": [
-    "sphinx"
+    "north_blue"
    ]
   },
   "quote": "...",

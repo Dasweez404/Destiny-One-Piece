@@ -360,9 +360,10 @@
   },
   "islandFilter": {
     "_doc": "Une page de lieu est gardée si son type de fiche OU son nom ressemble à une île / un royaume, et si son nom n'est pas celui d'un bâtiment ou d'un site à l'intérieur d'une île.",
-    "typeAllow": "île|archipel|royaume|pays|principauté|duché|nation|empire|république|ville[- ]île|banc",
+    "typeAllow": "île|archipel|royaume|pays|principauté|duché|nation|empire|république|ville[- ]île|banc|ville|village|cité|capitale|port|station|banquise|désert|volcan",
     "nameAllow": "^(île|îles|archipel|royaume|pays|principauté|duché|empire|république|village|ville) |island|land\\b|peak\\b|bark|town\\b",
-    "nameDeny": "\\b(palais|château|café|cafeteria|colosseum|colisée|magasin|maison|forêt|lac|mer|pont|bibliothèque|dôme|district|crique|place|ferme|mont|forteresse|peinture|capitale|port|base|quartier|champ|jardin|temple|arène|gare|école|prison|musée|boutique|hôtel|auberge|restaurant|trésor|g-\\d+|nyū|dojo|statue|tour|bateau|navire|rue|passage|salle|grotte|cimetière|usine|arbre)\\b"
+    "nameDeny": "\\b(palais|château|café|cafeteria|colosseum|colisée|magasin|maison|forêt|lac|mer|pont|bibliothèque|dôme|district|crique|place|ferme|mont|forteresse|peinture|capitale|port|base|quartier|champ|jardin|temple|arène|gare|école|prison|musée|boutique|hôtel|auberge|restaurant|trésor|g-\\d+|nyū|dojo|statue|tour|bateau|navire|rue|passage|salle|grotte|cimetière|usine|arbre)\\b",
+    "typeDeny": "bâtiment|palais|château|forêt|montagne|lac|fleuve|rivière|mer\\b|bibliothèque|restaurant|café|magasin|arène|prison|base|tour|temple|navire|arbre"
   },
   "deadStatus": "décéd|mort|défunt|tué|disparu"
 }

@@ -122,7 +122,8 @@ function buildIsland(page, pops) {
   if (!o.force && !o.name) {
     const flt = MAP.islandFilter;
     const isIsland = new RegExp(flt.typeAllow, 'i').test(type) || new RegExp(flt.nameAllow, 'i').test(title);
-    if (!isIsland || new RegExp(flt.nameDeny, 'i').test(title)) return { skip: 'pas une île (lieu interne ou bâtiment)' };
+    const denied = new RegExp(flt.nameDeny, 'i').test(title) || new RegExp(flt.typeDeny || '^$', 'i').test(type);
+    if (denied && !isIsland || (new RegExp(flt.nameDeny, 'i').test(title) && !new RegExp(flt.typeAllow, 'i').test(type))) return { skip: 'pas une île (lieu interne ou bâtiment)' };
   }
   const low = (type + ' ' + lead(page.text, box.endIndex)).toLowerCase();
   const th = o.th || (() => { const k = firstMatch(THEME_RX, low) || 'village'; return { k, ...(MAP.themeColors?.[k] || MAP.themeColors?.village || { g: 8305770, a: 14194790 }) }; })();
@@ -228,7 +229,7 @@ for (const page of readDir('characters').filter(p => !OVR.skip?.includes(p.title
 
 const show = (kind, label) => {
   console.log(`${label} : ${report[kind].ok} convertis`);
-  for (const [why, list] of Object.entries(report[kind].skip)) console.log(`   ignorés (${why}) : ${list.length}${list.length <= 6 ? ' → ' + list.join(', ') : ' → ' + list.slice(0, 5).join(', ') + '…'}`);
+  for (const [why, list] of Object.entries(report[kind].skip)) console.log(`   ignorés (${why}) : ${list.length}${list.length <= 400 ? ' → ' + list.join(', ') : ' → ' + list.slice(0, 400).join(', ') + '…'}`);
 };
 show('islands', 'Îles'); show('characters', 'Personnages');
 const bySea = {}; Object.values(islands).forEach(i => { bySea[i.sea] = (bySea[i.sea] || 0) + 1; });

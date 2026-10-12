@@ -787,7 +787,7 @@ export function navOptions(S) {
 // Route linéaire : on avance toujours vers l'avant, avec un choix entre deux îles.
 function routeAhead(S) {
   const key = routeKeyOf(ISLANDS[S.loc].sea);
-  const route = (ROUTES[key] || []).filter(id => { const i = ISLANDS[id]; return (!i.era || i.era === S.era) && !(S.length === 'rapide' && i.generated && i.pop < 3); });
+  const route = (ROUTES[key] || []).filter(id => { const i = ISLANDS[id]; return (!i.era || i.era === S.era) && !(S.length === 'rapide' && i.generated && i.pop < 3) && !(i.generated && i.pop < 2); });
   const camp = campOf(S);
   // position sur la route : seules les arrivées choisies font avancer (pas les renvois forcés) ; ce qui est derrière toi est derrière toi
   const cur = S.routePos?.[key] ?? -1;
