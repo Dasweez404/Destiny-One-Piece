@@ -105,7 +105,7 @@ function vHome() {
       <label class="opt"><input type="checkbox" data-act="toggleAnim" ${U.anim ? 'checked' : ''}> Animation 3D des voyages</label>
       ${vViewPick()}
     </div>
-    <p class="foot">Jeu de fan non officiel. One Piece © Eiichiro Oda / Shūeisha / Toei Animation.</p>
+    <p class="foot">Jeu de fan non officiel, non commercial. One Piece © Eiichiro Oda / Shūeisha / Toei Animation.<br>Données inspirées du One Piece Wiki (Fandom, CC BY-SA 3.0).</p>
   </div>`;
 }
 

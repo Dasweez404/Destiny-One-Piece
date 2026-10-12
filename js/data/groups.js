@@ -1,3 +1,4 @@
+import { EXTRA_GROUPS } from './generated.js';
 // Puissances du monde : la réputation se gagne auprès des groupes (factions, équipages, peuples),
 // pas seulement des individus. Chaque personnage canon appartient à un groupe (selon l'époque).
 // terr : îles où le groupe fait la loi (réductions et faveurs si ami, embuscades si hostile)
@@ -55,7 +56,7 @@ const CG = {
   judge: 'germa',
 };
 export function groupOfChar(id, era) {
-  const g = CG[id];
+  const g = CG[id] ?? EXTRA_GROUPS[id];
   return typeof g === 'object' ? g?.[era] : g;
 }
 

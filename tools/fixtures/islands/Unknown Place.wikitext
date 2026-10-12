@@ -1,0 +1,5 @@
+<!-- TITLE: Unknown Place -->
+{{Location Infobox
+|ename = Unknown Place
+}}
+Nothing is said about where this is.

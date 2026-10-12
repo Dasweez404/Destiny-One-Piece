@@ -1,3 +1,4 @@
+import { EXTRA_CHARACTERS } from './generated.js';
 // Personnages canon que l'on peut croiser. isl = où on peut les rencontrer selon l'époque.
 // power ≈ indice de combat (cf. échelle de niveau). align : côté naturel du personnage.
 
@@ -107,5 +108,7 @@ export const CHARACTERS = Object.fromEntries([
   C('judge', 'Vinsmoke Judge', '🧬', 'neutre', 34, ['germa'], ['germa'], 'Les sentiments sont un défaut de fabrication.', 'Le roi de Germa, chef de la Germa 66.'),
   C('noland', 'Le fantôme de Noland', '🌕', 'neutre', 0, ['lvneel'], ['lvneel'], 'Rendez-vous à la cité d\'or !', 'Une légende de Lvneel, enfin, son souvenir.'),
 ].map(c => [c.id, c]));
+
+for (const [id, c] of Object.entries(EXTRA_CHARACTERS)) if (!CHARACTERS[id]) CHARACTERS[id] = c;
 
 export const charsAt = (islandId, era) => Object.values(CHARACTERS).filter(c => c.isl[era]?.includes(islandId));

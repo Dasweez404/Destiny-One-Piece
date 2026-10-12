@@ -1,0 +1,64 @@
+{
+  "_doc": "Correspondances wiki → jeu. À ajuster après avoir inspecté les fiches réelles (node tools/inspect.mjs \"Alabasta\"). Les expressions sont des regex insensibles à la casse, testées dans l'ordre : la première qui correspond gagne.",
+  "fields": {
+    "englishName": ["ename", "name", "enname"],
+    "region": ["region", "location", "sea", "locationregion"],
+    "affiliation": ["affiliation", "affiliations", "organization", "crew"],
+    "occupation": ["occupation", "occupations", "rank", "epithet"],
+    "bounty": ["bounty", "prime"],
+    "origin": ["origin", "birthplace", "birth place"],
+    "residence": ["residence", "status", "location", "last seen"]
+  },
+  "seas": [
+    ["east blue", "east"],
+    ["north blue", "north"],
+    ["west blue", "west"],
+    ["south blue", "south"],
+    ["calm belt", "calm"],
+    ["red line", "redline"],
+    ["new world", "nw"],
+    ["grand line|paradise", "paradise"]
+  ],
+  "themes": [
+    ["desert|sand|dune", "desert"],
+    ["snow|ice island|winter|frozen|blizzard", "neige"],
+    ["volcano|lava|magma", "volcan"],
+    ["sky island|cloud|in the sky", "ciel"],
+    ["jungle|rainforest|dinosaur|swamp", "jungle"],
+    ["ruins|destroyed|razed|abandoned|ghost town", "ruines"],
+    ["mountain|cliff|peak", "montagne"],
+    ["castle|fortress|marine base|prison|navy headquarters", "forteresse"],
+    ["capital|metropolis|city|port town|kingdom|royal", "ville"],
+    ["samurai|feudal|shogun|japan", "japon"],
+    ["ship|restaurant|floating", "navire"],
+    ["futuristic|laboratory|technology", "futur"]
+  ],
+  "themeColors": {
+    "village": { "g": 8305770, "a": 14194790 }, "ville": { "g": 10265195, "a": 14935240 }, "desert": { "g": 15123066, "a": 7163969 },
+    "neige": { "g": 16119285, "a": 7176784 }, "volcan": { "g": 14811135, "a": 16727296 }, "ciel": { "g": 16777215, "a": 16766293 },
+    "jungle": { "g": 6511690, "a": 12921980 }, "ruines": { "g": 9211243, "a": 4073251 }, "montagne": { "g": 8281445, "a": 11809818 },
+    "forteresse": { "g": 12961221, "a": 1062068 }, "japon": { "g": 8159328, "a": 9325354 }, "navire": { "g": 9132587, "a": 16041024 },
+    "futur": { "g": 14811135, "a": 16744448 }
+  },
+  "groups": [
+    ["straw hat", "chapeau"], ["red hair pirates", "shanks"], ["whitebeard pirates", "wb"], ["big mom pirates|charlotte family|totto land", "bigmom"],
+    ["beasts pirates", "kaido"], ["blackbeard pirates", "teach"], ["cross guild", "crossguild"], ["seven warlords|warlord", "corsaires"],
+    ["revolutionary army", "revo"], ["cp[0-9]|cipher pol|world government|five elders|celestial dragon|holy knight|god's knights", "gov"],
+    ["marine|navy|admiral|vice admiral|g-[0-9]", "marine"], ["kuja", "kuja"], ["mink", "minks"], ["giant|elbaf", "geants"],
+    ["wano|samurai|kozuki", "wano"], ["fish-man island|ryugu", "ryugu"], ["germa", "germa"], ["galley-la|water 7", "galleyla"],
+    ["vegapunk|egghead|science", "vegapunk"], ["pirate", "pirates"]
+  ],
+  "groupEmoji": {
+    "chapeau": "👒", "shanks": "🔴", "wb": "⚪", "bigmom": "🍰", "kaido": "🐉", "teach": "⚫", "crossguild": "🤡", "corsaires": "⚓",
+    "revo": "🐉", "gov": "🕊️", "marine": "⚓", "kuja": "🐍", "minks": "🐾", "geants": "🪓", "wano": "🗾", "ryugu": "🧜", "germa": "🧬",
+    "galleyla": "🔨", "vegapunk": "🧪", "pirates": "🏴‍☠️"
+  },
+  "alignByGroup": {
+    "chapeau": "pirate", "shanks": "yonko", "wb": "yonko", "bigmom": "yonko", "kaido": "yonko", "teach": "yonko", "crossguild": "pirate",
+    "corsaires": "pirate", "revo": "revo", "gov": "gov", "marine": "marine", "kuja": "pirate", "pirates": "pirate"
+  },
+  "rankPower": [
+    ["fleet admiral|yonko|emperor", 72], ["admiral", 64], ["commander of the (?:four )?emperor|commander", 48], ["vice admiral|cp0", 45],
+    ["warlord|seven warlords", 40], ["rear admiral|cp9", 32], ["captain", 24], ["lieutenant|cp[1-8]", 18], ["commodore|ensign|sergeant", 12]
+  ]
+}

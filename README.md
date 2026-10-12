@@ -21,6 +21,11 @@ Site statique, sans build : ouvrir `index.html` via un serveur (`python3 -m http
 - **Voyages en 3D** (Three.js, intégré dans `js/vendor`) : un navire vers un diorama low-poly de l'île.
 - **Partage** : texte prêt pour X/Twitter et avis de recherche WANTED en image.
 
+## Importer toute la base One Piece
+Un tutoriel complet (récupération du wiki, conversion, franciser, validation, rééquilibrage) est dans
+[`docs/TUTO_DONNEES.md`](docs/TUTO_DONNEES.md). Outils : `tools/fetch-wiki.mjs`, `tools/build-data.mjs`,
+`tools/validate-data.mjs`, `tools/bench.mjs`. Le jeu fonctionne sans import (`js/data/generated.js` est vide par défaut).
+
 ## Structure
 - `js/engine.js` : moteur (hasard déterministe, jets, effets, navigation, fins).
 - `js/data/` : îles, factions, objets, personnages, événements, légendes, badges.

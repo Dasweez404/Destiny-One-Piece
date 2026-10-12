@@ -1,0 +1,6 @@
+<!-- TITLE: Kano Country -->
+{{Location Infobox
+|ename = Kano Country
+|region = [[West Blue]]
+}}
+'''Kano Country''' is a small kingdom in the [[West Blue]]. It is a small village on a mountain with a cliff.

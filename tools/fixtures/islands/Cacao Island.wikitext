@@ -1,0 +1,7 @@
+<!-- TITLE: Cacao Island -->
+{{Location Infobox
+|ename = Cacao Island
+|region = [[New World]], [[Totto Land]]
+|affiliation = [[Big Mom Pirates]]
+}}
+'''Cacao Island''' is a chocolate-covered island in [[Totto Land]] where biscuit soldiers guard the town. The kingdom has a castle and a capital city.

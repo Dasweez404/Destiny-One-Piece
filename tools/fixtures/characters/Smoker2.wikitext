@@ -1,0 +1,8 @@
+<!-- TITLE: Hina -->
+{{Character Infobox
+|ename = Hina
+|affiliation = [[Marine]]
+|occupation = Rear Admiral
+|origin = [[Cacao Island]]
+}}
+'''Hina''' is a Marine officer.

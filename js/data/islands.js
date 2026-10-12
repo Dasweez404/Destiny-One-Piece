@@ -1,3 +1,4 @@
+import { EXTRA_ISLANDS } from './generated.js';
 // Mers et îles. Uniquement des lieux canon (manga / anime), du plus célèbre au simplement mentionné.
 // pop : 1 = à peine mentionnée, 2 = connue, 3 = arc majeur (événements plus gros, récompenses plus grosses)
 // th  : thème du diorama 3D  (k = forme, g = couleur du sol, a = couleur d'accent)
@@ -105,6 +106,8 @@ export const ISLANDS = {
   laughtale:  { sea: 'laughtale', pop: 3, name: 'Laugh Tale', sub: 'La dernière île', desc: 'Roger y a ri. Toi aussi, peut-être.', th: { k: 'montagne', g: 0xffe082, a: 0xffffff }, svc: [], noNav: true },
 };
 
+// îles importées du wiki (js/data/generated.js) : elles ne remplacent jamais une île écrite à la main
+for (const [id, isl] of Object.entries(EXTRA_ISLANDS)) if (!ISLANDS[id]) ISLANDS[id] = isl;
 for (const [id, isl] of Object.entries(ISLANDS)) isl.id = id;
 // un chantier naval sur toute île habitée (ville, village avec taverne...) : on améliore son navire souvent
 for (const isl of Object.values(ISLANDS)) {
@@ -148,3 +151,11 @@ export const ROUTES = {
   nw: ['zou', 'punkhazard', 'greenbit', 'dressrosa', 'cacao', 'wci', 'foodvalten', 'prodence', 'sphinx', 'wano', 'baltigo', 'egghead', 'hachinosu', 'karaibari', 'marinehq', 'elbaf', 'lodestar'],
 };
 export const routeKeyOf = sea => ({ east: 'east', north: 'north', west: 'west', south: 'south', paradise: 'paradise', calm: 'paradise', redline: 'nw', nw: 'nw', laughtale: 'nw' }[sea]);
+
+// insère les îles importées dans les routes (après l'île indiquée par `after`, sinon à la fin de la mer)
+for (const isl of Object.values(EXTRA_ISLANDS)) {
+  const key = routeKeyOf(isl.sea), r = ROUTES[key];
+  if (!r || r.includes(isl.id) || isl.noNav || isl.gate) continue;
+  const at = r.indexOf(isl.after);
+  if (at >= 0) r.splice(at + 1, 0, isl.id); else r.push(isl.id);
+}

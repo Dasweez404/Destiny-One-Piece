@@ -1,0 +1,10 @@
+{
+  "_doc": "Corrections manuelles appliquées par build-data.mjs. Clé = titre exact de l'article du wiki. Tout champ est optionnel.",
+  "skip": [],
+  "islands": {
+    "Mokomo Dukedom": { "name": "Duché de Mokomo", "sub": "Sur le dos de Zunisha", "desc": "Le duché des Minks, bâti sur un éléphant millénaire.", "after": "zou", "pop": 3 }
+  },
+  "characters": {
+    "Crocodile": { "name": "Sir Crocodile", "quote": "Les rêves, ça ne sert à rien.", "group": "corsaires" }
+  }
+}

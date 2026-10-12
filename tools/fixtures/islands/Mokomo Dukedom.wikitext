@@ -1,0 +1,11 @@
+<!-- TITLE: Mokomo Dukedom -->
+{{Location Infobox
+|ename = Mokomo Dukedom
+|jname = モコモ公国
+|region = [[New World]]
+|affiliation = [[Minks]]<ref>Chapter 802</ref>
+|first = Chapter 802
+}}
+'''Mokomo Dukedom''' is a country located on the back of the giant elephant [[Zunisha]], in the [[New World]]. It is home to the Minks, a jungle nation of animal-people. {{Ref|1}}
+== Overview ==
+A jungle dukedom hidden in the Whale Forest. The arc here was long. This arc, that arc, another arc, an arc.

@@ -1,0 +1,10 @@
+<!-- TITLE: Nekomamushi -->
+{{Character Infobox
+|ename = Nekomamushi
+|affiliation = [[Mink Tribe]], [[Straw Hat Grand Fleet]]
+|occupation = Duke, Captain of the Guardians
+|bounty = 1,000,000,000
+|origin = [[Mokomo Dukedom]]
+|residence = [[Mokomo Dukedom]]
+}}
+'''Nekomamushi''' is the Duke of the Mokomo Dukedom.
