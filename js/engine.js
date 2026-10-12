@@ -9,11 +9,12 @@ import { RACES, raceOf } from './data/races.js';
 import { GROUPS, groupOfChar, groupOfFaction, groupOfYonko, standingOf } from './data/groups.js';
 import { ALT_EVENTS, PUFFING_EVENTS } from './data/events_alt.js';
 import { ARC_EVENTS, ARCS } from './data/events_arcs.js';
+import { NAVAL_EVENTS, WAR_EVENTS, WAR_ARCS } from './data/events_war.js';
 import { CREW_FIRST, CREW_EPI, CREW_TRAITS, LEGENDS, STORY_FRUITS, CANON_CAREERS, BADGES, DAILY_GOALS, randomHeroName } from './data/meta.js';
 
 Object.assign(FRUITS, Object.fromEntries(Object.entries(STORY_FRUITS).map(([id, f]) => [id, { ...f, id }])));
 
-export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS];
+export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS];
 export const EVENTS = Object.fromEntries(ALL_EVENTS.map(e => [e.id, e]));
 
 export const LENGTHS = {
@@ -137,7 +138,18 @@ export const levelIdxOf = S => LEVELS.indexOf(levelOf(Math.min(combatRating(S), 
 export const rawLevelIdx = S => LEVELS.indexOf(levelOf(combatRating(S)));
 
 const ROLE_FOR_STAT = { navigation: ['navigateur', 'timonier'], intel: ['medecin', 'archeologue'], charisme: ['musicien'], force: ['charpentier', 'combattant', 'bretteur'], vitesse: ['sniper'], volonte: ['cuisinier'] };
+// Combat naval : le navire, son artillerie, son état, l'équipage de pont et la flotte comptent autant que le héros.
+export function navalRating(S) {
+  const h = S.hero;
+  let r = S.ship.tier * 2.6 + shipBonus(S, 'combat') * 1.5 + shipBonus(S, 'nav') * 0.5 + h.stats.navigation * 0.9 + levelIdxOf(S) * 0.5;
+  r += (S.ship.hp / shipMaxHp(S) - 0.6) * 4;
+  const deck = S.crew.filter(c => ['navigateur', 'timonier', 'sniper', 'charpentier'].includes(c.role));
+  if (deck.length) r += Math.min(4, Math.max(...deck.map(c => c.power)) / 4);
+  r += Math.min(6, S.fleet.reduce((a, f) => a + f.power, 0) / 3);
+  return Math.round(r * 10) / 10;
+}
 export function statRating(S, stat) {
+  if (stat === 'naval') return navalRating(S);
   const h = S.hero;
   let r = h.stats[stat] * 1.6 + levelIdxOf(S) * 0.6; // l'expérience aide en tout
   const helpers = S.crew.filter(c => ROLE_FOR_STAT[stat]?.includes(c.role));
@@ -488,7 +500,7 @@ export function applyEff(S, e = {}, chips = [], mult = null) {
   if (E.flag2) S.flags[E.flag2] = true;
   if (E.arc) {
     (S.arcs ||= {})[E.arc.id] = E.arc.stage; (S.arcT ||= {})[E.arc.id] = S.turn;
-    const A = ARCS[E.arc.id];
+    const A = ARCS[E.arc.id] || WAR_ARCS[E.arc.id];
     if (A) { const done = E.arc.stage >= A.stages; chips.push({ t: `📖 ${A.name} : ${done ? 'terminée' : `étape ${E.arc.stage}/${A.stages}`}`, k: 'level' }); log(S, `📖 Trame « ${A.name} » : ${done ? 'dénouement' : 'étape ' + E.arc.stage}.`, 'big'); }
   }
   if (E.unflag) delete S.flags[E.unflag];
