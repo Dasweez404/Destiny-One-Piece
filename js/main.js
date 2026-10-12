@@ -4,14 +4,13 @@ import { SEAS, ISLANDS, START_SEAS, START_ISLANDS } from './data/islands.js';
 import { FACTIONS, LEVELS, PROGRESS, ERAS, YONKO, CAMPS } from './data/factions.js';
 import { FRUITS, FRUIT_TYPES, WEAPONS, WEAPON_TYPES, SHIPS, ROLES, STATS, ITEMS, fruitPrice, weaponPrice, SHIP_MODELS, SHIP_MODS, FIGUREHEADS, SAIL_COLORS } from './data/items.js';
 import { CHARACTERS } from './data/characters.js';
-import { LEGENDS, BADGES, DAILY_GOALS } from './data/meta.js';
+import { LEGENDS, BADGES, DAILY_GOALS, randomHeroName } from './data/meta.js';
 import { RACES } from './data/races.js';
 import { GROUPS, groupOfChar, standingOf } from './data/groups.js';
 import { drawPoster, posterBlob } from './share.js';
 
 const app = document.getElementById('app');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const AVATARS = ['🧑', '👩', '🧔', '👧', '👦', '🧑‍🦰', '👩‍🦱', '🧑‍🦳', '👨‍🦲', '🧕', '🤠', '🥷', '🧛', '🧜', '🦸', '💀', '🐻', '🦊', '🐺', '🐸', '🤡', '👹'];
 const STAT_KEYS = Object.keys(STATS);
 const POINTS = 12;
 
@@ -30,7 +29,7 @@ const U = {
 };
 
 function defaultForm(mode = 'career') {
-  return { mode, length: 'rapide', era: 'pre', name: '', emoji: '🧑', race: 'humain', faction: 'pirate', role: 'capitaine', sea: 'east', island: 'fuchsia', stats: Object.fromEntries(STAT_KEYS.map(k => [k, 3])), shipName: '', age: 17 };
+  return { mode, length: 'rapide', era: 'pre', name: '', race: 'humain', faction: 'pirate', role: 'capitaine', sea: 'east', island: 'fuchsia', stats: Object.fromEntries(STAT_KEYS.map(k => [k, 3])), shipName: '', age: 17 };
 }
 
 // ───────────── rendu ─────────────
@@ -157,8 +156,7 @@ function vCreate() {
     ${isDuelJoin ? `<div class="card note">⚔️ Profil imposé par le code de duel. Choisis juste ton nom et ton apparence.</div>` : ''}
     <section class="card">
       <h3>🏷️ Identité</h3>
-      <div class="row"><input class="inp" maxlength="24" placeholder="Nom de ton personnage" value="${esc(f.name)}" data-input="name"></div>
-      <div class="avatars">${AVATARS.map(a => `<button class="av ${f.emoji === a ? 'on' : ''}" data-act="f" data-k="emoji" data-arg="${a}">${a}</button>`).join('')}</div>
+      <div class="row gap"><input class="inp" maxlength="24" placeholder="Laisse vide pour un nom au hasard" value="${esc(f.name)}" data-input="name"><button class="btn sm" data-act="randname" title="Nom au hasard">🎲</button></div>
       <div class="row"><input class="inp" maxlength="28" placeholder="Nom du navire (optionnel)" value="${esc(f.shipName)}" data-input="shipName"></div>
     </section>
     <section class="card">
@@ -684,8 +682,8 @@ function vShipyard(S, sb) {
 function vRecap(f) {
   const r = RACES[f.race], fa = FACTIONS[f.faction], ro = ROLES[f.role], isl = ISLANDS[f.island];
   return `<section class="card recap">
-    <div class="pbig">${f.emoji}</div>
-    <div><h3>${esc(f.name || 'Sans-Nom')}</h3>
+    <div class="pbig">${RACES[f.race].emoji}</div>
+    <div><h3>${esc(f.name || 'Nom tiré au hasard')}</h3>
     <p>${r.emoji} <b>${esc(r.name)}</b> · ${fa.emoji} ${esc(fa.name)} · ${ro.emoji} ${esc(ro.name)}</p>
     <p>${SEAS[isl.sea].emoji} ${esc(isl.name)} · ${f.age} ans · ${esc(ERAS[f.era].name)} · ${G.LENGTHS[f.length].name}</p></div>
   </section>`;
@@ -761,10 +759,11 @@ function act(name, el) {
       if (k === 'sea') { f.island = START_ISLANDS[arg][0]; }
       break;
     }
+    case 'randname': U.form.name = randomHeroName(); break;
     case 'stat': { const f = U.form; f.stats[k] = Math.max(1, Math.min(10, f.stats[k] + +arg)); break; }
     case 'launch': {
       const f = U.form;
-      const o = { mode: f.mode, length: f.length, era: f.era, name: f.name.trim() || 'Sans-Nom', emoji: f.emoji, race: f.race, faction: f.faction, role: f.role, island: f.island, stats: { ...f.stats }, shipName: f.shipName.trim() || undefined, age: +f.age || 17 };
+      const o = { mode: f.mode, length: f.length, era: f.era, name: f.name.trim() || randomHeroName(), race: f.race, faction: f.faction, role: f.role, island: f.island, stats: { ...f.stats }, shipName: f.shipName.trim() || undefined, age: +f.age || 17 };
       if (f.mode === 'duel') {
         o.seed = f.seed ?? Math.floor(Math.random() * 2 ** 31);
         o.duelCode = G.duelEncode({ seed: o.seed, faction: o.faction, role: o.role, island: o.island, era: o.era, length: o.length, stats: o.stats, race: o.race });
@@ -879,7 +878,7 @@ function act(name, el) {
 
 function startDailyGame(replay) {
   const d = G.dailySetup(G.todayStr());
-  startGame({ mode: 'daily', length: 'rapide', era: d.era, seed: d.seed, name: (U.dailyName || '').trim() || 'Défieur du jour', emoji: '🎯', race: d.race, faction: d.faction, role: d.role, island: d.island, stats: d.stats, daily: { date: d.date, goal: d.goal, replay } });
+  startGame({ mode: 'daily', length: 'rapide', era: d.era, seed: d.seed, name: (U.dailyName || '').trim() || randomHeroName(), race: d.race, faction: d.faction, role: d.role, island: d.island, stats: d.stats, daily: { date: d.date, goal: d.goal, replay } });
 }
 
 function startStoryGame(id, length) {

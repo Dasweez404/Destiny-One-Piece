@@ -177,3 +177,13 @@ export const DAILY_GOALS = [
   { id: 'rank', label: 'Atteindre le 5e grade de ta faction', camp: 'gardien', test: S => S.rankIdx >= 4 },
   { id: 'haki', label: 'Débloquer un Haki', test: S => S.hero.haki.obs + S.hero.haki.arm + S.hero.haki.roi > 0 },
 ];
+
+// Noms de héros générés quand le joueur n'en choisit pas
+export const HERO_SURNAMES = ['Brisecôte', 'Ventclair', 'Marsouin', 'Corsac', 'Flibuste', 'Malbec', 'Saumure', 'Grog', 'Tempête', 'Lagune', 'Kraken', 'Boucanier', 'Sabrevent', 'Rocaille', 'Mistral', 'Barracuda', 'Écume', 'Goéland', 'Cormoran', 'Hardiesse', 'Marée', 'Tribord', 'Bâbord', 'Sel-Noir', 'Foudrevent', 'Pavillon'];
+export function randomHeroName(rand = Math.random) {
+  const p = a => a[Math.floor(rand() * a.length)];
+  const r = rand();
+  if (r < 0.06) return `${p(HERO_SURNAMES)} D. ${p(CREW_FIRST)}`;
+  if (r < 0.5) return `${p(CREW_FIRST)} ${p(CREW_EPI)}`.replace(/ \(.*\)$/, '');
+  return `${p(CREW_FIRST)} ${p(HERO_SURNAMES)}`;
+}

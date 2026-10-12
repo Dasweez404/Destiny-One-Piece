@@ -8,7 +8,7 @@ import { PONE_EVENTS, FINAL_EVENTS, PRISON_EVENTS, FACTION_EVENTS, CREW_EVENTS, 
 import { RACES, raceOf } from './data/races.js';
 import { GROUPS, groupOfChar, groupOfFaction, groupOfYonko, standingOf } from './data/groups.js';
 import { ALT_EVENTS, PUFFING_EVENTS } from './data/events_alt.js';
-import { CREW_FIRST, CREW_EPI, CREW_TRAITS, LEGENDS, STORY_FRUITS, CANON_CAREERS, BADGES, DAILY_GOALS } from './data/meta.js';
+import { CREW_FIRST, CREW_EPI, CREW_TRAITS, LEGENDS, STORY_FRUITS, CANON_CAREERS, BADGES, DAILY_GOALS, randomHeroName } from './data/meta.js';
 
 Object.assign(FRUITS, Object.fromEntries(Object.entries(STORY_FRUITS).map(([id, f]) => [id, { ...f, id }])));
 
@@ -238,7 +238,7 @@ export function newGame(o) {
     v: 1, seed, rng: seed >>> 0, mode: o.mode || 'career', length: o.length || 'rapide', era: o.era || 'pre',
     legend: o.legend || null, daily: o.daily || null, duelCode: o.duelCode || null,
     hero: {
-      name: o.name || 'Sans-Nom', emoji: o.emoji || '🧑', role: o.role, faction: fac, yonko: null, race: race.id,
+      name: o.name || randomHeroName((T => () => rnd(T))({ rng: (seed ^ 0x9e3779b9) >>> 0 })), emoji: o.emoji || (RACES[o.race] || RACES.humain).emoji, role: o.role, faction: fac, yonko: null, race: race.id,
       isCaptain: o.role === 'capitaine' || fac !== 'pirate',
       stats, hp: 100, hpMax: 100, fruit: null, haki: { obs: 0, arm: 0, roi: 0 }, roiPotential: false,
       weapon: o.weapon ?? (fac === 'marine' ? 'sabre_rouille' : fac === 'chevalier' ? 'pistolet_silex' : fac === 'chasseur' ? 'wazamono' : 'baton_bois'),
