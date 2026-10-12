@@ -1,4 +1,4 @@
-import { EXTRA_ISLANDS } from './generated.js';
+import { EXTRA_ISLANDS, SPINE_CH } from './generated.js';
 // Mers et îles. Uniquement des lieux canon (manga / anime), du plus célèbre au simplement mentionné.
 // pop : 1 = à peine mentionnée, 2 = connue, 3 = arc majeur (événements plus gros, récompenses plus grosses)
 // th  : thème du diorama 3D  (k = forme, g = couleur du sol, a = couleur d'accent)
@@ -152,10 +152,17 @@ export const ROUTES = {
 };
 export const routeKeyOf = sea => ({ east: 'east', north: 'north', west: 'west', south: 'south', paradise: 'paradise', calm: 'paradise', redline: 'nw', nw: 'nw', laughtale: 'nw' }[sea]);
 
-// insère les îles importées dans les routes (après l'île indiquée par `after`, sinon à la fin de la mer)
-for (const isl of Object.values(EXTRA_ISLANDS)) {
+// insère les îles importées dans les routes, dans l'ordre chronologique de l'histoire (chapitre de première apparition),
+// ou après l'île indiquée par `after`
+const chOf = id => SPINE_CH[id] ?? ISLANDS[id]?.ch;
+for (const isl of Object.values(EXTRA_ISLANDS).sort((a, b) => (a.ch ?? 1e9) - (b.ch ?? 1e9))) {
   const key = routeKeyOf(isl.sea), r = ROUTES[key];
   if (!r || r.includes(isl.id) || isl.noNav || isl.gate) continue;
-  const at = r.indexOf(isl.after);
-  if (at >= 0) r.splice(at + 1, 0, isl.id); else r.push(isl.id);
+  let at = r.indexOf(isl.after);
+  const ich = isl.ch;
+  if (at < 0 && key === 'nw' && ich && ich <= 795) at = r.indexOf('zou');
+  if (at < 0 && ich) { const k = r.findIndex(id => chOf(id) !== undefined && chOf(id) > ich); at = k < 0 ? r.length - 1 : k - 1; }   // juste avant la première île plus tardive
+  if (at < 0 && !ich) at = r.length - 1;
+  while (EXTRA_ISLANDS[r[at + 1]] && (EXTRA_ISLANDS[r[at + 1]].ch ?? 1e9) <= (isl.ch ?? 1e9)) at++;
+  r.splice(at + 1, 0, isl.id);
 }

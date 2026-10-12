@@ -276,3 +276,15 @@ Groupes disponibles : `marine, gov, revo, pirates, chapeau, shanks, wb, bigmom, 
 minks, geants, wano, ryugu, germa, galleyla, ciel, vegapunk, roger` (ajouter un groupe : `js/data/groups.js`).
 Thèmes de diorama : `village, ville, forteresse, montagne, desert, neige, jungle, ciel, ruines, arbre, volcan, eau, tour, futur,
 bulles, corail, falaise, gateau, japon, elephant, brume, rocher, navire, pont`.
+
+---
+
+## Addendum : import réalisé depuis le wiki français
+
+Le jeu a été alimenté depuis **One Piece Encyclopédie (fr.onepiece.fandom.com)**, texte sous licence CC BY-SA 3.0 (crédit en pied de page).
+
+- Sources : `tools/sources.json` (API fr + catégories par mer et pour les personnages). Les îles écrites à la main sont rattachées à leur article via `tools/spine-titles.json` (sert à l'ordre chronologique et aux doublons).
+- Réseau : en environnement cloud, Node exige `NODE_USE_ENV_PROXY=1` ; `fetch-wiki.mjs` se relance tout seul avec cette variable.
+- Commandes : `node tools/fetch-wiki.mjs --all` puis `node tools/build-data.mjs` (lit les fiches `{{Îles Box}}` / `{{Char box}}`, y compris les modèles séparés) puis `node tools/validate-data.mjs` et `node tools/bench.mjs moyen saga 200`.
+- Corrections manuelles : `tools/overrides.json` (`skip` pour ignorer un article ou un doublon par alias, `force`, surcharges de puissance) et `islandFilter` dans `tools/mapping.json`.
+- Résultat : ~38 nouvelles îles et ~157 personnages. En mode rapide, les îles importées peu importantes (pop 1) sont écartées de la route.

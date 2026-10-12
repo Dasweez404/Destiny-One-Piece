@@ -1,64 +1,368 @@
 {
-  "_doc": "Correspondances wiki → jeu. À ajuster après avoir inspecté les fiches réelles (node tools/inspect.mjs \"Alabasta\"). Les expressions sont des regex insensibles à la casse, testées dans l'ordre : la première qui correspond gagne.",
+  "_doc": "Correspondances wiki français → jeu. Les expressions sont des regex insensibles à la casse, testées dans l'ordre : la première qui correspond gagne. Ajuster après inspection (node tools/inspect.mjs \"Alabasta\").",
   "fields": {
-    "englishName": ["ename", "name", "enname"],
-    "region": ["region", "location", "sea", "locationregion"],
-    "affiliation": ["affiliation", "affiliations", "organization", "crew"],
-    "occupation": ["occupation", "occupations", "rank", "epithet"],
-    "bounty": ["bounty", "prime"],
-    "origin": ["origin", "birthplace", "birth place"],
-    "residence": ["residence", "status", "location", "last seen"]
+    "name": [
+      "nomf",
+      "nom",
+      "nomimage"
+    ],
+    "region": [
+      "région",
+      "region"
+    ],
+    "type": [
+      "type"
+    ],
+    "affiliation": [
+      "affiliation",
+      "affiliations"
+    ],
+    "occupation": [
+      "occupation"
+    ],
+    "bounty": [
+      "prime"
+    ],
+    "origin": [
+      "origine"
+    ],
+    "residence": [
+      "lieuvie"
+    ],
+    "first": [
+      "première"
+    ],
+    "status": [
+      "statut"
+    ],
+    "epithet": [
+      "épithète"
+    ]
   },
   "seas": [
-    ["east blue", "east"],
-    ["north blue", "north"],
-    ["west blue", "west"],
-    ["south blue", "south"],
-    ["calm belt", "calm"],
-    ["red line", "redline"],
-    ["new world", "nw"],
-    ["grand line|paradise", "paradise"]
+    [
+      "east blue",
+      "east"
+    ],
+    [
+      "north blue",
+      "north"
+    ],
+    [
+      "west blue",
+      "west"
+    ],
+    [
+      "south blue",
+      "south"
+    ],
+    [
+      "calm belt",
+      "calm"
+    ],
+    [
+      "red line",
+      "redline"
+    ],
+    [
+      "nouveau monde",
+      "nw"
+    ],
+    [
+      "paradis|grand line",
+      "paradise"
+    ]
   ],
   "themes": [
-    ["desert|sand|dune", "desert"],
-    ["snow|ice island|winter|frozen|blizzard", "neige"],
-    ["volcano|lava|magma", "volcan"],
-    ["sky island|cloud|in the sky", "ciel"],
-    ["jungle|rainforest|dinosaur|swamp", "jungle"],
-    ["ruins|destroyed|razed|abandoned|ghost town", "ruines"],
-    ["mountain|cliff|peak", "montagne"],
-    ["castle|fortress|marine base|prison|navy headquarters", "forteresse"],
-    ["capital|metropolis|city|port town|kingdom|royal", "ville"],
-    ["samurai|feudal|shogun|japan", "japon"],
-    ["ship|restaurant|floating", "navire"],
-    ["futuristic|laboratory|technology", "futur"]
+    [
+      "désert|sable|dune|sablonn",
+      "desert"
+    ],
+    [
+      "hivern|neige|glac|blizzard|froid|enneig",
+      "neige"
+    ],
+    [
+      "volcan|lave|magma",
+      "volcan"
+    ],
+    [
+      "céleste|dans le ciel|nuage|île du ciel",
+      "ciel"
+    ],
+    [
+      "gâteau|bonbon|chocolat|sucr|biscuit",
+      "gateau"
+    ],
+    [
+      "sous-marin|abyss|corail|fond de la mer",
+      "corail"
+    ],
+    [
+      "jungle|forêt|tropical|dinosaure|marécage|préhistor",
+      "jungle"
+    ],
+    [
+      "ruine|détruit|dévasté|abandonn|fantôme|disparu|ravagé",
+      "ruines"
+    ],
+    [
+      "château|forteresse|base de la marine|prison|quartier général|citadelle",
+      "forteresse"
+    ],
+    [
+      "samoura|pays des wa|japon|féodal",
+      "japon"
+    ],
+    [
+      "navire|bateau|restaurant|flottant|flotte",
+      "navire"
+    ],
+    [
+      "technolog|laboratoire|futur|robot|scienti",
+      "futur"
+    ],
+    [
+      "arbre géant|yggdrasil",
+      "arbre"
+    ],
+    [
+      "canal|aquatique|ville d'eau|lagune",
+      "eau"
+    ],
+    [
+      "montagne|falaise|rocher|colline|pic ",
+      "montagne"
+    ],
+    [
+      "capitale|ville|cité|royaume|port|métropole|nation|pays",
+      "ville"
+    ],
+    [
+      "village|hameau|bourg",
+      "village"
+    ]
   ],
   "themeColors": {
-    "village": { "g": 8305770, "a": 14194790 }, "ville": { "g": 10265195, "a": 14935240 }, "desert": { "g": 15123066, "a": 7163969 },
-    "neige": { "g": 16119285, "a": 7176784 }, "volcan": { "g": 14811135, "a": 16727296 }, "ciel": { "g": 16777215, "a": 16766293 },
-    "jungle": { "g": 6511690, "a": 12921980 }, "ruines": { "g": 9211243, "a": 4073251 }, "montagne": { "g": 8281445, "a": 11809818 },
-    "forteresse": { "g": 12961221, "a": 1062068 }, "japon": { "g": 8159328, "a": 9325354 }, "navire": { "g": 9132587, "a": 16041024 },
-    "futur": { "g": 14811135, "a": 16744448 }
+    "village": {
+      "g": 8305770,
+      "a": 14194790
+    },
+    "ville": {
+      "g": 10265195,
+      "a": 14935240
+    },
+    "desert": {
+      "g": 15123066,
+      "a": 7163969
+    },
+    "neige": {
+      "g": 16119285,
+      "a": 7176784
+    },
+    "volcan": {
+      "g": 14811135,
+      "a": 16727296
+    },
+    "ciel": {
+      "g": 16777215,
+      "a": 16766293
+    },
+    "jungle": {
+      "g": 6511690,
+      "a": 12921980
+    },
+    "ruines": {
+      "g": 9211243,
+      "a": 4073251
+    },
+    "montagne": {
+      "g": 8281445,
+      "a": 11809818
+    },
+    "forteresse": {
+      "g": 12961221,
+      "a": 1062068
+    },
+    "japon": {
+      "g": 8159328,
+      "a": 9325354
+    },
+    "navire": {
+      "g": 9132587,
+      "a": 16041024
+    },
+    "futur": {
+      "g": 14811135,
+      "a": 16744448
+    }
   },
   "groups": [
-    ["straw hat", "chapeau"], ["red hair pirates", "shanks"], ["whitebeard pirates", "wb"], ["big mom pirates|charlotte family|totto land", "bigmom"],
-    ["beasts pirates", "kaido"], ["blackbeard pirates", "teach"], ["cross guild", "crossguild"], ["seven warlords|warlord", "corsaires"],
-    ["revolutionary army", "revo"], ["cp[0-9]|cipher pol|world government|five elders|celestial dragon|holy knight|god's knights", "gov"],
-    ["marine|navy|admiral|vice admiral|g-[0-9]", "marine"], ["kuja", "kuja"], ["mink", "minks"], ["giant|elbaf", "geants"],
-    ["wano|samurai|kozuki", "wano"], ["fish-man island|ryugu", "ryugu"], ["germa", "germa"], ["galley-la|water 7", "galleyla"],
-    ["vegapunk|egghead|science", "vegapunk"], ["pirate", "pirates"]
+    [
+      "chapeau de paille",
+      "chapeau"
+    ],
+    [
+      "équipage du roux|pirates du roux",
+      "shanks"
+    ],
+    [
+      "barbe blanche",
+      "wb"
+    ],
+    [
+      "big mom|charlotte|totto land",
+      "bigmom"
+    ],
+    [
+      "cent bêtes|kaido",
+      "kaido"
+    ],
+    [
+      "barbe noire",
+      "teach"
+    ],
+    [
+      "cross guild",
+      "crossguild"
+    ],
+    [
+      "sept grands corsaires|grand corsaire",
+      "corsaires"
+    ],
+    [
+      "armée révolutionnaire|révolutionnaire",
+      "revo"
+    ],
+    [
+      "cp[0-9]|cipher pol|gouvernement mondial|cinq doyens|dragon céleste|chevaliers? divin|pangaea",
+      "gov"
+    ],
+    [
+      "marine|amiral|g-[0-9]",
+      "marine"
+    ],
+    [
+      "kuja|amazon lily",
+      "kuja"
+    ],
+    [
+      "minks?\\b|clan des minks",
+      "minks"
+    ],
+    [
+      "géant|erbaf|elbaf",
+      "geants"
+    ],
+    [
+      "pays des wa|samoura|kozuki|ninjas",
+      "wano"
+    ],
+    [
+      "hommes-poissons|ryugu",
+      "ryugu"
+    ],
+    [
+      "germa",
+      "germa"
+    ],
+    [
+      "galley-la|water seven",
+      "galleyla"
+    ],
+    [
+      "vegapunk|egg ?head|laboratoire",
+      "vegapunk"
+    ],
+    [
+      "pirate|équipage|baroque works|pègre",
+      "pirates"
+    ]
   ],
   "groupEmoji": {
-    "chapeau": "👒", "shanks": "🔴", "wb": "⚪", "bigmom": "🍰", "kaido": "🐉", "teach": "⚫", "crossguild": "🤡", "corsaires": "⚓",
-    "revo": "🐉", "gov": "🕊️", "marine": "⚓", "kuja": "🐍", "minks": "🐾", "geants": "🪓", "wano": "🗾", "ryugu": "🧜", "germa": "🧬",
-    "galleyla": "🔨", "vegapunk": "🧪", "pirates": "🏴‍☠️"
+    "chapeau": "👒",
+    "shanks": "🔴",
+    "wb": "⚪",
+    "bigmom": "🍰",
+    "kaido": "🐉",
+    "teach": "⚫",
+    "crossguild": "🤡",
+    "corsaires": "⚓",
+    "revo": "🐉",
+    "gov": "🕊️",
+    "marine": "⚓",
+    "kuja": "🐍",
+    "minks": "🐾",
+    "geants": "🪓",
+    "wano": "🗾",
+    "ryugu": "🧜",
+    "germa": "🧬",
+    "galleyla": "🔨",
+    "vegapunk": "🧪",
+    "pirates": "🏴‍☠️"
   },
   "alignByGroup": {
-    "chapeau": "pirate", "shanks": "yonko", "wb": "yonko", "bigmom": "yonko", "kaido": "yonko", "teach": "yonko", "crossguild": "pirate",
-    "corsaires": "pirate", "revo": "revo", "gov": "gov", "marine": "marine", "kuja": "pirate", "pirates": "pirate"
+    "chapeau": "pirate",
+    "shanks": "yonko",
+    "wb": "yonko",
+    "bigmom": "yonko",
+    "kaido": "yonko",
+    "teach": "yonko",
+    "crossguild": "pirate",
+    "corsaires": "pirate",
+    "revo": "revo",
+    "gov": "gov",
+    "marine": "marine",
+    "kuja": "pirate",
+    "pirates": "pirate"
   },
   "rankPower": [
-    ["fleet admiral|yonko|emperor", 72], ["admiral", 64], ["commander of the (?:four )?emperor|commander", 48], ["vice admiral|cp0", 45],
-    ["warlord|seven warlords", 40], ["rear admiral|cp9", 32], ["captain", 24], ["lieutenant|cp[1-8]", 18], ["commodore|ensign|sergeant", 12]
-  ]
+    [
+      "amiral en chef|empereur|yonko",
+      72
+    ],
+    [
+      "(?<![\\w-])amiral(?! en chef)",
+      64
+    ],
+    [
+      "commandant de|commandant en",
+      48
+    ],
+    [
+      "vice-amiral|cp0",
+      45
+    ],
+    [
+      "grand corsaire|sept grands corsaires",
+      40
+    ],
+    [
+      "contre-amiral|cp9",
+      32
+    ],
+    [
+      "capitaine",
+      24
+    ],
+    [
+      "lieutenant|cp[1-8]\\b",
+      18
+    ],
+    [
+      "commodore|enseigne|sergent|soldat",
+      12
+    ]
+  ],
+  "templates": {
+    "islands": "îles|iles|lieu|ile",
+    "characters": "char"
+  },
+  "islandFilter": {
+    "_doc": "Une page de lieu est gardée si son type de fiche OU son nom ressemble à une île / un royaume, et si son nom n'est pas celui d'un bâtiment ou d'un site à l'intérieur d'une île.",
+    "typeAllow": "île|archipel|royaume|pays|principauté|duché|nation|empire|république|ville[- ]île|banc",
+    "nameAllow": "^(île|îles|archipel|royaume|pays|principauté|duché|empire|république|village|ville) |island|land\\b|peak\\b|bark|town\\b",
+    "nameDeny": "\\b(palais|château|café|cafeteria|colosseum|colisée|magasin|maison|forêt|lac|mer|pont|bibliothèque|dôme|district|crique|place|ferme|mont|forteresse|peinture|capitale|port|base|quartier|champ|jardin|temple|arène|gare|école|prison|musée|boutique|hôtel|auberge|restaurant|trésor|g-\\d+|nyū|dojo|statue|tour|bateau|navire|rue|passage|salle|grotte|cimetière|usine|arbre)\\b"
+  },
+  "deadStatus": "décéd|mort|défunt|tué|disparu"
 }

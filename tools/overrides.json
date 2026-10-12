@@ -1,10 +1,49 @@
 {
   "_doc": "Corrections manuelles appliquées par build-data.mjs. Clé = titre exact de l'article du wiki. Tout champ est optionnel.",
-  "skip": [],
-  "islands": {
-    "Mokomo Dukedom": { "name": "Duché de Mokomo", "sub": "Sur le dos de Zunisha", "desc": "Le duché des Minks, bâti sur un éléphant millénaire.", "after": "zou", "pop": 3 }
-  },
+  "skip": [
+    "Acheteur de Caramel",
+    "Aramaki",
+    "Archipel de Konomi",
+    "Archipel des Gekko",
+    "Archipel des Orgao",
+    "Ben Beckmann",
+    "Bobbin, Bobine",
+    "Borsalino",
+    "Capone Bege",
+    "Chevalier Divin au crâne de vache",
+    "Chevalier divin blonde",
+    "César Clown",
+    "Deuxième Acheteur de Caramel",
+    "Flotte",
+    "Issho",
+    "Meute de la Loi",
+    "Onze Jurés",
+    "Pays des Dieux",
+    "Principauté de Mokomo",
+    "Royaume Dézoizo",
+    "Royaume Ryugu",
+    "Royaume maléfique de Black Drum",
+    "Saint Figarland Garling",
+    "Saint Neroma Imu",
+    "Saint Shamrock (Famille Figarland)",
+    "Sakazuki",
+    "Totto Land",
+    "Archipel Totto Land",
+    "Troisième Acheteur de Caramel",
+    "Unité Bazooka",
+    "Île de Dawn"
+  ],
+  "islands": {},
   "characters": {
-    "Crocodile": { "name": "Sir Crocodile", "quote": "Les rêves, ça ne sert à rien.", "group": "corsaires" }
+    "Orlumbus": {
+      "power": 38
+    },
+    "Kong": {
+      "power": 40,
+      "name": "Kong"
+    },
+    "Don Chinjao": {
+      "power": 38
+    }
   }
 }

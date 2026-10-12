@@ -1,0 +1,20 @@
+{
+  "_doc": "Ce que tools/fetch-wiki.mjs --all télécharge. depth = niveaux de sous-catégories à parcourir. sea = indice de mer donné par la catégorie (le champ « région » de la fiche prime s'il est plus précis, ex. Grand Line → Paradis ou Nouveau Monde).",
+  "api": "https://onepiece.fandom.com/fr/api.php",
+  "islands": [
+    { "category": "Catégorie:Îles d'East Blue", "sea": "east" },
+    { "category": "Catégorie:Lieux de North Blue", "sea": "north", "depth": 1 },
+    { "category": "Catégorie:Lieux de West Blue", "sea": "west", "depth": 1 },
+    { "category": "Catégorie:Lieux de South Blue", "sea": "south", "depth": 1 },
+    { "category": "Catégorie:Îles de Grand Line", "sea": "paradise" },
+    { "category": "Catégorie:Lieux du Nouveau Monde", "sea": "nw", "depth": 1 },
+    { "category": "Catégorie:Lieux de Calm Belt", "sea": "calm", "depth": 1 },
+    { "category": "Catégorie:Lieux de Red Line", "sea": "redline" },
+    { "category": "Catégorie:Archipels" }
+  ],
+  "characters": [
+    { "category": "Catégorie:Personnages ayant une prime", "depth": 1 },
+    { "category": "Catégorie:Révolutionnaires", "depth": 1 },
+    { "category": "Catégorie:Travailleurs du Gouvernement Mondial", "depth": 1 }
+  ]
+}

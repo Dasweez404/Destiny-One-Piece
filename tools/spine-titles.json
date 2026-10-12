@@ -1,0 +1,16 @@
+{
+  "_doc": "Correspondance entre les îles écrites à la main (id du jeu) et leur article du wiki français. Sert à : (1) ne pas importer deux fois la même île, (2) placer les nouvelles îles dans l'ordre chronologique de l'histoire (chapitre de première apparition), (3) rattacher les personnages à leurs îles.",
+  "fuchsia": "Village de Fuchsia", "goa": "Royaume de Goa", "shells": "Shells Town", "orange": "Orange Town", "animaux": "Île des Animaux Rares",
+  "sirop": "Village de Sirop", "baratie": "Baratie", "cocoyasi": "Village de Kokoyashi", "loguetown": "Logue Town", "shimotsuki": "Village de Shimotsuki",
+  "tequila": "Tequila Wolf", "oykot": "Royaume d'Oykot", "flevance": "Flevance", "swallow": "Île de Swallow", "spidermiles": "Spider Miles",
+  "lvneel": "Royaume de Luvneel", "minion": "Île de Minion", "germa": "Royaume de Germa", "ohara": "Ohara", "godvalley": "God Valley",
+  "baterilla": "Baterilla", "sorbet": "Royaume de Sorbet", "reverse": "Reverse Mountain", "whisky": "Whiskey Peak", "littlegarden": "Little Garden",
+  "drum": "Île de Drum", "alabasta": "Royaume d'Alabasta", "jaya": "Jaya", "skypiea": "Skypiea", "longring": "Long Ring Long Land",
+  "water7": "Water Seven", "enies": "Enies Lobby", "thriller": "Thriller Bark", "sabaody": "Archipel des Sabaody", "boin": "Archipel de Boing",
+  "karakuri": "Baldimore", "momoiro": "Kedétrav", "weatheria": "Weatheria", "banaro": "Île de Banaro", "kuraigana": "Île Obscuria",
+  "sanfaldo": "San Faldo", "stpoplar": "Saint Poplar", "cacao": "Île Cacao", "marineford": "Quartiers Généraux de la Marine/Marine Ford",
+  "amazonlily": "Amazon Lily", "impeldown": "Impel Down", "rusukaina": "Ruskaina", "fishman": "Île des Hommes-Poissons", "marygeoise": "Mary Geoise",
+  "punkhazard": "Punk Hazard", "dressrosa": "Dressrosa", "greenbit": "Green Bit", "zou": "Zou", "wci": "Whole Cake Island", "wano": "Pays des Wa",
+  "egghead": "Île d'Egg Head", "elbaf": "Erbaf", "sphinx": "Sphinx", "prodence": "Royaume de Prodence", "baltigo": "Baltigo", "hachinosu": "Île de Ruche",
+  "karaibari": "Île de Kalai Bali", "marinehq": "Quartiers Généraux de la Marine", "foodvalten": "Foodvalten", "lodestar": "Île de Road Star", "laughtale": "Laugh Tale"
+}

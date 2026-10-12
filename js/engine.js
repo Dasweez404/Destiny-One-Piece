@@ -787,14 +787,16 @@ export function navOptions(S) {
 // Route linéaire : on avance toujours vers l'avant, avec un choix entre deux îles.
 function routeAhead(S) {
   const key = routeKeyOf(ISLANDS[S.loc].sea);
-  const route = (ROUTES[key] || []).filter(id => { const i = ISLANDS[id]; return !i.era || i.era === S.era; });
+  const route = (ROUTES[key] || []).filter(id => { const i = ISLANDS[id]; return (!i.era || i.era === S.era) && !(S.length === 'rapide' && i.generated && i.pop < 3); });
   const camp = campOf(S);
-  // point d'entrée dans la route (île de départ de la carrière) : ce qui précède est derrière toi
+  // position sur la route : seules les arrivées choisies font avancer (pas les renvois forcés) ; ce qui est derrière toi est derrière toi
   const cur = S.routePos?.[key] ?? -1;
   const ahead = route.filter((id, k) => k > cur && !S.visited.includes(id)
     && !(id === 'marineford' && camp !== 'gardien' && S.progress < 2)
     && !(id === 'skypiea' && !S.flags.knows_skypiea));
-  // l'île non choisie d'une bifurcation reste la première de la liste : aucun retour en arrière
+  // on ne saute jamais un Poneglyphe non obtenu : la route s'arrête sur lui
+  const stop = ahead.findIndex(id => ISLANDS[id].pone && !S.pone.includes(ISLANDS[id].pone));
+  if (stop >= 0) ahead.splice(stop + 1);
   const retry = route.filter(id => ISLANDS[id].pone && S.visited.includes(id) && !S.pone.includes(ISLANDS[id].pone) && (S.poneTry?.[id] ?? -9) <= S.turn - 6 && id !== S.loc);
   return { key, route, cur, ahead, retry };
 }
@@ -883,7 +885,9 @@ export function arrive(S, id) {
   const prevSea = ISLANDS[S.loc].sea;
   S.loc = id;
   S.next = null;
-  S.arrivedForced = false;
+  { const key = routeKeyOf(isl.sea), idx = (ROUTES[key] || []).filter(x => !ISLANDS[x].era || ISLANDS[x].era === S.era).indexOf(id);
+    if (idx >= 0 && !S.arrivedForced) (S.routePos ||= {})[key] = Math.max(S.routePos?.[key] ?? -1, idx);
+    S.arrivedForced = false; }
   if (!S.visited.includes(id)) S.visited.push(id);
   S.seaVisits[isl.sea] = (S.seaVisits[isl.sea] || 0) + 1;
   S.turn++;
