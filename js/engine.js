@@ -17,11 +17,11 @@ export const EVENTS = Object.fromEntries(ALL_EVENTS.map(e => [e.id, e]));
 
 export const LENGTHS = {
   rapide: { name: 'Rapide', maxTurns: 20, actions: 1, age: 0.6, blueMin: 1, paraMin: 3, desc: '≈ 10 minutes. Une carrière éclair.' },
-  saga: { name: 'Vraie saga', maxTurns: 42, actions: 2, age: 0.25, blueMin: 3, paraMin: 7, desc: '≈ 40 minutes. Le grand voyage.' },
+  saga: { name: 'Vraie saga', maxTurns: 42, actions: 1, age: 0.25, blueMin: 3, paraMin: 7, desc: '≈ 40 minutes. Le grand voyage.' },
 };
 
-const STAT_DC = { 1: 9, 2: 14, 3: 18, 4: 22 };
-const COMBAT_DC = { 1: 12, 2: 20, 3: 31, 4: 45 };
+const STAT_DC = { 1: 8, 2: 12, 3: 15, 4: 18 };
+const COMBAT_DC = { 1: 11, 2: 17, 3: 25, 4: 36 };
 const GLORY = { 1: 1_500_000, 2: 12_000_000, 3: 35_000_000, 4: 100_000_000 };
 const TIER_PRIME = { 1: 3_000_000, 2: 30_000_000, 3: 150_000_000, 4: 500_000_000 };
 const RANK_MERIT = [0, 4, 10, 18, 28, 40, 55, 72, 92, 115, 140, 170];
@@ -93,10 +93,10 @@ export function priceMult(S) {
 }
 export const price = (S, base) => Math.round(base * priceMult(S));
 export const shipSail = S => SAIL_COLORS[S.ship.sail] || FACTIONS[S.hero.faction].sail;
-export const modPrice = (S, id) => price(S, SHIP_MODS[id].price * (1 + (tierOf(S) - 1) * 0.6));
+export const modPrice = (S, id) => price(S, SHIP_MODS[id].price * 0.75 * (1 + (tierOf(S) - 1) * 0.5));
 export function modelPrice(S, id) {
   const m = SHIP_MODELS[id];
-  const base = SHIPS[m.tier - 1].price * (m.price || 1) * (S.loc === 'water7' ? 0.7 : 1);
+  const base = SHIPS[m.tier - 1].price * 0.8 * (m.price || 1) * (S.loc === 'water7' ? 0.7 : 1);
   return price(S, m.tier === S.ship.tier ? Math.max(1_000_000, base * 0.5) : base);
 }
 function setShip(S, model, chips) {
@@ -127,7 +127,10 @@ export function combatRating(S) {
   r *= 0.9 + S.morale / 500;
   return Math.round(r * 10) / 10;
 }
-export const levelIdxOf = S => LEVELS.indexOf(levelOf(combatRating(S)));
+// Le niveau se mérite : il est plafonné par le plus fort adversaire que tu as réellement vaincu.
+export const levelCap = S => Math.round((S.maxFoe || 0) * 1.1 + 7);
+export const levelIdxOf = S => LEVELS.indexOf(levelOf(Math.min(combatRating(S), levelCap(S))));
+export const rawLevelIdx = S => LEVELS.indexOf(levelOf(combatRating(S)));
 
 const ROLE_FOR_STAT = { navigation: ['navigateur', 'timonier'], intel: ['medecin', 'archeologue'], charisme: ['musicien'], force: ['charpentier', 'combattant', 'bretteur'], vitesse: ['sniper'], volonte: ['cuisinier'] };
 export function statRating(S, stat) {
@@ -148,6 +151,7 @@ export function statRating(S, stat) {
 
 const val = (v, V) => (typeof v === 'function' ? v(V) : v);
 
+export function combatDcOf(S, ch) { return ch.D ?? COMBAT_DC[tierOf(S)] + (val(ch.d, view(S)) || 0) * 1.5; }
 export function checkChance(S, ch) {
   const V = view(S);
   if (ch.p) return Math.max(0, Math.min(1, typeof ch.p === 'number' ? ch.p : ch.p(V)));
@@ -195,6 +199,7 @@ const VIEW = {
   lowLoyalCrew: S => () => [...S.crew].filter(c => !c.isCaptain).sort((a, b) => a.loyalty - b.loyalty)[0] || { name: 'Quelqu\'un' },
   rankName: S => () => rankName(S),
   canRead: S => canReadPone(S),
+  lvl: S => levelIdxOf(S),
   allyCount: S => allyGroups(S).length,
   hostileName: S => hostileHere(S)?.name || 'une bande locale',
   hostileId: S => hostileHere(S)?.id,
@@ -256,6 +261,7 @@ export function newGame(o) {
   };
   S.ship.model = DEFAULT_MODEL[S.ship.tier];
   S.ship.hp = shipMaxHp(S);
+  S.maxFoe = o.legend ? 22 : 0;
   S.hero.hpMax = hpMaxOf(S); S.hero.hp = S.hero.hpMax;
   S.hero.roiPotential = o.roi ?? chance(S, Math.min(0.5, (stats.charisme + stats.volonte) / 50));
   if (fac === 'pirate' && o.role !== 'capitaine') S.crew.push(genCrew(S, { role: 'capitaine', tier: 1, isCaptain: true }));
@@ -356,17 +362,23 @@ export function makeEncounter(S, ch) {
 
 export const curEvent = S => (S.cur?.gen ? S.cur.gen : S.cur?.id ? EVENTS[S.cur.id] : null);
 
+const isFiller = c => c.r && !c.c && !c.s && !c.p && Object.keys(c.r.e || {}).every(k => ['morale', 'hp', 'rep', 'flag'].includes(k));
 export function choicesOf(S, ev) {
   const V = view(S);
-  return (ev.ch || []).map((c, i) => {
+  const all = (ev.ch || []).map((c, i) => {
     let locked = false, lockText = '';
     if (c.req && !c.req(V)) { locked = true; lockText = c.rq || 'Indisponible'; }
     const cost = val(c.c, V);
     if (!locked && cost && S.hero.berrys < cost) { locked = true; lockText = `Il faut ${fmtPrime(cost)}`; }
     const stat = val(c.s, V);
     const p = c.p || stat ? checkChance(S, c) : 1;
-    return { i, label: val(c.t, V), stat, cost, locked, lockText, p, risk: c.p || stat ? riskLabel(p) : null };
+    return { i, label: val(c.t, V), stat, cost, locked, lockText, p, risk: c.p || stat ? riskLabel(p) : null, filler: isFiller(c) };
   });
+  // moins de choix, plus décisifs : on masque les choix verrouillés et les « remplissages »
+  let out = all.filter(c => !c.locked);
+  if (out.length < 2) out = all.filter(c => !c.locked || out.length === 0 || true).slice(0, 3);
+  for (let k = out.length - 1; k >= 0 && out.length > 3; k--) if (out[k].filler) out.splice(k, 1);
+  return out;
 }
 
 // ───────────── effets ─────────────
@@ -376,11 +388,14 @@ function gainBounty(S, amount, chips) {
   chips.push({ t: `Prime +${fmtPrime(amount)}`, k: 'bounty' });
 }
 
-export function applyEff(S, e = {}, chips = []) {
+export function applyEff(S, e = {}, chips = [], mult = null) {
   const V = view(S);
   const h = S.hero, tier = tierOf(S), camp = campOf(S);
   const E = {};
   for (const [k, v] of Object.entries(e)) E[k] = val(v, V);
+  if (mult) for (const k of ['hp', 'shipHp', 'morale', 'berrys', 'rep', 'merit', 'glory', 'bounty', 'loyalty']) {
+    if (typeof E[k] === 'number' && E[k]) E[k] = Math.round(E[k] * (E[k] > 0 ? mult.good : mult.bad));
+  }
   if (E.glory) {
     const g = E.glory;
     if (camp === 'chercheur' && !['chasseur', 'corsaire'].includes(h.faction)) gainBounty(S, g * GLORY[tier], chips);
@@ -395,7 +410,7 @@ export function applyEff(S, e = {}, chips = []) {
   if (E.berrys) { const b = Math.round(E.berrys); h.berrys = Math.max(0, h.berrys + b); chips.push({ t: `${b > 0 ? '+' : '-'}${fmtPrime(Math.abs(b))}`, k: b > 0 ? 'money' : 'bad' }); }
   if (E.berrysMul !== undefined) { h.berrys = Math.round(h.berrys * E.berrysMul); chips.push({ t: E.berrysMul > 1 ? 'Fortune doublée !' : 'Fortune perdue !', k: E.berrysMul > 1 ? 'money' : 'bad' }); }
   if (E.morale) { S.morale = clamp(S.morale + E.morale, 0, 100); chips.push({ t: `Moral ${E.morale > 0 ? '+' : ''}${E.morale}`, k: E.morale > 0 ? 'good' : 'bad' }); }
-  if (E.stats) for (let [k, v] of Object.entries(E.stats)) { if (v > 0 && S.length === 'rapide') v = Math.ceil(v * 1.5); h.stats[k] = clamp(h.stats[k] + v, 1, Math.max(h.stats[k], 22)); chips.push({ t: `${STATS[k].emoji} ${STATS[k].name} ${v > 0 ? '+' : ''}${v}`, k: v > 0 ? 'stat' : 'bad' }); }
+  if (E.stats) for (let [k, v] of Object.entries(E.stats)) { if (v > 0 && S.length === 'rapide' && v >= 2) v = Math.ceil(v * 1.25); h.stats[k] = clamp(h.stats[k] + v, 1, Math.max(h.stats[k], 22)); chips.push({ t: `${STATS[k].emoji} ${STATS[k].name} ${v > 0 ? '+' : ''}${v}`, k: v > 0 ? 'stat' : 'bad' }); }
   if (E.haki) for (const [k, v] of Object.entries(E.haki)) {
     if (k === 'roi') {
       if (v === 'reveal') { if (h.roiPotential && h.haki.roi === 0) { h.haki.roi = 1; chips.push({ t: '👑 Haki des Rois éveillé !', k: 'epic' }); S.hl.push('a éveillé le Haki des Rois'); } continue; }
@@ -674,21 +689,27 @@ export function resolveChoice(S, i) {
   let ok = true, p = 1;
   let roll = null;
   if (c.p || stat) { p = checkChance(S, c); roll = rnd(S); ok = roll < p; }
-  let reinf = null;
+  let reinf = null, res_feat = false;
   if (!ok && stat === 'combat' && !c.r) {
     S.reinf ||= {};
     const cand = allyGroups(S).filter(g => (S.reinf[g.id] ?? -9) < S.turn - 2);
     if (cand.length && rnd(S) < 0.35) { reinf = pick(S, cand); S.reinf[reinf.id] = S.turn; ok = true; }
   }
   const res = c.r || (ok ? c.ok : c.ko);
+  if (ok && stat === 'combat' && !reinf && !c.r) {
+    // les adversaires anonymes (taverne, mer, brigands) comptent moins que les affrontements nommés
+    const dc = ev.char ? CHARACTERS[ev.char].power * 1.05 + 4 : combatDcOf(S, c) * (/^(g_|s_|r_|f_|sh_)/.test(ev.id) ? 0.8 : 1);
+    if (dc > (S.maxFoe || 0)) { S.maxFoe = Math.round(dc); res_feat = true; }
+  }
   S.deathCause = ev.char ? `Tué par ${CHARACTERS[ev.char].name.split(',')[0]}` : deathCauseFor(S, ev);
   const text = interp(S, val(res.x, V));
   const e = res.e || {};
-  applyEff(S, e, chips);
+  applyEff(S, e, chips, c.r ? null : ok ? { good: 1.35, bad: 1 } : { good: 1, bad: 1.3 });
   S.seen[ev.id] = (S.seen[ev.id] || 0) + 1;
   if (ev.oncePerTurn) (S.turnSeen ||= {})[ev.id] = S.turn;
   if (ev.id.startsWith('pone_') && ok === false && !c.r) (S.poneTry ||= {})[S.loc] = S.turn;
   log(S, `${ev.emoji || '•'} ${ev.title} — ${val(c.t, V)} → ${c.r ? 'fait' : ok ? 'réussi' : 'échec'}.`, ok ? 'ok' : 'ko');
+  if (res_feat) chips.push({ t: `🏆 Exploit : adversaire de niveau ${S.maxFoe} vaincu`, k: 'level' });
   if (reinf) chips.unshift({ t: `🤝 Renforts : ${reinf.emoji} ${reinf.name} !`, k: 'epic' });
   S.result = { title: ev.title, emoji: ev.emoji, choice: val(c.t, V), text: reinf ? `${reinf.emoji} Au pire moment, des renforts de ${reinf.name} surgissent et retournent la situation ! ` + text : text, chips, ok: c.r ? null : ok, p, roll, reinf: reinf?.name, stat: stat || (c.p ? 'chance' : null), next: res.next };
   S.phase = 'result';
@@ -856,27 +877,49 @@ export function arrive(S, id) {
 }
 
 // ───────────── escale ─────────────
-export function escaleActions(S) {
+export const shipAvailable = S => ISLANDS[S.loc].svc?.includes('ship') || S.crew.some(c => c.role === 'charpentier');
+// une amélioration du navire est-elle à ta portée ?
+export function shipUpgradeReady(S) {
+  const next = Object.values(SHIP_MODELS).filter(m => m.tier === S.ship.tier + 1);
+  if (next.some(m => S.hero.berrys >= modelPrice(S, m.id))) return 'model';
+  const cheapest = Object.keys(SHIP_MODS).filter(id => !S.ship.mods.includes(id)).map(id => modPrice(S, id)).sort((a, b) => a - b)[0];
+  if (cheapest && S.hero.berrys >= cheapest) return 'mod';
+  if (S.ship.hp < shipMaxHp(S) * 0.7) return 'repair';
+  return null;
+}
+
+export function serviceActions(S) {
   const isl = ISLANDS[S.loc];
   const svc = new Set(isl.svc || []);
   const camp = campOf(S);
-  const acts = [
-    { id: 'train', emoji: '🏋️', label: 'S\'entraîner', sub: svc.has('dojo') ? 'Dojo sur place : progrès doublés' : 'Améliore une caractéristique' },
-    { id: 'rest', emoji: '🍖', label: 'Festin et repos', sub: 'Soigne, remonte le moral' },
-    { id: 'explore', emoji: '🗺️', label: 'Explorer l\'île', sub: 'Un nouvel événement' },
-  ];
-  if (svc.has('tavern') || isl.pop >= 2 || S.crew.length < 3) acts.push({ id: 'tavern', emoji: '🍺', label: 'Taverne', sub: S.crew.length >= 10 ? 'Équipage complet : recruter pour ta flotte' : 'Recruter (plusieurs essais)' });
+  const acts = [];
+  if (svc.has('tavern') || isl.pop >= 2 || S.crew.length < 3) acts.push({ id: 'tavern', emoji: '🍺', label: 'Taverne', sub: S.crew.length >= 10 ? 'Équipage complet : recruter pour ta flotte' : 'Recruter' });
   if (svc.has('market') || svc.has('forge')) acts.push({ id: 'market', emoji: '🛒', label: svc.has('market') ? 'Marché' : 'Forge', sub: svc.has('market') ? 'Fruits, armes' : 'Armes' });
-  if (svc.has('ship')) acts.push({ id: 'ship', emoji: '🔨', label: 'Chantier naval', sub: 'Navires, aménagements, apparence' });
-  else if (S.crew.some(c => c.role === 'charpentier')) acts.push({ id: 'ship', emoji: '🔧', label: 'Atelier du charpentier', sub: 'Réparer, aménager, décorer' });
+  acts.push({ id: 'job', emoji: '💼', label: 'Gagner des berrys', sub: 'Port, prime, commerce, casino' });
   if (svc.has('marinebase') && camp === 'gardien') acts.push({ id: 'report', emoji: '📋', label: 'Rapport à la base', sub: 'Solde, soins, mérite' });
   if (svc.has('govbase') && camp === 'gardien') acts.push({ id: 'report', emoji: '📋', label: 'Rapport au Gouvernement', sub: 'Solde, mérite' });
   if (svc.has('marinebase') && camp === 'chercheur') acts.push({ id: 'raid', emoji: '💥', label: 'Attaquer la base Marine', sub: 'Gros risque, grosse prime' });
-  acts.push({ id: 'job', emoji: '💼', label: 'Gagner des berrys', sub: 'Petits boulots, primes, casino, commerce' });
-  const fr = friendHere(S);
-  if (fr && S.favorTurn !== S.turn) acts.push({ id: 'favor', emoji: fr.emoji, label: `Faveur : ${fr.name}`, sub: grel(S, fr.id) >= 6 ? 'Tes alliés t\'aident (soins, navire, berrys)' : 'Tes amis te donnent un coup de main' });
   acts.push({ id: 'news', emoji: '📰', label: 'Lire le journal', sub: 'Rumeurs et nouvelles' });
   return acts;
+}
+
+export function escaleActions(S) {
+  const isl = ISLANDS[S.loc];
+  const svc = new Set(isl.svc || []);
+  const out = [];
+  // le chantier naval ne consomme jamais d'action : on peut améliorer son navire à chaque escale
+  if (svc.has('ship')) { const up = shipUpgradeReady(S); out.push({ id: 'ship', free: true, emoji: '🔨', label: 'Chantier naval', sub: up === 'model' ? '⬆️ Un nouveau navire est à ta portée !' : up === 'mod' ? '⬆️ Un aménagement est à ta portée' : up === 'repair' ? '🔧 Ta coque a besoin de soins' : 'Navires, aménagements, apparence (gratuit)', badge: !!up }); }
+  else if (S.crew.some(c => c.role === 'charpentier')) out.push({ id: 'ship', free: true, emoji: '🔧', label: 'Atelier du charpentier', sub: 'Réparer, aménager, décorer (gratuit)', badge: shipUpgradeReady(S) === 'repair' });
+  if (S.actionsLeft <= 0) return out;
+  const main = [
+    { id: 'train', emoji: '🏋️', label: 'S\'entraîner', sub: svc.has('dojo') ? 'Dojo sur place : progrès doublés' : 'Améliore une caractéristique' },
+    { id: 'rest', emoji: '🍖', label: 'Festin et repos', sub: 'Soigne, remonte le moral' },
+    { id: 'explore', emoji: '🗺️', label: 'Explorer l\'île', sub: 'Un nouvel événement' },
+    { id: 'services', emoji: '🏪', label: 'Services du port', sub: 'Taverne, marché, boulots, rapport...' },
+  ];
+  const fr = friendHere(S);
+  if (fr && S.favorTurn !== S.turn) main.push({ id: 'favor', emoji: fr.emoji, label: `Faveur : ${fr.name}`, sub: grel(S, fr.id) >= 6 ? 'Tes alliés t\'aident (soins, navire, berrys)' : 'Tes amis te donnent un coup de main' });
+  return [...main, ...out];
 }
 
 export function genShop(S) {
@@ -910,13 +953,13 @@ export function doAction(S, id, arg) {
     case 'train': {
       const stat = arg;
       // rendements décroissants : plus la caractéristique est haute, plus elle est dure à monter
-      const tries = (svc.has('dojo') ? 2 : 1) + (S.length === 'rapide' ? 1 : 0);
+      const tries = svc.has('dojo') ? 2 : 1;
       let n = 0;
-      for (let k = 0; k < tries; k++) if (chance(S, clamp((22 - S.hero.stats[stat] - n) / 14, 0.12, 1))) n++;
+      for (let k = 0; k < tries; k++) if (chance(S, clamp((17 - S.hero.stats[stat] - n) / 12, 0.1, 0.85))) n++;
       if (n) applyEff(S, { stats: { [stat]: n } }, chips);
       else chips.push({ t: 'Aucun progrès cette fois', k: 'info' });
       text = svc.has('dojo') ? 'Le dojo local te pousse dans tes retranchements.' : 'Tu t\'entraînes sur le pont, jour et nuit.';
-      if (tier >= 2 && chance(S, 0.12 + S.hero.stats.volonte * 0.01)) {
+      if (tier >= 2 && chance(S, 0.05 + S.hero.stats.volonte * 0.004)) {
         const k = S.hero.haki.obs <= S.hero.haki.arm ? 'obs' : 'arm';
         if (S.hero.haki[k] < 3) { applyEff(S, { haki: { [k]: 1 } }, chips); text += ' Soudain, tu sens quelque chose de nouveau... le Haki !'; }
       }

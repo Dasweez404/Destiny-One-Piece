@@ -105,6 +105,11 @@ export const ISLANDS = {
 };
 
 for (const [id, isl] of Object.entries(ISLANDS)) isl.id = id;
+// un chantier naval sur toute île habitée (ville, village avec taverne...) : on améliore son navire souvent
+for (const isl of Object.values(ISLANDS)) {
+  const inhabited = isl.pop >= 2 || (isl.svc || []).some(x => ['tavern', 'market', 'forge'].includes(x));
+  if (inhabited && !isl.noNav && !(isl.svc || []).includes('ship') && !['ruines', 'montagne', 'jungle'].includes(isl.th?.k) && isl.sea !== 'laughtale') (isl.svc ||= []).push('ship');
+}
 
 export function islandsOf(sea, era) {
   return Object.values(ISLANDS).filter(i => i.sea === sea && (!i.era || i.era === era));

@@ -16,10 +16,10 @@ export const PONE_EVENTS = [
       { t: 'Gagner l\'amitié des Minks', s: 'charisme', d: 6, req: isCh, rq: 'Chercheurs uniquement',
         ok: { x: 'Nekomamushi et Inuarashi te confient le secret. Tu prends un relevé du Poneglyphe routier. « Garchu ! »', e: { pone: 'zou', rel: { nekomamushi: 3 }, hl: 'a reçu le Poneglyphe des Minks' } },
         ko: { x: 'Les Minks ne te font pas confiance. Ils te jettent hors de la forêt.', e: { rel: { nekomamushi: -1 }, morale: -5 } } },
-      { t: 'Prendre le relevé par la force', s: 'combat', d: 12,
+      { t: 'Prendre le relevé par la force', s: 'combat', d: 9,
         ok: { x: 'Tu bats les gardiens Minks sous la pleine lune... et tu repars avec le relevé. Zou ne t\'oubliera pas, et pas en bien.', e: { pone: 'zou', glory: 8, rel: { nekomamushi: -3 }, rep: -4 } },
         ko: { x: 'La forme Sulong des Minks à la pleine lune. Tu es carbonisé.', e: { hp: -60 } } },
-      { t: 'Confisquer le relevé au nom du Gouvernement', s: 'combat', d: 14, req: isGa, rq: 'Gardiens uniquement',
+      { t: 'Confisquer le relevé au nom du Gouvernement', s: 'combat', d: 11, req: isGa, rq: 'Gardiens uniquement',
         ok: { x: 'Le relevé est sous scellés. Le Gouvernement te remercie. Les Minks te maudissent.', e: { pone: 'zou', merit: 20, rel: { nekomamushi: -3 } } },
         ko: { x: 'Les Minks te repoussent violemment.', e: { hp: -45 } } },
     ],
@@ -37,7 +37,7 @@ export const PONE_EVENTS = [
       { t: S => S.era === 'pre' ? 'Faire alliance avec Big Mom (mariage politique)' : 'Négocier avec Katakuri', s: 'charisme', d: 8,
         ok: { x: S => S.era === 'pre' ? 'Big Mom t\'accepte comme allié... en échange d\'un mariage avec une de ses filles. Tu as le relevé. Et une belle-mère.' : 'Katakuri accepte, en échange d\'une dette d\'honneur. Tu as le relevé.', e: { pone: 'wci', yonko: S => S.era === 'pre' ? 'bigmom' : null, rel: { bigmom: 2, katakuri: 2 }, hl: S => S.era === 'pre' ? 'a épousé un membre de la famille Charlotte' : 'a négocié avec Katakuri' } },
         ko: { x: 'Big Mom te demande ta vie (Soul Pocus). Tu t\'en tires en perdant des années.', e: { age: 5, hp: -30, hl: 'a perdu cinq ans de vie face à Big Mom' } } },
-      { t: 'Saisir le relevé (Gardien)', req: isGa, rq: 'Gardiens uniquement', s: 'combat', d: 16,
+      { t: 'Saisir le relevé (Gardien)', req: isGa, rq: 'Gardiens uniquement', s: 'combat', d: 13,
         ok: { x: 'Une opération éclair. Le relevé est confisqué. Une Empereure fulmine.', e: { pone: 'wci', merit: 25 } },
         ko: { x: 'Tu es repoussé par l\'armée de Totto Land.', e: { hp: -50 } } },
     ],
@@ -55,7 +55,7 @@ export const PONE_EVENTS = [
       { t: 'Voler le relevé en secret', s: 'vitesse', d: 10,
         ok: { x: 'Tu te faufiles comme un ninja. Le relevé est à toi.', e: { pone: 'wano', glory: 8 } },
         ko: { x: 'Les ninjas de Wano sont meilleurs que toi.', e: { hp: -40 } } },
-      { t: 'Sécuriser le Poneglyphe (Gardien)', req: isGa, rq: 'Gardiens uniquement', s: 'combat', d: 16,
+      { t: 'Sécuriser le Poneglyphe (Gardien)', req: isGa, rq: 'Gardiens uniquement', s: 'combat', d: 13,
         ok: { x: 'Le relevé est sous scellés. Ryokugyu t\'a aidé.', e: { pone: 'wano', merit: 25, rel: { ryokugyu: 2 } } },
         ko: { x: 'Wano repousse la Marine.', e: { hp: -50 } } },
     ],
@@ -65,7 +65,7 @@ export const PONE_EVENTS = [
     w: { isl: ['elbaf'], test: S => !S.pone.includes('elbaf') },
     x: 'Elbaf, le pays des géants. On dit que le dernier Poneglyphe routier est lié à l\'histoire d\'Elbaf... ou entre les mains d\'un Empereur. L\'Arbre Adam s\'élève jusqu\'aux nuages. Les géants respectent une seule chose : la force et l\'honneur.',
     ch: [
-      { t: 'Prouver sa valeur aux géants', s: 'combat', d: 16,
+      { t: 'Prouver sa valeur aux géants', s: 'combat', d: 13,
         ok: { x: 'Les géants frappent le sol de leurs haches en ton honneur. Ils te montrent ce que tu cherches. Le dernier relevé.', e: { pone: 'elbaf', glory: 15, rel: { dorry: 2 }, hl: 'a été honoré par les guerriers d\'Elbaf' } },
         ko: { x: 'Un géant de 20 mètres t\'écrase sous sa sandale. Tu survis par miracle.', e: { hp: -55 } } },
       { t: 'Présenter l\'invitation de Dorry et Brogy', req: S => S.flags.elbaf_invite, rq: 'Il faut avoir aidé Dorry et Brogy à Little Garden', s: 'charisme', d: 2,
@@ -74,7 +74,7 @@ export const PONE_EVENTS = [
       { t: 'Libérer Loki, le prince maudit', s: 'volonte', d: 11, req: S => S.era === 'post', rq: 'Loki n\'est pas encore enchaîné',
         ok: { x: 'Loki te regarde avec gratitude. Il connaît l\'emplacement de la dernière pièce. Tu as le relevé, et un allié terrifiant.', e: { pone: 'elbaf', rel: { loki: 4 }, glory: 10, hl: 'a libéré Loki d\'Elbaf' } },
         ko: { x: 'Les chaînes résistent. Les géants te chassent.', e: { hp: -40 } } },
-      { t: 'Saisir le relevé (Gardien)', req: isGa, rq: 'Gardiens uniquement', s: 'combat', d: 18,
+      { t: 'Saisir le relevé (Gardien)', req: isGa, rq: 'Gardiens uniquement', s: 'combat', d: 15,
         ok: { x: 'Les Chevaliers Divins t\'ont aidé. Le relevé est sous scellés.', e: { pone: 'elbaf', merit: 25, rel: { shamrock: 2 } } },
         ko: { x: 'Les géants repoussent les Chevaliers Divins.', e: { hp: -55 } } },
     ],
@@ -87,7 +87,7 @@ export const PONE_EVENTS = [
       { t: 'Lui parler de ton rêve', s: 'charisme', d: 11,
         ok: { x: 'Il te regarde longtemps, puis éclate de rire. « Ce rêve-là, il faut l\'accomplir. » Il te tend le relevé.', e: { pone: 'elbaf', rel: { shanks: 3 }, flag: 'met_shanks_pone', hl: 'a reçu un relevé des mains de Shanks' } },
         ko: { x: '« Pas encore. » Son Haki te met à genoux. Il repart.', e: { flag: 'met_shanks_pone', hp: -20 } } },
-      { t: 'Le défier', s: 'combat', d: 28,
+      { t: 'Le défier', s: 'combat', d: 25,
         ok: { x: 'Impossible. Et pourtant... il saigne. Il sourit. « Pas mal. » Il te laisse le relevé.', e: { pone: 'elbaf', glory: 30, rel: { shanks: 2 }, flag: 'met_shanks_pone', hl: 'a fait saigner Shanks' } },
         ko: { x: 'Un seul coup de sabre. Ton navire est coupé en deux. Tu survis.', e: { hp: -60, shipHp: -100, flag: 'met_shanks_pone' } } },
       { t: 'Refuser poliment', r: { x: 'Il hausse les épaules et repart en riant.', e: { flag: 'met_shanks_pone' } } },
@@ -244,7 +244,7 @@ export const FACTION_EVENTS = [
   },
   {
     id: 'yonko_ascension', pri: 30, emoji: '👑', title: 'Un nouvel Empereur',
-    w: { camp: 'chercheur', notFac: ['empereur'], test: S => S.combat >= 66 && S.hero.bounty >= 1_500_000_000 && S.tier >= 3 },
+    w: { camp: 'chercheur', notFac: ['empereur'], test: S => S.lvl >= 8 && S.hero.bounty >= 1_500_000_000 && S.tier >= 3 },
     x: 'Le journal de Morgans titre en première page : « UN NOUVEL EMPEREUR DES MERS ». Ta photo. Ta prime. Ton équipage. Le monde entier te reconnaît comme l\'un des Quatre Empereurs.',
     ch: [
       { t: 'Accepter le titre', r: { x: 'Tu es un Empereur. Les îles viennent demander ta protection. Les Amiraux t\'ont dans le viseur.', e: { faction: 'empereur', hl: 'est devenu un Empereur des mers', fleet: { name: 'Flotte impériale', power: 8 } } } },
@@ -265,7 +265,7 @@ export const FACTION_EVENTS = [
   },
   {
     id: 'vassal_revolt', emoji: '⚔️', title: 'Renverser son Empereur',
-    w: { fac: ['vassal'], test: S => S.combat >= 58 && S.tier >= 3, weight: 6 },
+    w: { fac: ['vassal'], test: S => S.lvl >= 7 && S.tier >= 3, weight: 6 },
     x: S => `Tu es devenu trop fort pour rester dans l'ombre de ${S.yonkoName()}. L'équipage murmure. Le moment est peut-être venu.`,
     ch: [
       { t: 'Défier ton Empereur', s: 'combat', d: 22,
@@ -1196,7 +1196,7 @@ export const LOOT_EVENTS = [
   },
   {
     id: 'sh_wright', emoji: '🔧', title: 'Un charpentier itinérant',
-    w: { weight: 4 },
+    w: { weight: 6 },
     x: S => `Un charpentier barbu, caisse à outils sur l'épaule, fait le tour du port. Il regarde ${S.ship.name} d'un œil critique. « Joli bateau. Mais il lui manque quelque chose. Je te fais un prix. »`,
     ch: [
       { t: 'Le laisser installer un aménagement', c: S => S.tierPrime() / 4, r: { x: 'Trois jours de marteau et de jurons. Ton navire a un nouvel équipement.', e: { ship: { mod: 'random' }, shipHp: 30 } } },
@@ -1208,7 +1208,7 @@ export const LOOT_EVENTS = [
   },
   {
     id: 'sh_sale', emoji: '🏷️', title: 'Navire à vendre',
-    w: { test: S => S.ship.tier < 5, weight: 4 },
+    w: { test: S => S.ship.tier < 5, weight: 6 },
     x: S => `Sur le quai, un navire flambant neuf avec une pancarte : « À VENDRE, propriétaire parti précipitamment ». Le capitaine du port te fait un clin d'œil : il veut s'en débarrasser vite.`,
     ch: [
       { t: 'L\'acheter à prix cassé', c: S => [0, 2_000_000, 12_000_000, 50_000_000, 160_000_000][S.ship.tier], r: { x: 'Tu signes. Un nouveau navire, et une affaire en or.', e: { ship: { tier: '+1' } } } },

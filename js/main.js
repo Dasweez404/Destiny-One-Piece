@@ -122,8 +122,10 @@ function vRules() {
     <p>À chaque île : un événement, puis une <b>escale</b> (entraînement, taverne, marché, chantier naval...). Ensuite tu choisis ta prochaine destination. Les Blues sont faciles, Grand Line beaucoup moins, le Nouveau Monde est un cimetière.</p>
     <h3>🤕 Blessures, mort... ou vie rangée</h3>
     <p>Un premier K.O. te laisse <b>blessé grave</b> (et coûte cher). Un second K.O. avant de te soigner te met <b>au bord du gouffre</b> : tu peux tenter de te relever (et risquer la mort définitive) ou <b>choisir une vie bien rangée</b>, qui termine la carrière avec un score réduit. Tu peux aussi prendre ta retraite à tout moment depuis le menu ☰. La capture mène à Impel Down, dont on s'évade... rarement.</p>
-    <h3>💪 Puissance</h3>
-    <p>Ton <b>indice de combat</b> combine tes caractéristiques, ton fruit du démon, ton Haki, ton arme, ton équipage, tes alliés et ta flotte. Il détermine ton niveau : Civil → Menace locale → Rookie → Supernova → Corsaire → YC3 → YC2 → YC1 → Yonko → RDP.</p>
+    <h3>💪 Puissance et rang</h3>
+    <p>Ton <b>indice de combat</b> combine tes caractéristiques, ton fruit, ton Haki, ton arme, ton équipage, tes alliés et ta flotte. Mais le <b>rang</b> (Rookie, Supernova, Corsaire, YC3... jusqu'à RDP) se mérite : il est plafonné par le <b>plus fort adversaire que tu as vraiment vaincu</b>. Pour être reconnu au niveau d'un Corsaire, il faut en avoir battu un de ce calibre.</p>
+    <h3>⚓ Les escales</h3>
+    <p>Une seule action par île : t'entraîner, te reposer, explorer, ou utiliser un service du port (taverne, marché, boulots, rapport). Le <b>chantier naval est gratuit</b> et ne consomme pas d'action : améliore ton navire à chaque escale. Les choix sont peu nombreux mais décisifs : les échecs font plus mal, les réussites rapportent plus.</p>
     <h3>🧬 Races</h3>
     <p>Humain (la référence), Homme-poisson, Sirène, Mink, Géant, Longs-Bras, Longues-Jambes, Trois-Yeux, Lunarien, Tontatta. Chaque race a ses avantages et ses inconvénients, et ses propres événements. Imposée dans le Défi du jour.</p>
     <h3>🍇 Fruits du Démon</h3>
@@ -292,13 +294,13 @@ function vResult(S) {
 
 function vEscale(S) {
   if (U.sub) return vSub(S);
-  const acts = S.actionsLeft > 0 ? G.escaleActions(S) : [];
+  const acts = G.escaleActions(S);
   const isl = ISLANDS[S.loc];
   return `<section class="card escale">
     <h3>⚓ Escale ${S.actionsLeft > 0 ? `<span class="pts">${S.actionsLeft} action${S.actionsLeft > 1 ? 's' : ''}</span>` : ''}</h3>
     <p class="hint">${esc(isl.desc)}</p>
     ${S.flags.wounded ? '<p class="warn">🤕 Tu es <b>blessé grave</b>. Un nouveau K.O. peut être fatal : pense à te reposer (ou à embarquer un médecin).</p>' : ''}
-    <div class="acts">${acts.map(a => `<button class="act" data-act="action" data-arg="${a.id}"><span class="e">${a.emoji}</span><b>${esc(a.label)}</b><small>${esc(a.sub)}</small></button>`).join('')}</div>
+    <div class="acts">${acts.map(a => `<button class="act ${a.badge ? 'upg' : ''} ${a.free ? 'free' : ''}" data-act="action" data-arg="${a.id}"><span class="e">${a.emoji}</span><b>${esc(a.label)}</b><small>${esc(a.sub)}</small></button>`).join('')}</div>${S.actionsLeft <= 0 ? '<p class="hint">Plus d\'action sur cette île. Le chantier naval reste ouvert.</p>' : ''}
     <div class="row gap">
       <button class="btn" data-act="exam" data-arg="cale">🎒 Cale ${S.inventory.fruits.length ? `<i class="dot">${S.inventory.fruits.length}🍇</i>` : ''}</button>
       <button class="btn gold grow" data-act="leave">⛵ Lever l'ancre</button>
@@ -310,6 +312,9 @@ function vSub(S) {
   const sb = U.sub;
   const tier = G.tierOf(S);
   if (sb.kind === 'done') return `<section class="card result neutral"><div class="banner">${sb.emoji || '⚓'} ${esc(sb.title || 'Escale')}</div><p class="story">${esc(sb.text)}</p>${chipsHtml(sb.chips)}<button class="btn big gold" data-act="subclose">OK</button></section>`;
+  if (sb.kind === 'services') return `<section class="card"><h3>🏪 Services du port</h3><p class="hint">Chaque service utilisé consomme ton action de l'escale.</p>
+    <div class="acts">${G.serviceActions(S).map(a => `<button class="act" data-act="service" data-arg="${a.id}"><span class="e">${a.emoji}</span><b>${esc(a.label)}</b><small>${esc(a.sub)}</small></button>`).join('')}</div>
+    <button class="btn ghost" data-act="subcancel">← Retour</button></section>`;
   if (sb.kind === 'job') {
     const tp = { 1: 3_000_000, 2: 30_000_000, 3: 150_000_000, 4: 500_000_000 }[tier];
     const pp = G.checkChance(S, { s: 'combat', d: 0 }), pc = G.checkChance(S, { s: 'charisme', d: -2 });
@@ -514,7 +519,9 @@ function tProfil(S) {
 
 function tNiveau(S) {
   const r = G.combatRating(S), li = G.levelIdxOf(S);
-  return `<p>Indice de combat : <b>${r}</b></p>
+  const cap = G.levelCap(S), raw = G.rawLevelIdx(S);
+  return `<p>Indice de combat : <b>${r}</b> · Plafond de reconnaissance : <b>${cap}</b></p>
+  ${raw > li ? `<p class="warn">💪 Tu as la force d'un <b>${esc(LEVELS[raw].name)}</b>, mais personne ne te reconnaît à ce rang : tu n'as pas encore vaincu d'adversaire de ce calibre. Plus fort adversaire vaincu : <b>${S.maxFoe || 'aucun'}</b>.</p>` : `<p class="hint">Le rang se mérite : il est plafonné par le plus fort adversaire que tu as vaincu (${S.maxFoe || 'aucun'}).</p>`}
   <ol class="ladder">${[...LEVELS].reverse().map((l) => { const i = LEVELS.indexOf(l); return `<li class="${i === li ? 'me' : i < li ? 'below' : ''}"><span>${l.emoji}</span><div><b>${esc(l.name)}</b> <small>≥ ${l.min}</small><em>${esc(l.desc)}</em></div>${i === li ? '<i>◀ toi</i>' : ''}</li>`; }).join('')}</ol>
   <p class="hint">L'indice combine Force, Vitesse, Volonté, fruit, Haki, arme, équipage (les 3 meilleurs), alliés canon (relation ≥ 3), flotte et moral.</p>`;
 }
@@ -789,7 +796,8 @@ function act(name, el) {
       if (S.phase === 'end') onEnd();
       save(); window.scrollTo(0, 0); break;
     case 'action': {
-      if (S.actionsLeft <= 0) return;
+      if (S.actionsLeft <= 0 && arg !== 'ship') return;
+      if (arg === 'services') { U.sub = { kind: 'services' }; save(); break; }
       if (arg === 'train') U.sub = { kind: 'train' };
       else if (arg === 'tavern') { if (S.escCache?.turn !== S.turn) S.escCache = { turn: S.turn }; S.escCache.tavern ||= { cands: G.tavernCandidates(S), status: {} }; U.sub = { kind: 'tavern', cands: S.escCache.tavern.cands, status: S.escCache.tavern.status }; }
       else if (arg === 'market') { if (S.escCache?.turn !== S.turn) S.escCache = { turn: S.turn }; S.escCache.shop ||= { shop: G.genShop(S), bought: [] }; U.sub = { kind: 'market', shop: S.escCache.shop.shop, bought: S.escCache.shop.bought }; }
@@ -820,7 +828,8 @@ function act(name, el) {
       if (chips) { toast(chips.map(c => c.t).join(' · ') || 'Fait'); U.sub.used = true; }
       save(); break;
     }
-    case 'subfinish': if (U.sub?.used) S.actionsLeft--; U.sub = null; save(); break;
+    case 'service': { U.sub = null; const fake = document.createElement('i'); fake.dataset.arg = arg; return act('action', fake); }
+    case 'subfinish': if (U.sub?.used && U.sub.kind !== 'ship') S.actionsLeft--; U.sub = null; save(); break;
     case 'shiptab': U.sub.tab = arg; break;
     case 'rename': { const v = document.getElementById('shipname')?.value.trim(); if (v) { S.ship.name = v.slice(0, 28); toast('Navire renommé : ' + S.ship.name); save(); } break; }
     case 'beginIntro': U.intro = false; window.scrollTo(0, 0); break;

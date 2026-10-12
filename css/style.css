@@ -434,3 +434,7 @@ label .inp.sm { margin-left: 8px; width: 80px; }
 .relrow.small { padding: 3px 0; font-size: .9em; }
 .relrow.small .ce { font-size: 1.3rem; }
 .act .risk { margin-top: 4px; }
+
+.act.upg { border-color: var(--gold-2); background: #fff3d1; box-shadow: 0 0 0 2px var(--gold); }
+.act.free::after { content: 'gratuit'; position: absolute; top: 8px; right: 10px; font-size: .68em; background: var(--green); color: #fff; padding: 1px 7px; border-radius: 99px; }
+.act { position: relative; }
