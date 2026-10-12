@@ -118,6 +118,10 @@ function vRules() {
     <p><b>Chercheurs</b> (pirates, révolutionnaires, chasseurs, Corsaires, Empereurs) : trouver le One Piece. <b>Gardiens</b> (Marine, Gouvernement, Chevaliers Divins) : le protéger. Dans les deux cas : réunir les 4 <b>Poneglyphes routiers</b> (Zou, Totto Land, Wano, Elbaf), savoir les lire, puis atteindre <b>Laugh Tale</b>. Va le plus loin possible.</p>
     <h3>🧭 Tu n'es pas Luffy</h3>
     <p>Tu choisis ta route. Sur les grandes îles, le destin tire au sort entre l'arc que l'on connaît (Arlong, Crocodile, Enies Lobby...) et une autre histoire. Tu peux revivre le parcours canon... ou pas du tout.</p>
+    <h3>🧭 Une route, deux chemins</h3>
+    <p>Chaque mer a sa route, dans un ordre logique. À chaque étape, tu choisis entre <b>les deux prochaines îles</b> (A ou B) : celle que tu laisses reste la suivante. Pas de zigzag : on avance. Les Poneglyphes manqués peuvent être retentés plus tard.</p>
+    <h3>📖 Les trames</h3>
+    <p>Pour les Gardiens, certaines histoires se déroulent en plusieurs étapes, à plusieurs escales d'intervalle : le supérieur corrompu, le Buster Call, SWORD, les épreuves d'Amiral, l'infiltration du CP, la Réverie, l'esclave évadé, et... le Trône Vide.</p>
     <h3>🗺️ Le voyage</h3>
     <p>À chaque île : un événement, puis une <b>escale</b> (entraînement, taverne, marché, chantier naval...). Ensuite tu choisis ta prochaine destination. Les Blues sont faciles, Grand Line beaucoup moins, le Nouveau Monde est un cimetière.</p>
     <h3>🤕 Blessures, mort... ou vie rangée</h3>
@@ -351,21 +355,37 @@ function vSub(S) {
   return '';
 }
 
+function vRoute(S) {
+  const rv = G.routeView(S);
+  if (rv.length < 2) return '';
+  const done = rv.filter(x => x.state === 'done' || x.state === 'here').length;
+  return `<div class="routebar" title="Route de ${esc(SEAS[ISLANDS[S.loc].sea].name)}">
+    <div class="rdots">${rv.map(x => `<i class="rd ${x.state}" title="${esc(x.name)}"></i>`).join('')}</div>
+    <small>🧭 Étape ${done}/${rv.length} de la route${rv.find(x => x.state === 'next') ? ' · deux chemins s\'offrent à toi' : ''}</small>
+  </div>`;
+}
+
 function vNav(S) {
   const opts = G.navOptions(S);
   const camp = G.campOf(S);
-  return `<section class="card nav">
-    <h3>🧭 Prochaine destination</h3>
-    ${opts.length === 1 && opts[0].forced ? '<p class="warn">Les événements ne te laissent pas le choix.</p>' : '<p class="hint">Les îles ★★★ sont des arcs majeurs : plus dangereuses, plus lucratives.</p>'}
-    <div class="dests">${opts.map(o => {
-      const isl = ISLANDS[o.id], sea = SEAS[isl.sea];
-      const pone = isl.pone && !S.pone.includes(isl.pone);
-      return `<button class="dest ${o.big ? 'big' : ''} ${o.locked ? 'locked' : ''} ${o.danger || o.early ? 'danger' : ''}" data-act="sail" data-arg="${o.id}" ${o.locked ? 'disabled' : ''} style="--sea:#${sea.water.toString(16).padStart(6, '0')}">
+  const gates = opts.filter(o => o.big);
+  const paths = opts.filter(o => !o.big);
+  const card = o => {
+    const isl = ISLANDS[o.id], sea = SEAS[isl.sea];
+    const pone = isl.pone && !S.pone.includes(isl.pone);
+    return `<button class="dest ${o.big ? 'big' : ''} ${o.locked ? 'locked' : ''} ${o.danger || o.early ? 'danger' : ''}" data-act="sail" data-arg="${o.id}" ${o.locked ? 'disabled' : ''} style="--sea:#${sea.water.toString(16).padStart(6, '0')}">
+        ${o.route ? `<span class="rtag">${o.route}</span>` : ''}
         <span class="de" data-thumb="${o.id}">${THUMBS[o.id] ? `<img src="${THUMBS[o.id]}" alt="">` : sea.emoji}</span>
         <span class="dt"><b>${esc(o.label)}</b><small>${esc(o.sub || isl.sub)}</small>
         <span class="dm">${'★'.repeat(isl.pop)}${'☆'.repeat(3 - isl.pop)} · ${esc(sea.name)}${pone ? ` · 🗿 Poneglyphe ${camp === 'gardien' ? 'à sécuriser' : 'routier'}` : ''}${o.danger ? ' · ⚠️ Danger' : ''}${o.early ? ' · ⚠️ Tôt' : ''}</span></span>
       </button>`;
-    }).join('')}</div>
+  };
+  return `<section class="card nav">
+    <h3>🧭 Prochaine étape</h3>
+    ${vRoute(S)}
+    ${opts.length === 1 && opts[0].forced ? '<p class="warn">Les événements ne te laissent pas le choix.</p>' : '<p class="hint">Le voyage avance toujours vers l\'avant. Les îles ★★★ sont des arcs majeurs : plus dangereuses, plus lucratives.</p>'}
+    ${paths.length ? `<div class="dests">${paths.map(card).join('')}</div>` : ''}
+    ${gates.length ? `<h4 class="gatehead">${paths.length ? 'Ou franchir la prochaine frontière' : 'La route continue'}</h4><div class="dests">${gates.map(card).join('')}</div>` : ''}
   </section>`;
 }
 

@@ -71,6 +71,7 @@ export const ISLANDS = {
   pucci:      { sea: 'paradise', pop: 1, name: 'Pucci', sub: 'Ville gourmande', desc: 'Une escale du Puffing Tom, réputée pour sa gastronomie.', th: { k: 'ville', g: 0xc5e1a5, a: 0xef6c00 }, svc: ['tavern', 'market', 'rest'] },
   sanfaldo:   { sea: 'paradise', pop: 1, name: 'San Faldo', sub: 'Ville du carnaval', desc: 'Une escale du Puffing Tom où tout le monde porte un masque.', th: { k: 'ville', g: 0xd7ccc8, a: 0x8e24aa }, svc: ['market', 'tavern', 'rest'] },
   stpoplar:   { sea: 'paradise', pop: 1, name: 'St. Poplar', sub: 'Ville du printemps', desc: 'Une escale du Puffing Tom, fleurie toute l\'année.', th: { k: 'village', g: 0xaed581, a: 0xf48fb1 }, svc: ['ship', 'rest'] },
+  cacao:      { sea: 'nw', pop: 2, name: 'Cacao Island', sub: 'Totto Land', desc: 'Une île de Totto Land où tout est en chocolat, et où les gardes sont des biscuits.', th: { k: 'gateau', g: 0x6d4c41, a: 0xffe0b2 }, svc: ['market', 'tavern', 'rest'] },
   marineford: { sea: 'paradise', pop: 3, name: 'Marineford', sub: 'Quartier Général de la Marine', desc: 'La forteresse de la Justice, au cœur de Paradise.', th: { k: 'forteresse', g: 0xcfd8dc, a: 0x0d47a1 }, svc: ['marinebase', 'forge', 'rest'], era: 'pre' },
 
   // ───────────── CALM BELT ─────────────
@@ -135,3 +136,15 @@ export const START_ISLANDS = {
   nw: ['dressrosa', 'wano', 'elbaf', 'sphinx', 'prodence', 'lodestar'],
   redline: ['marygeoise'],
 };
+
+// ───────────── Routes : l'ordre naturel de progression dans chaque mer ─────────────
+// On avance toujours vers l'avant : à chaque étape, deux îles au choix parmi les suivantes de la route.
+export const ROUTES = {
+  east: ['fuchsia', 'goa', 'shimotsuki', 'shells', 'orange', 'animaux', 'sirop', 'baratie', 'cocoyasi', 'oykot', 'tequila', 'loguetown'],
+  north: ['swallow', 'spidermiles', 'flevance', 'minion', 'lvneel', 'germa'],
+  west: ['ohara', 'godvalley'],
+  south: ['baterilla', 'sorbet'],
+  paradise: ['whisky', 'littlegarden', 'drum', 'alabasta', 'jaya', 'skypiea', 'longring', 'amazonlily', 'water7', 'pucci', 'sanfaldo', 'stpoplar', 'enies', 'thriller', 'boin', 'karakuri', 'momoiro', 'weatheria', 'torino', 'banaro', 'kuraigana', 'marineford'],
+  nw: ['zou', 'punkhazard', 'greenbit', 'dressrosa', 'cacao', 'wci', 'foodvalten', 'prodence', 'sphinx', 'wano', 'baltigo', 'egghead', 'hachinosu', 'karaibari', 'marinehq', 'elbaf', 'lodestar'],
+};
+export const routeKeyOf = sea => ({ east: 'east', north: 'north', west: 'west', south: 'south', paradise: 'paradise', calm: 'paradise', redline: 'nw', nw: 'nw', laughtale: 'nw' }[sea]);

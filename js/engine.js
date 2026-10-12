@@ -1,5 +1,5 @@
 // Moteur : état, hasard déterministe, jets, effets, navigation, fins de partie.
-import { SEAS, ISLANDS, BLUES, islandsOf } from './data/islands.js';
+import { SEAS, ISLANDS, BLUES, islandsOf, ROUTES, routeKeyOf } from './data/islands.js';
 import { FACTIONS, LEVELS, levelOf, YONKO, PROGRESS } from './data/factions.js';
 import { FRUITS, WEAPONS, SHIPS, ROLES, STATS, ITEMS, fruitPower, weaponPower, fruitPrice, weaponPrice, SHIP_MODELS, SHIP_MODS, DEFAULT_MODEL, FIGUREHEADS, SAIL_COLORS } from './data/items.js';
 import { CHARACTERS, charsAt } from './data/characters.js';
@@ -8,16 +8,17 @@ import { PONE_EVENTS, FINAL_EVENTS, PRISON_EVENTS, FACTION_EVENTS, CREW_EVENTS, 
 import { RACES, raceOf } from './data/races.js';
 import { GROUPS, groupOfChar, groupOfFaction, groupOfYonko, standingOf } from './data/groups.js';
 import { ALT_EVENTS, PUFFING_EVENTS } from './data/events_alt.js';
+import { ARC_EVENTS, ARCS } from './data/events_arcs.js';
 import { CREW_FIRST, CREW_EPI, CREW_TRAITS, LEGENDS, STORY_FRUITS, CANON_CAREERS, BADGES, DAILY_GOALS, randomHeroName } from './data/meta.js';
 
 Object.assign(FRUITS, Object.fromEntries(Object.entries(STORY_FRUITS).map(([id, f]) => [id, { ...f, id }])));
 
-export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS];
+export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS];
 export const EVENTS = Object.fromEntries(ALL_EVENTS.map(e => [e.id, e]));
 
 export const LENGTHS = {
   rapide: { name: 'Rapide', maxTurns: 20, actions: 1, age: 0.6, blueMin: 1, paraMin: 3, desc: '≈ 10 minutes. Une carrière éclair.' },
-  saga: { name: 'Vraie saga', maxTurns: 42, actions: 1, age: 0.25, blueMin: 3, paraMin: 7, desc: '≈ 40 minutes. Le grand voyage.' },
+  saga: { name: 'Vraie saga', maxTurns: 40, actions: 1, age: 0.25, blueMin: 4, paraMin: 10, desc: '≈ 40 minutes. Le grand voyage.' },
 };
 
 const STAT_DC = { 1: 8, 2: 12, 3: 15, 4: 18 };
@@ -124,6 +125,9 @@ export function combatRating(S) {
   if (h.faction === 'vassal') r += 3;
   r += raceOf(S).combat || 0;
   r += shipBonus(S, 'combat');
+  if (S.flags.rokushiki) r += 2;
+  if (S.flags.doctrine_absolue) r += 2;
+  if (S.flags.imu_servant) r += 3;
   r *= 0.9 + S.morale / 500;
   return Math.round(r * 10) / 10;
 }
@@ -199,6 +203,9 @@ const VIEW = {
   lowLoyalCrew: S => () => [...S.crew].filter(c => !c.isCaptain).sort((a, b) => a.loyalty - b.loyalty)[0] || { name: 'Quelqu\'un' },
   rankName: S => () => rankName(S),
   canRead: S => canReadPone(S),
+  arc: S => (id, stage, gap = 1) => (S.arcs?.[id] ?? 0) === stage && S.turn - (S.arcT?.[id] ?? -99) >= gap,
+  hasFlag: S => f => !!S.flags[f],
+  rank: S => rankIdxOf(S),
   lvl: S => levelIdxOf(S),
   allyCount: S => allyGroups(S).length,
   hostileName: S => hostileHere(S)?.name || 'une bande locale',
@@ -275,6 +282,7 @@ export function newGame(o) {
   for (const [g, v] of Object.entries(START_REL)) addGrel(S, g, v);
   if (race.hunted) { S.hero.bounty = 50_000_000; S.frel.gov = -3; S.hl.push('était recherché dès la naissance pour être un Lunarien'); }
   log(S, `${S.hero.emoji} ${S.hero.name} (${race.name}) commence sa carrière : ${FACTIONS[fac].name}, ${ROLES[o.role].name.toLowerCase()}, à ${ISLANDS[o.island].name}.`, 'start');
+  { const key = routeKeyOf(ISLANDS[o.island].sea), idx = (ROUTES[key] || []).filter(x => !ISLANDS[x].era || ISLANDS[x].era === S.era).indexOf(o.island); if (idx >= 0) S.routePos = { [key]: idx }; }
   startIsland(S, true);
   return S;
 }
@@ -477,6 +485,12 @@ export function applyEff(S, e = {}, chips = [], mult = null) {
   }
   if (E.frel) for (const [k, v] of Object.entries(E.frel)) addGrel(S, k, v, chips);
   if (E.flag) S.flags[E.flag] = true;
+  if (E.flag2) S.flags[E.flag2] = true;
+  if (E.arc) {
+    (S.arcs ||= {})[E.arc.id] = E.arc.stage; (S.arcT ||= {})[E.arc.id] = S.turn;
+    const A = ARCS[E.arc.id];
+    if (A) { const done = E.arc.stage >= A.stages; chips.push({ t: `📖 ${A.name} : ${done ? 'terminée' : `étape ${E.arc.stage}/${A.stages}`}`, k: 'level' }); log(S, `📖 Trame « ${A.name} » : ${done ? 'dénouement' : 'étape ' + E.arc.stage}.`, 'big'); }
+  }
   if (E.unflag) delete S.flags[E.unflag];
   if (E.hl) S.hl.push(E.hl);
   if (E.territory) { S.territory += E.territory; chips.push({ t: '🏝️ Territoire +1', k: 'good' }); }
@@ -763,11 +777,33 @@ export function canReadPone(S) {
 
 // la liste est tirée une fois puis figée (sinon un nouveau tirage au clic pourrait faire disparaître l'île choisie)
 export function navOptions(S) {
-  const key = [S.turn, S.loc, S.forcedNext, S.pone.length, S.ship.coated, canReadPone(S), S.hero.faction].join('|');
+  const key = [S.turn, S.loc, S.forcedNext, S.pone.length, S.ship.coated, canReadPone(S), S.hero.faction, S.visited.length, !!S.flags.knows_skypiea].join('|');
   if (S.navCache?.key === key) return S.navCache.opts;
   const opts = computeNav(S);
   S.navCache = { key, opts };
   return opts;
+}
+
+// Route linéaire : on avance toujours vers l'avant, avec un choix entre deux îles.
+function routeAhead(S) {
+  const key = routeKeyOf(ISLANDS[S.loc].sea);
+  const route = (ROUTES[key] || []).filter(id => { const i = ISLANDS[id]; return !i.era || i.era === S.era; });
+  const camp = campOf(S);
+  // point d'entrée dans la route (île de départ de la carrière) : ce qui précède est derrière toi
+  const cur = S.routePos?.[key] ?? -1;
+  const ahead = route.filter((id, k) => k > cur && !S.visited.includes(id)
+    && !(id === 'marineford' && camp !== 'gardien' && S.progress < 2)
+    && !(id === 'skypiea' && !S.flags.knows_skypiea));
+  // l'île non choisie d'une bifurcation reste la première de la liste : aucun retour en arrière
+  const retry = route.filter(id => ISLANDS[id].pone && S.visited.includes(id) && !S.pone.includes(ISLANDS[id].pone) && (S.poneTry?.[id] ?? -9) <= S.turn - 6 && id !== S.loc);
+  return { key, route, cur, ahead, retry };
+}
+
+// pour l'interface : une frise de la route avec la position actuelle
+export function routeView(S) {
+  const { route, ahead } = routeAhead(S);
+  const fork = new Set(ahead.slice(0, 2));
+  return route.map(id => ({ id, name: ISLANDS[id].name, state: id === S.loc ? 'here' : S.visited.includes(id) ? 'done' : fork.has(id) ? 'next' : 'later' }));
 }
 
 function computeNav(S) {
@@ -776,42 +812,40 @@ function computeNav(S) {
   const camp = campOf(S);
   const nv = id => !S.visited.includes(id);
   const opts = [];
-  const sample = (list, n) => {
-    const out = [];
-    const pool = [...list];
-    while (pool.length && out.length < n) {
-      const it = wpick(S, pool, i => 1 + i.pop * 1.5 + (i.pone && !S.pone.includes(i.pone) ? 4 : 0));
-      out.push(it); pool.splice(pool.indexOf(it), 1);
-    }
-    return out;
-  };
   const enter = (i, extra = {}) => opts.push({ id: i.id, label: i.name, sub: i.sub, pop: i.pop, sea: i.sea, ...extra });
+  const { ahead, retry } = routeAhead(S);
+  const fork = ahead.slice(0, 2);
+  const forkOpts = () => {
+    fork.forEach((id, k) => enter(ISLANDS[id], { route: fork.length > 1 ? (k === 0 ? 'A' : 'B') : null }));
+    retry.forEach(id => enter(ISLANDS[id], { retry: true, label: `Retenter : ${ISLANDS[id].name}`, sub: 'Le Poneglyphe t\'attend toujours' }));
+  };
   if (BLUES.includes(sea)) {
-    const rest = islandsOf(sea, S.era).filter(i => nv(i.id) && !i.noNav);
-    sample(rest, 3).forEach(i => enter(i));
-    if ((S.seaVisits[sea] || 0) >= L.blueMin || !rest.length) enter(ISLANDS.reverse, { big: true, label: 'Cap sur Grand Line !', sub: 'Reverse Mountain — la mer change de niveau' });
+    forkOpts();
+    if ((S.seaVisits[sea] || 0) >= L.blueMin || !ahead.length) enter(ISLANDS.reverse, { big: true, label: 'Cap sur Grand Line !', sub: 'Reverse Mountain — la mer change de niveau' });
     else opts.push({ id: 'reverse', label: 'Cap sur Grand Line ! (trop tôt ?)', sub: `Il est conseillé de visiter ${L.blueMin} île(s) d'abord`, big: true, early: true });
   } else if (sea === 'paradise' || sea === 'calm') {
-    const rest = islandsOf('paradise', S.era).filter(i => nv(i.id) && !i.noNav && !i.gate && !(i.id === 'marineford' && camp !== 'gardien' && S.progress < 2) && !(i.id === 'skypiea' && !S.flags.knows_skypiea && !chance(S, 0.3)));
     if (S.loc === 'sabaody') {
       if (S.ship.coated) enter(ISLANDS.fishman, { big: true, label: 'Plonger vers l\'Île des Hommes-Poissons', sub: 'Sous la Red Line, vers le Nouveau Monde' });
       else opts.push({ id: 'fishman', label: 'Île des Hommes-Poissons', sub: 'Il faut faire enrober le navire (coating) au chantier naval', locked: true });
       enter(ISLANDS.marygeoise, { big: true, label: camp === 'gardien' ? 'Monter à Marie Geoise' : 'Infiltrer Marie Geoise', sub: camp === 'gardien' ? 'La Terre Sainte, puis le Nouveau Monde' : 'Très risqué. Par la Red Line, vers le Nouveau Monde', danger: camp !== 'gardien' });
-      sample(rest, 1).forEach(i => enter(i));
     } else {
-      sample(rest, 3).forEach(i => enter(i));
-      if (nv('sabaody') && ((S.seaVisits.paradise || 0) + (S.seaVisits.calm || 0) >= L.paraMin || rest.length < 2)) enter(ISLANDS.sabaody, { big: true, sub: 'Dernière étape avant la Red Line' });
+      forkOpts();
+      if (nv('sabaody') && ((S.seaVisits.paradise || 0) + (S.seaVisits.calm || 0) >= L.paraMin || !ahead.length)) enter(ISLANDS.sabaody, { big: true, sub: 'Dernière étape avant la Red Line' });
       else if (!nv('sabaody')) {
         if (S.ship.coated) enter(ISLANDS.fishman, { big: true, label: 'Plonger vers l\'Île des Hommes-Poissons', sub: 'Vers le Nouveau Monde' });
         enter(ISLANDS.marygeoise, { big: true, label: camp === 'gardien' ? 'Monter à Marie Geoise' : 'Infiltrer Marie Geoise', sub: 'Vers le Nouveau Monde', danger: camp !== 'gardien' });
       }
     }
   } else if (sea === 'redline' || sea === 'nw' || sea === 'laughtale') {
-    let rest = islandsOf('nw', S.era).filter(i => i.id !== S.loc && !i.noNav && (nv(i.id) || (i.pone && !S.pone.includes(i.pone) && (S.poneTry?.[i.id] ?? -9) <= S.turn - 6)));
-    if (!rest.length) rest = islandsOf('nw', S.era).filter(i => i.id !== S.loc && !i.noNav);
-    sample(rest, 3).forEach(i => enter(i));
+    forkOpts();
     if (sea === 'nw' && S.pone.length >= 4 && canReadPone(S)) enter(ISLANDS.laughtale, { big: true, label: 'Cap sur Laugh Tale', sub: 'Les quatre relevés indiquent la route' });
     else if (sea === 'nw' && S.pone.length >= 4) opts.push({ id: 'laughtale', label: 'Laugh Tale', sub: 'Personne ne sait lire les Poneglyphes à bord (archéologue requis)', locked: true });
+    if (!opts.some(o => !o.locked)) {
+      // route épuisée : on reprend les îles restantes, sinon n'importe quelle île de la mer
+      let rest = islandsOf('nw', S.era).filter(i => nv(i.id) && !i.noNav);
+      if (!rest.length) rest = islandsOf('nw', S.era).filter(i => i.id !== S.loc && !i.noNav);
+      rest.slice(0, 2).forEach(i => enter(i));
+    }
   }
   return opts;
 }
@@ -821,6 +855,7 @@ export function chooseDestination(S, id) {
   const opt = navOptions(S).find(o => o.id === id);
   if (!opt || opt.locked) return false;
   S.next = id;
+  S.arrivedForced = !!opt.forced;
   S.forcedNext = null;
   S.phase = 'voyage';
   return true;
@@ -848,6 +883,7 @@ export function arrive(S, id) {
   const prevSea = ISLANDS[S.loc].sea;
   S.loc = id;
   S.next = null;
+  S.arrivedForced = false;
   if (!S.visited.includes(id)) S.visited.push(id);
   S.seaVisits[isl.sea] = (S.seaVisits[isl.sea] || 0) + 1;
   S.turn++;
@@ -1097,6 +1133,7 @@ export function finish(S, kind, cause) {
   else if (kind === 'prison') { title = 'Prisonnier à vie'; epitaph = `Oublié au Niveau 6 d'Impel Down à ${age} ans.`; }
   else if (kind === 'onepiece') {
     if (camp === 'chercheur') { title = S.hero.faction === 'revo' ? 'Libérateur du monde' : 'Roi des Pirates'; epitaph = S.flags.ending_reveal ? `A révélé la vérité du Siècle Oublié au monde, à ${age} ans.` : S.flags.ending_secret ? `Roi des Pirates à ${age} ans. N'a jamais dit ce qu'il a trouvé.` : `Roi des Pirates à ${age} ans. A ri, comme Roger.`; }
+    else if (S.flags.ending_imu) { title = 'Main d\'Im'; epitaph = `A remis le One Piece à Im en personne, à ${age} ans. Son nom est désormais effacé de toutes les mémoires.`; }
     else { title = 'Gardien du Siècle Oublié'; epitaph = S.flags.ending_destroy ? `A détruit le One Piece à ${age} ans. Le monde ne saura jamais.` : `A scellé le One Piece à ${age} ans. Im connaît son nom.`; }
   } else if (kind === 'rangee') {
     title = 'Une vie bien rangée';

@@ -1,3 +1,4 @@
+import { IMU_ENDING_CHOICE } from './events_arcs.js';
 // Poneglyphes, Laugh Tale, Impel Down, factions, événements génériques d'île et de mer.
 
 const isCh = S => S.camp === 'chercheur';
@@ -128,6 +129,7 @@ export const FINAL_EVENTS = [
     x: 'Tu as atteint Laugh Tale avant les pirates. Les quatre Poneglyphes routiers sont sous scellés. Devant toi, l\'île où Roger a ri. Ta mission : sceller le One Piece à jamais. Mais tu as lu les inscriptions sur les murs...',
     ch: [
       { t: 'Sceller le One Piece', r: { x: 'Le trésor est scellé. Personne ne le trouvera jamais. Les Cinq Doyens te félicitent. Im t\'a remarqué. Tu es le Gardien du Siècle Oublié.', e: { progress: 9, merit: 50, hl: 'a scellé le One Piece pour le Gouvernement', flag: 'ending_seal' } } },
+      IMU_ENDING_CHOICE,
       { t: 'Lire la vérité... et trahir le Gouvernement', s: 'volonte', d: 10,
         ok: { x: 'Tu comprends. Le Gouvernement t\'a menti toute ta vie. Tu révèles la vérité au monde. Tu deviens l\'ennemi n°1 du Gouvernement Mondial.', e: { faction: 'revo', progress: 9, hl: 'a trahi le Gouvernement à Laugh Tale et révélé la vérité', flag: 'ending_traitor' } },
         ko: { x: 'Tu ne peux pas. Ton serment est plus fort. Tu scelles le trésor, mais tu ne dormiras plus jamais.', e: { progress: 9, morale: -50, flag: 'ending_seal' } } },
