@@ -464,3 +464,12 @@ body.shake{animation:shk .45s}
 @keyframes shk{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
 .act.rec,.pick.rec{outline:2px solid #d4a017;position:relative}
 .act .star{position:absolute;top:-9px;right:8px;background:#d4a017;color:#2a1a05;font-style:normal;font-size:.7em;font-weight:700;padding:1px 7px;border-radius:9px}
+
+.affs{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 0 2px}
+.gauge{display:inline-flex;align-items:center;gap:3px}.gauge em{font-style:normal}
+.gauge .track{position:relative;display:inline-block;width:44px;height:7px;border-radius:4px;background:rgba(0,0,0,.18);overflow:hidden}
+.gauge .track::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(0,0,0,.35)}
+.gauge .track i{position:absolute;top:0;bottom:0;display:block}
+.gauge.love .track i{background:#4caf50}.gauge.hate .track i{background:#e53935}
+.combo{font-weight:800;color:#ff6d00;animation:pulse 1.2s infinite}
+.choice .aff{display:inline-flex;gap:2px;margin-left:auto;opacity:.9}.choice .aff b{font-size:.95em;background:rgba(0,0,0,.08);border-radius:10px;padding:0 5px}

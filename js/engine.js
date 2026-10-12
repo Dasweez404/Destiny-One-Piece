@@ -146,7 +146,7 @@ export function navalRating(S) {
   r += (S.ship.hp / shipMaxHp(S) - 0.6) * 4;
   const deck = S.crew.filter(c => ['navigateur', 'timonier', 'sniper', 'charpentier'].includes(c.role));
   if (deck.length) r += Math.min(4, Math.max(...deck.map(c => c.power)) / 4);
-  r += Math.min(6, S.fleet.reduce((a, f) => a + f.power, 0) / 3);
+  r += Math.min(8, S.fleet.reduce((a, f) => a + f.power, 0) / 2.2) + Math.min(4, allyGroups(S).length * 1.3);
   return Math.round(r * 10) / 10;
 }
 export function statRating(S, stat) {
@@ -222,6 +222,9 @@ const VIEW = {
   lvl: S => levelIdxOf(S),
   allyCount: S => allyGroups(S).length,
   grel: S => id => grel(S, id),
+  fleetPower: S => S.fleet.reduce((a, f) => a + f.power, 0),
+  support: S => Math.min(5, allyGroups(S).length + S.fleet.reduce((a, f) => a + f.power, 0) / 5),
+  extreme: S => sign => Object.values(GROUPS).find(g => (sign > 0 ? grel(S, g.id) >= 8 : grel(S, g.id) <= -8)) || null,
   hostileName: S => hostileHere(S)?.name || 'une bande locale',
   hostileId: S => hostileHere(S)?.id,
   hostileEmoji: S => hostileHere(S)?.emoji || '😠',
@@ -385,6 +388,20 @@ export function makeEncounter(S, ch) {
 export const curEvent = S => (S.cur?.gen ? S.cur.gen : S.cur?.id ? EVENTS[S.cur.id] : null);
 
 const isFiller = c => c.r && !c.c && !c.s && !c.p && Object.keys(c.r.e || {}).every(k => ['morale', 'hp', 'rep', 'flag'].includes(k));
+// à la Reigns : quelles jauges (puissances, moral, réputation) ce choix peut faire bouger ? (sans montrer le sens)
+function affectedOf(S, c, V) {
+  const out = new Map();
+  for (const r of [c.r, c.ok, c.ko]) {
+    if (!r?.e) continue;
+    let e = r.e;
+    if (e.frel) { let f; try { f = val(e.frel, V); } catch { f = null; } for (const k of Object.keys(f || {})) if (GROUPS[k]) out.set(k, GROUPS[k].emoji); }
+    if (e.rel) for (const k of Object.keys(e.rel)) { const g = groupOfChar(k, S.era); if (g && GROUPS[g]) out.set(g, GROUPS[g].emoji); }
+    if (e.morale) out.set('_m', '😄');
+    if (e.rep) out.set('_r', '🗣️');
+    if (e.shipHp) out.set('_s', '🚢');
+  }
+  return [...out.entries()].slice(0, 4).map(([id, emoji]) => ({ id, emoji }));
+}
 export function choicesOf(S, ev) {
   const V = view(S);
   const all = (ev.ch || []).map((c, i) => {
@@ -394,7 +411,8 @@ export function choicesOf(S, ev) {
     if (!locked && cost && S.hero.berrys < cost) { locked = true; lockText = `Il faut ${fmtPrime(cost)}`; }
     const stat = val(c.s, V);
     const p = c.p || stat ? checkChance(S, c) : 1;
-    return { i, label: val(c.t, V), stat, cost, locked, lockText, p, risk: c.p || stat ? riskLabel(p) : null, filler: isFiller(c) };
+    const aff = affectedOf(S, c, V);
+    return { i, aff, label: val(c.t, V), stat, cost, locked, lockText, p, risk: c.p || stat ? riskLabel(p) : null, filler: isFiller(c) };
   });
   // moins de choix, plus décisifs : on masque les choix verrouillés et les « remplissages »
   let out = all.filter(c => !c.locked);
@@ -505,6 +523,7 @@ export function applyEff(S, e = {}, chips = [], mult = null) {
     chips.push({ t: `${CHARACTERS[k].emoji} ${CHARACTERS[k].name.split(',')[0]} ${v > 0 ? '♥' : '✖'}${Math.abs(v)}`, k: v > 0 ? 'rel' : 'bad' });
   }
   if (E.frel) for (const [k, v] of Object.entries(E.frel)) addGrel(S, k, v, chips);
+  if (E.stamp) S[E.stamp] = S.turn;
   if (E.flag) S.flags[E.flag] = true;
   if (E.flag2) S.flags[E.flag2] = true;
   if (E.arc) {
@@ -515,6 +534,7 @@ export function applyEff(S, e = {}, chips = [], mult = null) {
   if (E.unflag) delete S.flags[E.unflag];
   if (E.hl) S.hl.push(E.hl);
   if (E.territory) { S.territory += E.territory; chips.push({ t: '🏝️ Territoire +1', k: 'good' }); }
+  if (E.fleetLoss && S.fleet.length) { S.fleet.sort((a, b) => a.power - b.power); const [f] = S.fleet.splice(0, 1); chips.push({ t: `💥 Flotte : ${f.name} perdu`, k: 'bad' }); }
   if (E.fleet) { S.fleet.push(E.fleet); chips.push({ t: `⛵ Flotte : ${E.fleet.name}`, k: 'epic' }); }
   if (E.captain && !h.isCaptain) { h.isCaptain = true; const old = S.crew.find(c => c.isCaptain); if (old) { old.isCaptain = false; old.role = 'combattant'; old.emoji = ROLES.combattant.emoji; } chips.push({ t: '🏴‍☠️ Tu es capitaine !', k: 'epic' }); log(S, `${h.name} devient capitaine.`, 'big'); }
   if (E.awaken && h.fruit) { h.fruit.awakened = true; chips.push({ t: '✨ Fruit éveillé', k: 'epic' }); }
@@ -739,7 +759,12 @@ export function resolveChoice(S, i) {
   S.deathCause = ev.char ? `Tué par ${CHARACTERS[ev.char].name.split(',')[0]}` : deathCauseFor(S, ev);
   const text = interp(S, val(res.x, V));
   const e = res.e || {};
-  applyEff(S, e, chips, c.r ? null : ok ? { good: 1.35, bad: 1 } : { good: 1, bad: 1.3 });
+  const combo = Math.min(5, S.combo || 0);
+  applyEff(S, e, chips, c.r ? null : ok ? { good: 1.35 * (1 + combo * 0.05), bad: 1 } : { good: 1, bad: 1.3 });
+  if (!c.r && (c.p || stat)) {
+    if (ok) { S.combo = Math.min(5, combo + 1); if (S.combo >= 2) chips.push({ t: `🔥 Combo ×${S.combo} (+${S.combo * 5} % de gains)`, k: 'epic' }); }
+    else { if (combo >= 2) chips.push({ t: '💨 Combo brisé', k: 'bad' }); S.combo = 0; }
+  }
   S.seen[ev.id] = (S.seen[ev.id] || 0) + 1;
   if (ev.oncePerTurn) (S.turnSeen ||= {})[ev.id] = S.turn;
   if (ev.id.startsWith('pone_') && ok === false && !c.r) (S.poneTry ||= {})[S.loc] = S.turn;

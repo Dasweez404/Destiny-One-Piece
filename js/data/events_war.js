@@ -23,7 +23,7 @@ export const WAR_ARCS = {
 export const NAVAL_EVENTS = [
   {
     id: 'n_broadside', emoji: '💥', title: 'Duel d\'artillerie',
-    w: { ctx: 'sea', weight: 6, test: hasShipPower },
+    w: { ctx: 'sea', weight: 9, test: hasShipPower },
     x: S => S.tier >= 3 ? 'Un navire pirate lourdement armé coupe ta route et ouvre le feu sans sommation. Ses canons couvrent le pont de gerbes d\'eau.' : 'Un navire pirate te prend en chasse et envoie une première salve. Elle tombe à dix mètres. La suivante, non.',
     ch: [
       { t: 'Répondre par une bordée', s: 'naval', d: 0,
@@ -129,7 +129,7 @@ export const NAVAL_EVENTS = [
 ];
 
 // ═══════════════ GUERRE DÉCLARÉE PAR LE HÉROS ═══════════════
-const ownReady = S => isCh(S) && S.hero.isCaptain && hasShipPower(S) && S.crew.length >= 4 && S.lvl >= 3 && S.tier >= 2 && !S.hasFlag('war_own_done');
+const ownReady = S => isCh(S) && S.hero.isCaptain && hasShipPower(S) && S.crew.length >= 3 && S.lvl >= 2 && !S.hasFlag('war_own_done');
 const WAR_TARGETS = [
   { k: 'marine', t: 'Une base de la Marine qui te traque', group: 'marine' },
   { k: 'pirates', t: 'Une flotte pirate rivale qui vole les îles', group: 'pirates' },
@@ -139,7 +139,7 @@ const WAR_TARGETS = [
 export const WAR_EVENTS = [
   {
     id: 'w_declare', emoji: '🏴‍☠️', title: 'Déclarer la guerre',
-    w: { ctx: undefined, weight: 7, test: S => ownReady(S) && S.arc('war_own', 0), minTier: 2 },
+    w: { ctx: undefined, weight: 12, test: S => ownReady(S) && S.arc('war_own', 0), minTier: 1 },
     x: 'Ton équipage est solide, ton navire rôde, ton nom pèse. Dans la taverne, quelqu\'un murmure ce que tout le monde pense : les petites escarmouches ne suffisent plus. Il faut prendre un territoire, et faire plier un ennemi. Tes hommes attendent ton ordre.',
     ch: WAR_TARGETS.map(tg => ({
       t: `Déclarer la guerre : ${tg.t}`,
@@ -212,7 +212,7 @@ for (const sc of SCENARIOS) {
   WAR_EVENTS.push(
     {
       id: id + '_open' + suffix, emoji: '⚔️', title: sc.name,
-      w: { ctx: undefined, weight: 6, ...sc.w, test: S => hasShipPower(S) && (sc.okA(S) || sc.okB(S)) && S.arc(id, 0) && !S.seen[id + '_done'] && S.lvl >= 2 && S.ship.tier >= 2 },
+      w: { ctx: undefined, weight: 11, ...sc.w, test: S => hasShipPower(S) && (sc.okA(S) || sc.okB(S)) && S.arc(id, 0) && !S.seen[id + '_done'] && S.lvl >= 1 },
       x: sc.intro,
       ch: [
         { t: `Combattre avec ${sc.a.n}`, req: sc.okA, rq: 'Pas pour ton camp', r: { x: `Tu hisses les couleurs de ${sc.a.n}. On t\'assigne l\'aile droite.`, e: { flag: side('a'), arc: A(id, 1), frel: { [sc.a.g]: 3, [sc.b.g]: -3 } } } },
@@ -259,3 +259,78 @@ for (const sc of SCENARIOS) {
 }
 // les scénarios 3 ont deux versions (avant / après) qui partagent la même trame
 for (const ev of WAR_EVENTS) if (ev.w && ev.w.ctx === undefined) delete ev.w.ctx;
+
+// ═══════════════ ALLIANCES ET FLOTTES : elles pèsent dans les batailles ═══════════════
+const callAllies = (ev, stage) => {
+  const base = ev.ch[0];
+  const pick = k => { const e = base[k]?.e || {}; return { arc: e.arc, flag: e.flag, flag2: e.flag2 }; };
+  const clean = o => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+  ev.ch.unshift({
+    t: 'Appeler tes alliés et ta flotte', req: S => S.fleet.length > 0 || S.allyCount > 0, rq: 'Aucune flotte ni allié',
+    p: S => Math.min(0.92, 0.4 + S.fleetPower * 0.03 + S.allyCount * 0.12),
+    ok: { x: 'Des voiles alliées surgissent de l\'horizon, pavillons au vent. Ta flotte se déploie, et la bataille bascule.', e: { glory: 5, morale: 10, shipHp: -5, ...clean(pick('ok')) } },
+    ko: { x: 'Les renforts arrivent trop tard : ta flotte paie le prix de ton appel.', e: { shipHp: -30, fleetLoss: true, morale: -6, ...clean(pick('ko')) } },
+  });
+};
+for (const ev of [...NAVAL_EVENTS, ...WAR_EVENTS]) if (/^(n_broadside|n_blockade|n_fleet_yonko|w_own2|w_own3|war_j\d_(sea|land))/.test(ev.id) && ev.ch?.[0]) callAllies(ev);
+
+NAVAL_EVENTS.push(
+  {
+    id: 'n_hunters', emoji: '🎯', title: 'Chasseurs de primes en mer',
+    w: { ctx: 'sea', camp: 'chercheur', weight: 6, test: S => hasShipPower(S) && S.hero.bounty >= 3_000_000 },
+    x: 'Trois navires de chasseurs de primes convergent sur toi. Ils ont ton avis de recherche épinglé sur le mât, et ils comptent sur la prime.',
+    ch: [
+      { t: 'Les couler à coups de canon', s: 'naval', d: 1,
+        ok: { x: 'Leurs coques éclatent. Tu récupères leurs réserves et ils renoncent à t\'approcher.', e: { glory: 3, berrys: S => S.tierPrime() / 3, shipHp: -15 } },
+        ko: { x: 'Ils sont plus nombreux que prévu : tu passes de justesse.', e: { shipHp: -35, berrys: S => -S.tierPrime() / 6 } } },
+      { t: 'Les prendre à l\'abordage', s: 'combat', d: 2,
+        ok: { x: 'Tu balaies leurs ponts. Leurs avis de recherche, toi tu les gardes en souvenir.', e: { glory: 4, hp: -10, rep: 2 } },
+        ko: { x: 'Tu es débordé et blessé.', e: { hp: -30, shipHp: -15 } } },
+    ],
+  },
+  {
+    id: 'n_ghost', emoji: '👻', title: 'Le vaisseau fantôme',
+    w: { ctx: 'sea', weight: 4, test: S => hasShipPower(S) && S.tier >= 2 },
+    x: 'Un brouillard glacé. Dans la brume, un galion déchiré, ses voiles en lambeaux, glisse sans équipage visible. Ses canons s\'ouvrent un à un, seuls.',
+    ch: [
+      { t: 'Foncer et le faire couler', s: 'naval', d: 3,
+        ok: { x: 'Le galion s\'effondre en poussière. Dans les débris : un coffre verdâtre et un vieux livre de bord.', e: { glory: 4, berrys: S => S.tierPrime() / 2, ship: { mod: 'random' }, shipHp: -20 } },
+        ko: { x: 'Des canons que tu ne vois pas te touchent par-dessous.', e: { shipHp: -45, morale: -10 } } },
+      { t: 'Traverser la brume sans bruit', s: 'vitesse', d: 2,
+        ok: { x: 'Le fantôme ne t\'a pas vu. Il disparaît dans la brume.', e: { stats: { vitesse: 1 } } },
+        ko: { x: 'Un frisson, puis une salve.', e: { shipHp: -25, morale: -6 } } },
+    ],
+  },
+  {
+    id: 'n_smuggler', emoji: '📦', title: 'La cargaison des contrebandiers',
+    w: { ctx: 'sea', weight: 5, test: S => hasShipPower(S) },
+    x: 'Un navire sans pavillon file en dehors des routes, très bas sur l\'eau : il est chargé jusqu\'à la gueule. Les contrebandiers t\'aperçoivent et jettent des tonneaux pour alléger la poursuite.',
+    ch: [
+      { t: 'Le rattraper et saisir la cargaison', s: 'naval', d: 2,
+        ok: { x: 'Tu le coinces contre un récif. La cargaison est à toi, et personne ne portera plainte.', e: { berrys: S => S.tierPrime() * 0.8, glory: 2, shipHp: -10 } },
+        ko: { x: 'Il disparaît dans un chenal que tu n\'as pas vu.', e: { morale: -4, shipHp: -15 } } },
+      { t: 'Le laisser filer, ramasser les tonneaux', r: { x: 'Quelques tonneaux de rhum et de poudre flottent. C\'est toujours ça.', e: { berrys: S => S.tierPrime() / 8, morale: 6 } } },
+    ],
+  },
+);
+
+// L'appel d'un allié : une puissance dont tu es l'ami te demande de combattre à ses côtés.
+const FOES = { marine: 'pirates', gov: 'revo', revo: 'gov', pirates: 'marine', chapeau: 'marine', shanks: 'teach', wb: 'marine', bigmom: 'kaido', kaido: 'bigmom', teach: 'shanks', corsaires: 'revo', crossguild: 'marine', kuja: 'marine', minks: 'kaido', geants: 'pirates', wano: 'kaido', ryugu: 'pirates', germa: 'revo', galleyla: 'gov', ciel: 'pirates', vegapunk: 'gov', roger: 'marine' };
+for (const [g, foe] of Object.entries(FOES)) {
+  WAR_EVENTS.push({
+    id: 'wa_' + g, once: true, emoji: '📯', title: 'L\'appel d\'un allié',
+    w: { weight: 10, test: S => S.grel(g) >= 6 && S.lvl >= 1 && hasShipPower(S) },
+    x: S => `Un messager de ${g === 'marine' ? 'la Marine' : 'tes alliés'} accoste en urgence : leur camp est attaqué par ${foe === 'marine' ? 'la Marine' : foe === 'gov' ? 'le Gouvernement' : foe === 'revo' ? 'les révolutionnaires' : foe === 'pirates' ? 'une coalition pirate' : 'un rival'} et ils ont besoin de bras. « Tu nous dois bien ça, ami. »`,
+    ch: [
+      { t: 'Prendre la tête de la bataille navale', s: 'naval', d: 2,
+        ok: { x: 'Ta flotte brise la ligne ennemie. Tes alliés te portent en triomphe.', e: { glory: 6, berrys: S => S.tierPrime() * 1.5, frel: { [g]: 3, [foe]: -3 }, shipHp: -20, hl: 'a répondu à l\'appel d\'un allié et gagné la bataille' } },
+        ko: { x: 'La bataille est perdue, mais tes alliés te savent gré d\'être venu.', e: { shipHp: -45, frel: { [g]: 1 }, morale: -8 } } },
+      { t: 'Mener l\'assaut à terre', s: 'combat', d: 2,
+        ok: { x: 'Tu fais plier le front ennemi. La victoire est à ton camp.', e: { glory: 6, berrys: S => S.tierPrime() * 1.5, frel: { [g]: 3, [foe]: -3 }, hp: -15, hl: 'a répondu à l\'appel d\'un allié et gagné la bataille' } },
+        ko: { x: 'Tu te replies, blessé, mais présent.', e: { hp: -40, frel: { [g]: 1 } } } },
+      { t: 'Envoyer ta flotte sans te déplacer', req: S => S.fleet.length > 0, rq: 'Il faut une flotte', p: S => Math.min(0.9, 0.45 + S.fleetPower * 0.04),
+        ok: { x: 'Ta flotte prend ta place et revient couverte de gloire.', e: { glory: 3, frel: { [g]: 2, [foe]: -2 }, berrys: S => S.tierPrime() / 2 } },
+        ko: { x: 'Ta flotte est battue, et ton allié se demande où tu étais.', e: { fleetLoss: true, frel: { [g]: -1 } } } },
+    ],
+  });
+}

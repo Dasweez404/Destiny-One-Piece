@@ -45,7 +45,7 @@ for (let g = 0; g < games; g++) {
       else if (S.phase === 'voyage') G.afterVoyage(S);
     }
     if (S.phase !== 'end') throw new Error('partie bloquée en phase ' + S.phase);
-    for (const [k, v] of Object.entries(S.seen)) if (/^(gv_)/.test(k)) seenAll[k] = (seenAll[k] || 0) + 1;
+    for (const [k, v] of Object.entries(S.seen)) if (/^(gv_|n_|w_|wa_|war_)/.test(k)) seenAll[k] = (seenAll[k] || 0) + 1;
   } catch (e) { crashes++; if (crashes < 4) err(`partie ${g} : ${e.message}\n${e.stack.split("\n").slice(1,4).join("\n")}`); }
 }
 console.log(`${games} parties de test : ${crashes} plantage(s)`);

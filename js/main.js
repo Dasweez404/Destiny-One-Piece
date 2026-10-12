@@ -1,3 +1,4 @@
+import { sfx, isMuted, setMuted } from './sfx.js';
 // Interface : écrans, rendu, interactions.
 import * as G from './engine.js';
 import { SEAS, ISLANDS, START_SEAS, START_ISLANDS } from './data/islands.js';
@@ -47,6 +48,7 @@ function render() {
   else if (U.screen === 'rules') html = vRules();
   app.innerHTML = html + (U.modal ? vModal() : '');
   if (U.screen === 'game' && S) hudFeedback(S); else U.prevHud = null;
+  if (U.screen === 'game' && S?.phase === 'result' && S.result && U.sfxFor !== S.result) { U.sfxFor = S.result; if (S.result.ok === true) sfx.win(); else if (S.result.ok === false) sfx.lose(); }
   if (U.screen === 'game' && S?.phase === 'voyage' && !U.voyaging) runVoyage();
   if (U.screen === 'game' && S?.phase === 'end') mountPoster();
   if (U.screen === 'game' && U.anim) { mountThumbs(); mountShipPrev(); }
@@ -54,16 +56,19 @@ function render() {
 
 // retours visuels : variations de PV, berrys, moral, navire, prime... flottent à l'écran
 function hudFeedback(S) {
-  const cur = { hp: S.hero.hp, gold: S.hero.berrys, mor: S.morale, ship: S.ship.hp, bounty: S.hero.bounty, prog: S.progress, crew: S.crew.length, lvl: G.levelIdxOf(S), S };
+  const cur = { hp: S.hero.hp, gold: S.hero.berrys, mor: S.morale, ship: S.ship.hp, bounty: S.hero.bounty, prog: S.progress, crew: S.crew.length, lvl: G.levelIdxOf(S), fr: Object.fromEntries(Object.keys(GROUPS).map(g => [g, G.grel(S, g)])), S };
   const p = U.prevHud; U.prevHud = cur;
   if (!p || p.S !== S) return;
   const items = [];
+  const fr = {}; for (const g of Object.keys(GROUPS)) fr[g] = G.grel(S, g);
+  if (p.fr) for (const g of Object.keys(fr)) { const dv = fr[g] - (p.fr[g] || 0); if (dv) items.push({ t: `${GROUPS[g].emoji} ${dv > 0 ? '♥' : '✖'}${Math.abs(dv)}`, k: dv > 0 ? 'up' : 'down' }); }
   const d = (k, em, fmt = v => v, cls) => { const v = cur[k] - p[k]; if (v) items.push({ t: `${em} ${v > 0 ? '+' : '−'}${fmt(Math.abs(v))}`, k: v > 0 ? 'up' : 'down' }); };
   d('hp', '❤️', v => Math.round(v)); d('ship', '🚢', v => Math.round(v)); d('gold', '💰', G.fmtPrime); d('mor', '😄', v => v); d('bounty', '📜', G.fmtPrime);
   if (cur.crew !== p.crew) items.push({ t: `👥 ${cur.crew > p.crew ? '+' : '−'}${Math.abs(cur.crew - p.crew)}`, k: cur.crew > p.crew ? 'up' : 'down' });
   if (cur.prog > p.prog) items.push({ t: `🎯 ${PROGRESS[G.campOf(S)][cur.prog]}`, k: 'gold' });
   if (cur.lvl > p.lvl) items.push({ t: `⭐ Niveau ${LEVELS[cur.lvl].name}`, k: 'gold' });
   if (!items.length) return;
+  if (cur.lvl > p.lvl || cur.prog > p.prog) sfx.level(); else if (cur.hp < p.hp || cur.ship < p.ship) sfx.hit(); else if (cur.gold > p.gold) sfx.coin();
   let box = document.getElementById('floats');
   if (!box) { box = document.createElement('div'); box.id = 'floats'; document.body.appendChild(box); }
   items.slice(0, 6).forEach((it, i) => { const el = document.createElement('span'); el.className = 'fl ' + it.k; el.textContent = it.t; el.style.animationDelay = i * 0.12 + 's'; box.appendChild(el); setTimeout(() => el.remove(), 2200 + i * 120); });
@@ -123,7 +128,8 @@ function vHome() {
         <button class="btn" data-act="go" data-arg="badges">🎖️ Quêtes</button>
         <button class="btn" data-act="go" data-arg="rules">❓ Règles</button>
       </div>
-      <label class="opt"><input type="checkbox" data-act="toggleAnim" ${U.anim ? 'checked' : ''}> Animation 3D des voyages</label>
+      <label class="opt"><input type="checkbox" data-act="toggleSfx" ${isMuted() ? '' : 'checked'}> Sons</label>
+    <label class="opt"><input type="checkbox" data-act="toggleAnim" ${U.anim ? 'checked' : ''}> Animation 3D des voyages</label>
       ${vViewPick()}
     </div>
     <p class="foot">Jeu de fan non officiel, non commercial. One Piece © Eiichiro Oda / Shūeisha / Toei Animation.<br>Données inspirées du One Piece Wiki (Fandom, CC BY-SA 3.0).</p>
@@ -233,6 +239,13 @@ function vCreate() {
 }
 
 // ───────────── jeu ─────────────
+// à la Reigns : jauges d'affection (vert = aimé, rouge = détesté), centrées sur 0
+function vAffinity(S) {
+  const gs = Object.values(GROUPS).map(g => ({ g, v: G.grel(S, g.id) })).filter(x => x.v !== 0).sort((a, b) => Math.abs(b.v) - Math.abs(a.v)).slice(0, 5);
+  const combo = S.combo >= 2 ? `<span class="combo" title="Réussites enchaînées : +5 % de gains par niveau">🔥×${S.combo}</span>` : '';
+  if (!gs.length && !combo) return '';
+  return `<div class="affs">${combo}${gs.map(({ g, v }) => `<span class="gauge ${v > 0 ? 'love' : 'hate'}" title="${esc(g.name)} : ${standingOf(v).name} (${v > 0 ? '+' : ''}${v})"><em>${g.emoji}</em><i class="track"><i style="width:${Math.abs(v) * 5}%;${v > 0 ? 'left:50%' : 'right:50%'}"></i></i></span>`).join('')}</div>`;
+}
 function vHud(S) {
   const h = S.hero;
   const hpPct = Math.max(0, Math.round(h.hp / h.hpMax * 100));
@@ -249,6 +262,7 @@ function vHud(S) {
       <span title="Îles visitées / limite">⏳ ${S.turn}/${S.maxTurns}</span>
       <span title="Moral">${S.morale >= 60 ? '😄' : S.morale >= 30 ? '😐' : '😞'} ${S.morale}</span>
     </div>
+    ${vAffinity(S)}
     <div class="goalbar" title="${esc(PROGRESS[G.campOf(S)][Math.min(9, S.progress + 1)] || '')}">${PROGRESS[G.campOf(S)].map((x, i) => `<i class="${i <= S.progress ? 'on' : ''} ${i === S.progress + 1 ? 'next' : ''}" title="${esc(x)}"></i>`).join('')}<span>🗺️ ${esc(PROGRESS[G.campOf(S)][S.progress])} <small>→ ${esc(PROGRESS[G.campOf(S)][Math.min(9, S.progress + 1)])}</small></span></div>
   </header>`;
 }
@@ -294,6 +308,7 @@ function vEvent(S) {
           ${!c.stat && c.risk ? `<i class="tag">🎲 Chance</i>` : ''}
           ${c.risk ? `<i class="risk ${c.risk.k}">${c.risk.t}</i>` : ''}
           ${c.cost ? `<i class="tag cost">💰 ${G.fmtPrime(c.cost)}</i>` : ''}
+          ${c.aff?.length ? `<i class="aff" title="Jauges concernées">${c.aff.map(a => `<b>${a.emoji}</b>`).join('')}</i>` : ''}
           ${c.locked ? `<i class="tag lock">🔒 ${esc(c.lockText)}</i>` : ''}
         </span>
       </button>`).join('')}</div>
@@ -825,6 +840,7 @@ function act(name, el) {
     }
     case 'exam': U.modal = 'exam'; U.tab = arg || U.tab || 'profil'; break;
     case 'menu': U.modal = 'menu'; break;
+    case 'toggleSfx': setMuted(!isMuted()); if (!isMuted()) sfx.coin(); break;
     case 'journal': U.modal = 'exam'; U.tab = 'journal'; break;
     case 'tab': U.tab = arg; break;
     case 'closemodal': U.modal = null; break;

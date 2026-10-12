@@ -147,3 +147,33 @@ for (const cfg of CFG) {
     });
   }
 }
+
+// ═══ À la Reigns : les extrêmes de l'affection ═══
+GROUP_EVENTS.push(
+  {
+    id: 'gv_hunted', emoji: '☠️', title: 'Cible prioritaire', pri: 9, repeat: true,
+    w: { weight: 10, test: S => !!S.extreme(-1) && S.turn - (S.huntedT ?? -9) >= 5 },
+    x: S => `${S.extreme(-1).emoji} ${S.extreme(-1).name} te déteste au point d'avoir mis ta tête à prix en interne. Une équipe d'élite t'attend à la sortie du port : on ne te laissera plus passer.`,
+    ch: [
+      { t: 'Affronter l\'équipe d\'élite', s: 'combat', d: 4,
+        ok: { x: 'Tu sors vivant d\'une embuscade qui aurait dû t\'enterrer. Leur chef te regarde avec un respect glacé.', e: { stamp: 'huntedT', glory: 5, hp: -20, rep: 4, frel: S => ({ [S.extreme(-1).id]: 2 }), flag2: 'hunted_survived' } },
+        ko: { x: 'Tu es battu et dépouillé de ce que tu avais de plus précieux.', e: { stamp: 'huntedT', hp: -45, berrys: S => -S.tierPrime() / 3, morale: -12 } } },
+      { t: 'Offrir un tribut pour acheter la paix', c: S => S.tierPrime() / 3,
+        r: { x: 'Le tribut est accepté, à contrecœur. La haine baisse d\'un cran.', e: { stamp: 'huntedT', frel: S => ({ [S.extreme(-1).id]: 3 }) } } },
+      { t: 'Fuir par la mer', s: 'naval', d: 3,
+        ok: { x: 'Tu sèmes tes poursuivants dans les récifs.', e: { stamp: 'huntedT', shipHp: -15, frel: S => ({ [S.extreme(-1).id]: 1 }) } },
+        ko: { x: 'On te rattrape en pleine mer.', e: { stamp: 'huntedT', shipHp: -45, hp: -15 } } },
+    ],
+  },
+  {
+    id: 'gv_blood', emoji: '💞', title: 'Frère de sang', pri: 9, repeat: true,
+    w: { weight: 10, test: S => !!S.extreme(1) && S.turn - (S.bloodT ?? -9) >= 6 },
+    x: S => `${S.extreme(1).emoji} ${S.extreme(1).name} te considère comme l'un des siens. On t'offre une place à leur table, des cadeaux, et une promesse : « Tu auras toujours un navire et un toit chez nous. »`,
+    ch: [
+      { t: 'Accepter les cadeaux (soins, coque, bourse)', r: { x: 'Tu repars restauré et plus riche. On te rappelle que rien n\'est gratuit : un jour, on te demandera quelque chose.', e: { stamp: 'bloodT', hp: 999, shipHp: 999, berrys: S => S.tierPrime(), morale: 15 } } },
+      { t: 'Demander un renfort pour ta flotte', s: 'charisme', d: -2,
+        ok: { x: 'Un navire de leur flotte se joint à la tienne.', e: { stamp: 'bloodT', fleet: { name: 'Escorte alliée', power: 5 } } },
+        ko: { x: 'Ils ont déjà promis tous leurs navires ailleurs.', e: { stamp: 'bloodT', berrys: S => S.tierPrime() / 4 } } },
+    ],
+  },
+);
