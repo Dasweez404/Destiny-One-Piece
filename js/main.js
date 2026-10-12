@@ -46,9 +46,30 @@ function render() {
   else if (U.screen === 'story') html = vStory();
   else if (U.screen === 'rules') html = vRules();
   app.innerHTML = html + (U.modal ? vModal() : '');
+  if (U.screen === 'game' && S) hudFeedback(S); else U.prevHud = null;
   if (U.screen === 'game' && S?.phase === 'voyage' && !U.voyaging) runVoyage();
   if (U.screen === 'game' && S?.phase === 'end') mountPoster();
   if (U.screen === 'game' && U.anim) { mountThumbs(); mountShipPrev(); }
+}
+
+// retours visuels : variations de PV, berrys, moral, navire, prime... flottent à l'écran
+function hudFeedback(S) {
+  const cur = { hp: S.hero.hp, gold: S.hero.berrys, mor: S.morale, ship: S.ship.hp, bounty: S.hero.bounty, prog: S.progress, crew: S.crew.length, lvl: G.levelIdxOf(S), S };
+  const p = U.prevHud; U.prevHud = cur;
+  if (!p || p.S !== S) return;
+  const items = [];
+  const d = (k, em, fmt = v => v, cls) => { const v = cur[k] - p[k]; if (v) items.push({ t: `${em} ${v > 0 ? '+' : '−'}${fmt(Math.abs(v))}`, k: v > 0 ? 'up' : 'down' }); };
+  d('hp', '❤️', v => Math.round(v)); d('ship', '🚢', v => Math.round(v)); d('gold', '💰', G.fmtPrime); d('mor', '😄', v => v); d('bounty', '📜', G.fmtPrime);
+  if (cur.crew !== p.crew) items.push({ t: `👥 ${cur.crew > p.crew ? '+' : '−'}${Math.abs(cur.crew - p.crew)}`, k: cur.crew > p.crew ? 'up' : 'down' });
+  if (cur.prog > p.prog) items.push({ t: `🎯 ${PROGRESS[G.campOf(S)][cur.prog]}`, k: 'gold' });
+  if (cur.lvl > p.lvl) items.push({ t: `⭐ Niveau ${LEVELS[cur.lvl].name}`, k: 'gold' });
+  if (!items.length) return;
+  let box = document.getElementById('floats');
+  if (!box) { box = document.createElement('div'); box.id = 'floats'; document.body.appendChild(box); }
+  items.slice(0, 6).forEach((it, i) => { const el = document.createElement('span'); el.className = 'fl ' + it.k; el.textContent = it.t; el.style.animationDelay = i * 0.12 + 's'; box.appendChild(el); setTimeout(() => el.remove(), 2200 + i * 120); });
+  const hud = document.querySelector('.hud');
+  if (hud) { const bad = cur.hp < p.hp || cur.ship < p.ship; hud.classList.add(bad ? 'flash-bad' : 'flash-good'); setTimeout(() => hud.classList.remove('flash-bad', 'flash-good'), 700); }
+  if (p.hp - cur.hp >= 20) { document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 450); }
 }
 
 // miniatures 3D des îles sur les cartes de destination
@@ -299,12 +320,13 @@ function vResult(S) {
 function vEscale(S) {
   if (U.sub) return vSub(S);
   const acts = G.escaleActions(S);
+  const rec = S.actionsLeft > 0 ? G.recommendedAction(S) : null;
   const isl = ISLANDS[S.loc];
   return `<section class="card escale">
     <h3>⚓ Escale ${S.actionsLeft > 0 ? `<span class="pts">${S.actionsLeft} action${S.actionsLeft > 1 ? 's' : ''}</span>` : ''}</h3>
     <p class="hint">${esc(isl.desc)}</p>
     ${S.flags.wounded ? '<p class="warn">🤕 Tu es <b>blessé grave</b>. Un nouveau K.O. peut être fatal : pense à te reposer (ou à embarquer un médecin).</p>' : ''}
-    <div class="acts">${acts.map(a => `<button class="act ${a.badge ? 'upg' : ''} ${a.free ? 'free' : ''}" data-act="action" data-arg="${a.id}"><span class="e">${a.emoji}</span><b>${esc(a.label)}</b><small>${esc(a.sub)}</small></button>`).join('')}</div>${S.actionsLeft <= 0 ? '<p class="hint">Plus d\'action sur cette île. Le chantier naval reste ouvert.</p>' : ''}
+    <div class="acts">${acts.map(a => `<button class="act ${a.badge ? 'upg' : ''} ${a.free ? 'free' : ''} ${a.id === rec ? 'rec' : ''}" data-act="action" data-arg="${a.id}">${a.id === rec ? '<i class="star">⭐ Conseillé</i>' : ''}<span class="e">${a.emoji}</span><b>${esc(a.label)}</b><small>${esc(a.sub)}</small></button>`).join('')}</div>${S.actionsLeft <= 0 ? '<p class="hint">Plus d\'action sur cette île. Le chantier naval reste ouvert.</p>' : ''}
     <div class="row gap">
       <button class="btn" data-act="exam" data-arg="cale">🎒 Cale ${S.inventory.fruits.length ? `<i class="dot">${S.inventory.fruits.length}🍇</i>` : ''}</button>
       <button class="btn gold grow" data-act="leave">⛵ Lever l'ancre</button>
@@ -332,8 +354,9 @@ function vSub(S) {
       </div>
       <button class="btn ghost" data-act="subcancel">← Retour</button></section>`;
   }
+  const weakest = [...STAT_KEYS].sort((a, b) => S.hero.stats[a] - S.hero.stats[b])[0];
   if (sb.kind === 'train') return `<section class="card"><h3>🏋️ Entraînement</h3><p class="hint">Quelle caractéristique travailler ? Plus elle est haute, plus elle est dure à faire progresser.</p>
-    <div class="grid2">${STAT_KEYS.map(k => `<button class="pick" data-act="train" data-arg="${k}"><span class="e">${STATS[k].emoji}</span><b>${STATS[k].name}</b><small>Actuel : ${S.hero.stats[k]}</small></button>`).join('')}</div>
+    <div class="grid2">${STAT_KEYS.map(k => `<button class="pick ${k === weakest ? 'rec' : ''}" data-act="train" data-arg="${k}"><span class="e">${STATS[k].emoji}</span><b>${STATS[k].name}${k === weakest ? ' ⭐' : ''}</b><small>Actuel : ${S.hero.stats[k]}</small></button>`).join('')}</div>
     <button class="btn ghost" data-act="subcancel">Annuler</button></section>`;
   if (sb.kind === 'tavern') return `<section class="card"><h3>🍺 Taverne</h3><p class="hint">${S.crew.length >= 10 ? 'Ton équipage est complet : une recrue amènera son propre équipage dans ta flotte.' : `${FACTIONS[S.hero.faction].crewLabel} : ${S.crew.length}/10.`} Tu peux tenter ta chance avec chacun.</p>
     ${sb.cands.map((c, i) => {

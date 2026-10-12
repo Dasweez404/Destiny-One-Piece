@@ -18,8 +18,8 @@ export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ..
 export const EVENTS = Object.fromEntries(ALL_EVENTS.map(e => [e.id, e]));
 
 export const LENGTHS = {
-  rapide: { name: 'Rapide', maxTurns: 20, actions: 1, age: 0.6, blueMin: 1, paraMin: 3, desc: '≈ 10 minutes. Une carrière éclair.' },
-  saga: { name: 'Vraie saga', maxTurns: 40, actions: 1, age: 0.25, blueMin: 4, paraMin: 10, desc: '≈ 40 minutes. Le grand voyage.' },
+  rapide: { name: 'Rapide', maxTurns: 24, actions: 1, age: 0.6, blueMin: 1, paraMin: 3, desc: '≈ 10 minutes. Une carrière éclair.' },
+  saga: { name: 'Vraie saga', maxTurns: 41, actions: 1, age: 0.25, blueMin: 4, paraMin: 10, desc: '≈ 40 minutes. Le grand voyage.' },
 };
 
 const STAT_DC = { 1: 8, 2: 12, 3: 15, 4: 18 };
@@ -904,6 +904,8 @@ export function arrive(S, id) {
   if (!S.visited.includes(id)) S.visited.push(id);
   S.seaVisits[isl.sea] = (S.seaVisits[isl.sea] || 0) + 1;
   S.turn++;
+  // les passages obligés (Calm Belt, Red Line, Impel Down, portes) ne comptent pas dans le temps imparti
+  if ((isl.gate || isl.noNav || ['calm', 'redline'].includes(isl.sea) || id === 'impeldown') && id !== 'laughtale') S.maxTurns++;
   S.hero.age = Math.round((S.hero.age + L.age) * 100) / 100;
   // progression
   const gate = { reverse: 1, sabaody: 2, fishman: 2, marygeoise: 2, laughtale: 8 }[id];
@@ -956,6 +958,15 @@ export function serviceActions(S) {
   return acts;
 }
 
+// action conseillée à l'escale (pour guider sans imposer)
+export function recommendedAction(S) {
+  const h = S.hero;
+  if (S.flags.wounded || h.hp < h.hpMax * 0.5) return 'rest';
+  if (S.ship.hp < shipMaxHp(S) * 0.5 && !S.crew.some(c => c.role === 'charpentier')) return 'services';
+  if (S.morale < 35) return 'rest';
+  if (S.turn < S.maxTurns - 3) return 'explore';
+  return null;
+}
 export function escaleActions(S) {
   const isl = ISLANDS[S.loc];
   const svc = new Set(isl.svc || []);

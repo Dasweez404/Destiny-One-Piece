@@ -452,3 +452,15 @@ label .inp.sm { margin-left: 8px; width: 80px; }
 .gatehead { margin: 18px 0 4px; color: var(--ink-soft); }
 
 .why{background:rgba(255,255,255,.35);border-left:4px solid var(--gold,#c9962b);padding:.6rem .8rem;margin:.8rem 0;border-radius:6px;text-align:left}.why p{margin:.3rem 0}.why ul{margin:.4rem 0 0;padding-left:1.1rem}
+
+#floats{position:fixed;left:0;right:0;top:92px;z-index:60;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
+.fl{font-weight:700;padding:3px 12px;border-radius:14px;background:rgba(30,20,10,.88);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.35);animation:flup 2s ease-out both;opacity:0}
+.fl.up{color:#9be28a}.fl.down{color:#ff8a80}.fl.gold{color:#ffd54f;font-size:1.05em}
+@keyframes flup{0%{transform:translateY(14px) scale(.8);opacity:0}12%{transform:none;opacity:1}75%{opacity:1}100%{transform:translateY(-22px);opacity:0}}
+.hud.flash-good{animation:fgood .7s}.hud.flash-bad{animation:fbad .7s}
+@keyframes fgood{30%{box-shadow:0 0 0 3px rgba(80,200,90,.65),0 0 18px rgba(80,200,90,.5)}}
+@keyframes fbad{30%{box-shadow:0 0 0 3px rgba(220,60,50,.7),0 0 18px rgba(220,60,50,.55)}}
+body.shake{animation:shk .45s}
+@keyframes shk{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.act.rec,.pick.rec{outline:2px solid #d4a017;position:relative}
+.act .star{position:absolute;top:-9px;right:8px;background:#d4a017;color:#2a1a05;font-style:normal;font-size:.7em;font-weight:700;padding:1px 7px;border-radius:9px}
