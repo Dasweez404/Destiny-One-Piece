@@ -400,6 +400,13 @@ export function choicesOf(S, ev) {
   let out = all.filter(c => !c.locked);
   if (out.length < 2) out = all.filter(c => !c.locked || out.length === 0 || true).slice(0, 3);
   for (let k = out.length - 1; k >= 0 && out.length > 3; k--) if (out[k].filler) out.splice(k, 1);
+  // jamais plus de 3 choix : on garde des approches différentes (stats distinctes) avant de remplir
+  if (out.length > 3 && ev.id !== 'fatal') {
+    const keep = new Set(), stats = new Set();
+    for (const c of out) if (keep.size < 3 && !stats.has(c.stat || '_')) { keep.add(c); stats.add(c.stat || '_'); }
+    for (const c of out) if (keep.size < 3) keep.add(c);
+    out = out.filter(c => keep.has(c));
+  }
   return out;
 }
 
@@ -950,6 +957,8 @@ export function serviceActions(S) {
   const svc = new Set(isl.svc || []);
   const camp = campOf(S);
   const acts = [];
+  const fr = friendHere(S);
+  if (fr && S.favorTurn !== S.turn) acts.push({ id: 'favor', emoji: fr.emoji, label: `Faveur : ${fr.name}`, sub: grel(S, fr.id) >= 6 ? 'Tes alliés t\'aident (soins, navire, berrys)' : 'Tes amis te donnent un coup de main' });
   if (svc.has('tavern') || isl.pop >= 2 || S.crew.length < 3) acts.push({ id: 'tavern', emoji: '🍺', label: 'Taverne', sub: S.crew.length >= 10 ? 'Équipage complet : recruter pour ta flotte' : 'Recruter' });
   if (svc.has('market') || svc.has('forge')) acts.push({ id: 'market', emoji: '🛒', label: svc.has('market') ? 'Marché' : 'Forge', sub: svc.has('market') ? 'Fruits, armes' : 'Armes' });
   acts.push({ id: 'job', emoji: '💼', label: 'Gagner des berrys', sub: 'Port, prime, commerce, casino' });
@@ -979,12 +988,11 @@ export function escaleActions(S) {
   if (S.actionsLeft <= 0) return out;
   const main = [
     { id: 'train', emoji: '🏋️', label: 'S\'entraîner', sub: svc.has('dojo') ? 'Dojo sur place : progrès doublés' : 'Améliore une caractéristique' },
-    { id: 'rest', emoji: '🍖', label: 'Festin et repos', sub: 'Soigne, remonte le moral' },
     { id: 'explore', emoji: '🗺️', label: 'Explorer l\'île', sub: 'Un nouvel événement' },
     { id: 'services', emoji: '🏪', label: 'Services du port', sub: 'Taverne, marché, boulots, rapport...' },
   ];
-  const fr = friendHere(S);
-  if (fr && S.favorTurn !== S.turn) main.push({ id: 'favor', emoji: fr.emoji, label: `Faveur : ${fr.name}`, sub: grel(S, fr.id) >= 6 ? 'Tes alliés t\'aident (soins, navire, berrys)' : 'Tes amis te donnent un coup de main' });
+  const needRest = S.flags.wounded || S.hero.hp < S.hero.hpMax * 0.85 || S.morale < 70 || S.ship.hp < shipMaxHp(S) * 0.8 || recommendedAction(S) === 'rest';
+  if (needRest) main.splice(1, 0, { id: 'rest', emoji: '🍖', label: 'Festin et repos', sub: 'Soigne, remonte le moral' });
   return [...main, ...out];
 }
 
