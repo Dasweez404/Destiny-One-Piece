@@ -738,6 +738,7 @@ export function resolveChoice(S, i) {
   if (res_feat) chips.push({ t: `🏆 Exploit : adversaire de niveau ${S.maxFoe} vaincu`, k: 'level' });
   if (reinf) chips.unshift({ t: `🤝 Renforts : ${reinf.emoji} ${reinf.name} !`, k: 'epic' });
   S.result = { title: ev.title, emoji: ev.emoji, choice: val(c.t, V), text: reinf ? `${reinf.emoji} Au pire moment, des renforts de ${reinf.name} surgissent et retournent la situation ! ` + text : text, chips, ok: c.r ? null : ok, p, roll, reinf: reinf?.name, stat: stat || (c.p ? 'chance' : null), next: res.next };
+  S.lastRes = { title: ev.title, emoji: ev.emoji, choice: S.result.choice, text, ok: S.result.ok, turn: S.turn };
   S.phase = 'result';
   return S.result;
 }
@@ -1170,7 +1171,18 @@ export function finish(S, kind, cause) {
   const like = cands[Math.floor(rnd(S) * Math.min(2, cands.length))].c;
   const mult = { death: 0.6, prison: 0.7, rangee: 0.8, retire: 0.9 }[kind] ?? 1;
   const score = Math.round(mult * (S.progress * 1000 + Math.log10(h.bounty + 1) * 40 + S.levelIdx * 120 + rankIdxOf(S) * 40 + S.crew.length * 15 + S.pone.length * 100 + (kind === 'death' || kind === 'prison' ? 0 : 200)));
-  S.ending = { kind, title, cause, epitaph, grade: GRADES[S.progress], score, like, level: lv, rank, progressLabel: require_PROGRESS(camp)[S.progress] };
+  // contexte : pourquoi et où la partie s'est arrêtée
+  const L = S.lastRes, loc = ISLANDS[S.loc], cl = campOf(S);
+  const prog = PROGRESS[cl];
+  const lastTxt = L ? `Dernier événement : ${L.emoji || ''} « ${L.title} » — ${L.choice} (${L.ok === null ? 'sans jet' : L.ok ? 'réussi' : 'échec'}).` : '';
+  let why;
+  if (kind === 'death') why = `${cause}. Tu es tombé à ${loc.name} (${SEAS[loc.sea].name}) à l'escale ${S.turn + 1}/${S.maxTurns}, avec ${S.hero.hp <= 0 ? 'zéro' : Math.max(0, Math.round(S.hero.hp))} PV${S.flags.wounded ? ' : déjà blessé grave, sans avoir pu te soigner' : ''}. ${lastTxt}`;
+  else if (kind === 'prison') why = `Capturé et jugé trop dangereux (prime ${h.bounty ? fmtPrime(h.bounty) : 'nulle'}), tu as été envoyé au plus bas niveau d'Impel Down. ${lastTxt}`;
+  else if (kind === 'rangee') why = `Tu as choisi de quitter la mer à l'escale ${S.turn + 1}/${S.maxTurns}, avec ${S.progress}/9 sur l'objectif : une retraite volontaire plutôt qu'un risque de plus.`;
+  else if (kind === 'onepiece') why = `Objectif atteint : ${prog[9] || prog[prog.length - 1]}. Tu y es arrivé à l'escale ${S.turn + 1}/${S.maxTurns}.`;
+  else why = `Le temps est écoulé : les ${S.maxTurns} escales du mode ${S.length === 'rapide' ? 'rapide' : 'vraie saga'} sont passées. Tu n'étais qu'au palier ${S.progress}/9 (« ${prog[S.progress]} »)${S.progress < 9 ? `, il te manquait « ${prog[Math.min(9, S.progress + 1)]} »` : ''}. ${S.pone.length < 4 && campOf(S) === 'chercheur' ? `Poneglyphes routiers : ${S.pone.length}/4. ` : ''}Tu t'es arrêté à ${loc.name}.`;
+  const timeline = S.log.filter(l => l.kind === 'big' || l.kind === 'ko').slice(-7).map(l => ({ t: l.t, text: l.text }));
+  S.ending = { why, where: `${loc.name} (${SEAS[loc.sea].name})`, turns: `${Math.min(S.turn + 1, S.maxTurns)}/${S.maxTurns}`, timeline, kind, title, cause, epitaph, grade: GRADES[S.progress], score, like, level: lv, rank, progressLabel: require_PROGRESS(camp)[S.progress] };
   // objectifs
   if (S.daily) { const g = DAILY_GOALS.find(g => g.id === S.daily.goal); S.challengeOk = !!g?.test(S); }
   if (S.legend) {

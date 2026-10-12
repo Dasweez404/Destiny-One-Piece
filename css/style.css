@@ -450,3 +450,5 @@ label .inp.sm { margin-left: 8px; width: 80px; }
 .dest { position: relative; }
 .rtag { position: absolute; top: -8px; left: -6px; width: 26px; height: 26px; border-radius: 50%; background: var(--gold); color: #3a2408; font-family: var(--title); display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0, 0, 0, .4); z-index: 1; }
 .gatehead { margin: 18px 0 4px; color: var(--ink-soft); }
+
+.why{background:rgba(255,255,255,.35);border-left:4px solid var(--gold,#c9962b);padding:.6rem .8rem;margin:.8rem 0;border-radius:6px;text-align:left}.why p{margin:.3rem 0}.why ul{margin:.4rem 0 0;padding-left:1.1rem}

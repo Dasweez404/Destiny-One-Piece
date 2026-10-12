@@ -431,6 +431,7 @@ function vEnd(S) {
       <div class="kicker">${E.kind === 'death' ? '⚰️' : E.kind === 'prison' ? '⛓️' : E.kind === 'onepiece' ? '🏴‍☠️' : '🌅'} Fin de carrière</div>
       <h2>${esc(E.title)}</h2>
       <p class="epitaph">« ${esc(E.epitaph)} »</p>
+      <div class="why"><b>Pourquoi cette fin ?</b><p>${esc(E.why)}</p><small>📍 ${esc(E.where)} · Escale ${esc(E.turns)}</small>${E.timeline?.length ? `<ul class="hl">${E.timeline.map(l => `<li><small>Escale ${l.t + 1}</small> ${esc(l.text)}</li>`).join('')}</ul>` : ''}</div>
       <div class="poster" id="poster"><div class="hint">Impression de l'avis de recherche...</div></div>
       <div class="grade">Note <b>${E.grade}</b> <small>Score ${E.score}</small></div>
       ${leg ? `<div class="challenge ${S.challengeOk ? 'ok' : 'ko'}">📖 ${esc(leg.name)} : ${esc(leg.target.label)} — ${S.challengeOk ? '✅ Tu as fait mieux que la légende !' : '❌ La légende reste invaincue.'}<small>Canon : ${esc(leg.canon)}</small></div>` : ''}
