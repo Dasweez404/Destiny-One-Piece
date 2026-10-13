@@ -95,6 +95,8 @@ export function priceMult(S) {
   return 1;
 }
 export const price = (S, base) => Math.round(base * priceMult(S));
+// la Marine traverse le Calm Belt et plonge sans coating (navires enrobés de série)
+export const canDive = S => S.ship.coated || S.hero.faction === 'marine';
 export const shipSail = S => SAIL_COLORS[S.ship.sail] || FACTIONS[S.hero.faction].sail;
 export const modPrice = (S, id) => price(S, SHIP_MODS[id].price * 0.75 * (1 + (tierOf(S) - 1) * 0.5));
 export function modelPrice(S, id) {
@@ -874,14 +876,16 @@ function computeNav(S) {
     else opts.push({ id: 'reverse', label: 'Cap sur Grand Line ! (trop tôt ?)', sub: `Il est conseillé de visiter ${L.blueMin} île(s) d'abord`, big: true, early: true });
   } else if (sea === 'paradise' || sea === 'calm') {
     if (S.loc === 'sabaody') {
-      if (S.ship.coated) enter(ISLANDS.fishman, { big: true, label: 'Plonger vers l\'Île des Hommes-Poissons', sub: 'Sous la Red Line, vers le Nouveau Monde' });
+      if (canDive(S)) enter(ISLANDS.fishman, { big: true, label: 'Plonger vers l\'Île des Hommes-Poissons', sub: S.hero.faction === 'marine' ? 'Sous la Red Line (la Marine a ses navires enrobés)' : 'Sous la Red Line, vers le Nouveau Monde' });
       else opts.push({ id: 'fishman', label: 'Île des Hommes-Poissons', sub: 'Il faut faire enrober le navire (coating) au chantier naval', locked: true });
       enter(ISLANDS.marygeoise, { big: true, label: camp === 'gardien' ? 'Monter à Marie Geoise' : 'Infiltrer Marie Geoise', sub: camp === 'gardien' ? 'La Terre Sainte, puis le Nouveau Monde' : 'Très risqué. Par la Red Line, vers le Nouveau Monde', danger: camp !== 'gardien' });
     } else {
       forkOpts();
+      // le Cipher Pol et les Chevaliers Divins montent à la Red Line quand ils veulent : c'est chez eux
+      if (['gouv', 'chevalier'].includes(S.hero.faction) && nv('marygeoise') && ((S.seaVisits.paradise || 0) + (S.seaVisits.calm || 0) >= L.paraMin || !ahead.length)) enter(ISLANDS.marygeoise, { big: true, label: 'Monter à Marie Geoise', sub: 'La Red Line est chez toi' });
       if (nv('sabaody') && ((S.seaVisits.paradise || 0) + (S.seaVisits.calm || 0) >= L.paraMin || !ahead.length)) enter(ISLANDS.sabaody, { big: true, sub: 'Dernière étape avant la Red Line' });
       else if (!nv('sabaody')) {
-        if (S.ship.coated) enter(ISLANDS.fishman, { big: true, label: 'Plonger vers l\'Île des Hommes-Poissons', sub: 'Vers le Nouveau Monde' });
+        if (canDive(S)) enter(ISLANDS.fishman, { big: true, label: 'Plonger vers l\'Île des Hommes-Poissons', sub: 'Vers le Nouveau Monde' });
         enter(ISLANDS.marygeoise, { big: true, label: camp === 'gardien' ? 'Monter à Marie Geoise' : 'Infiltrer Marie Geoise', sub: 'Vers le Nouveau Monde', danger: camp !== 'gardien' });
       }
     }

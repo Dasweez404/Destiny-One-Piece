@@ -980,7 +980,7 @@ export const SEA_EVENTS = [
       { t: 'Traverser le barrage', s: 'combat', d: 14,
         ok: { x: 'Tu as survécu à un Buster Call. Peu de gens peuvent en dire autant.', e: { glory: 20, hl: 'a survécu à un Buster Call' } },
         ko: { x: 'Ton navire est en lambeaux. Tu survis.', e: { shipHp: -100, hp: -50, crewLoss: 'random' } } },
-      { t: 'Plonger sous l\'eau', s: 'navigation', d: 10, req: S => S.ship.coated, rq: 'Il faut un navire enrobé',
+      { t: 'Plonger sous l\'eau', s: 'navigation', d: 10, req: S => S.ship.coated || S.hero.faction === 'marine', rq: 'Il faut un navire enrobé',
         ok: { x: 'Le coating te sauve. Tu passes sous la flotte.', e: { glory: 6 } },
         ko: { x: 'La bulle éclate presque.', e: { shipHp: -60 } } },
     ],
