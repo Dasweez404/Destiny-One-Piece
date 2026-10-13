@@ -404,6 +404,20 @@ function affectedOf(S, c, V) {
   }
   return [...out.entries()].slice(0, 4).map(([id, emoji]) => ({ id, emoji }));
 }
+// ───────────── imprévus : aucune issue n'est jamais certaine ─────────────
+const TWIST_SKIP = ['death', 'end', 'capture', 'pone', 'faction', 'yonko', 'goto', 'hpSet', 'heal'];
+const STAT_KEYS_LIST = ['force', 'vitesse', 'intel', 'charisme', 'navigation', 'volonte'];
+const SOUR = ['Mais rien ne se passe exactement comme prévu : un imprévu gâche une partie du bénéfice.', 'Il y a un hic : on te réclame quelque chose en retour.', 'Un grain de sable s\'est glissé dans l\'affaire.', 'Un détail que tu n\'avais pas vu te coûte cher.', 'Le sort est taquin : tout n\'est pas aussi rose que prévu.'];
+const SWEET = ['Mais le sort te sourit à la dernière seconde.', 'Contre toute attente, quelque chose te sauve la mise.', 'Une chance inattendue amortit le coup.', 'Un inconnu surgit et tourne la situation à ton avantage.', 'Heureusement, ça aurait pu être pire : un coup de pouce du destin.'];
+// probabilité d'imprévu d'un choix (affichée au joueur) ; null = pas d'imprévu possible
+export function twistOf(S, ev, c) {
+  if (ev.id === 'fatal' || ev.noTwist || c.noTwist) return null;
+  const res = [c.r, c.ok, c.ko].filter(Boolean);
+  if (res.some(r => r.e && TWIST_SKIP.some(k => k in r.e))) return null;
+  if (c.tw?.p !== undefined) return c.tw.p;
+  const hasEff = res.some(r => r.e && Object.keys(r.e).some(k => !['flag', 'flag2', 'stamp', 'hl'].includes(k)));
+  return c.r ? (hasEff ? 0.25 : 0.15) : 0.15;
+}
 export function choicesOf(S, ev) {
   const V = view(S);
   const all = (ev.ch || []).map((c, i) => {
@@ -414,7 +428,8 @@ export function choicesOf(S, ev) {
     const stat = val(c.s, V);
     const p = c.p || stat ? checkChance(S, c) : 1;
     const aff = affectedOf(S, c, V);
-    return { i, aff, label: val(c.t, V), stat, cost, locked, lockText, p, risk: c.p || stat ? riskLabel(p) : null, filler: isFiller(c) };
+    const tw = twistOf(S, ev, c);
+    return { i, aff, tw, label: val(c.t, V), stat, cost, locked, lockText, p, risk: c.p || stat ? riskLabel(p) : null, filler: isFiller(c) };
   });
   // moins de choix, plus décisifs : on masque les choix verrouillés et les « remplissages »
   let out = all.filter(c => !c.locked);
@@ -759,10 +774,33 @@ export function resolveChoice(S, i) {
     if (dc > (S.maxFoe || 0)) { S.maxFoe = Math.round(dc); res_feat = true; }
   }
   S.deathCause = ev.char ? `Tué par ${CHARACTERS[ev.char].name.split(',')[0]}` : deathCauseFor(S, ev);
-  const text = interp(S, val(res.x, V));
-  const e = res.e || {};
+  let text = interp(S, val(res.x, V));
+  let e = res.e || {};
+  // imprévu ?
+  let twist = null;
+  { const tp = twistOf(S, ev, c);
+    if (tp && rnd(S) < (c.r ? tp : ok ? tp : tp + 0.05)) {
+      const tier = tierOf(S), tpz = TIER_PRIME[tier];
+      if (c.tw && (c.tw.x || c.tw.e)) { twist = { kind: 'custom' }; text += ' ' + interp(S, val(c.tw.x || '', V)); e = c.tw.e ? { ...e, ...c.tw.e } : e; }
+      else {
+        const positive = c.r ? ((e.hp ?? 0) + (e.berrys ?? 0) + (e.glory ?? 0) + (e.morale ?? 0) + (e.shipHp ?? 0) + (e.rep ?? 0) >= 0) : ok;
+        const sour = c.r ? (positive ? true : false) : ok;
+        if (sour) {
+          const pen = pick(S, [{ hp: -(8 + tier * 6) }, { morale: -8 }, { berrys: -Math.round(tpz / 6) }, { shipHp: -(10 + tier * 5) }, { rep: -2 }]);
+          twist = { kind: 'sour', mult: { good: 0.6, bad: 1 } };
+          text += ' ' + pick(S, SOUR);
+          e = { ...e, ...Object.fromEntries(Object.entries(pen).map(([k, v]) => [k, (typeof e[k] === 'number' ? e[k] : 0) + v])) };
+        } else {
+          const bon = pick(S, [{ berrys: Math.round(tpz / 4) }, { morale: 8 }, { hp: 10 + tier * 5 }, { glory: 1 }, { stats: { [pick(S, STAT_KEYS_LIST)]: 1 } }]);
+          twist = { kind: 'sweet', mult: { good: 1, bad: 0.55 } };
+          text += ' ' + pick(S, SWEET);
+          e = { ...e }; for (const [k, v] of Object.entries(bon)) e[k] = (typeof v === 'number' && typeof e[k] === 'number') ? e[k] + v : (v && typeof v === 'object' && e[k] && typeof e[k] === 'object') ? { ...e[k], ...v } : v;
+        }
+      }
+    } }
   const combo = Math.min(5, S.combo || 0);
-  applyEff(S, e, chips, c.r ? null : ok ? { good: 1.35 * (1 + combo * 0.05), bad: 1 } : { good: 1, bad: 1.6 });
+  applyEff(S, e, chips, twist?.mult || (c.r ? null : ok ? { good: 1.35 * (1 + combo * 0.05), bad: 1 } : { good: 1, bad: 1.6 }));
+  if (twist) chips.unshift({ t: twist.kind === 'sweet' ? '🎭 Imprévu favorable !' : twist.kind === 'sour' ? '🎭 Imprévu fâcheux' : '🎭 Imprévu', k: twist.kind === 'sweet' ? 'good' : 'bad' });
   if (!c.r && (c.p || stat)) {
     if (ok) { S.combo = Math.min(5, combo + 1); if (S.combo >= 2) chips.push({ t: `🔥 Combo ×${S.combo} (+${S.combo * 5} % de gains)`, k: 'epic' }); }
     else { if (combo >= 2) chips.push({ t: '💨 Combo brisé', k: 'bad' }); S.combo = 0; }

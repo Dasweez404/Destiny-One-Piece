@@ -513,3 +513,5 @@ body.shake{animation:shk .45s}
 .hud .hp .bar{transition:box-shadow .3s}
 .hud .hp.wounded .bar{animation:pulse 1s infinite}
 @media (prefers-reduced-motion: reduce){.enter .card,.enter .choice,.enter .act,.enter .dest,.enter .item,.act.rec,.pick.rec,.act.upg,.event h3 .e,.result .banner{animation:none!important}}
+
+.tag.tw{background:rgba(120,70,160,.14);color:#5b2f86}

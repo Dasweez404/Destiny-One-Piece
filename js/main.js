@@ -321,6 +321,7 @@ function vEvent(S) {
           ${c.stat ? `<i class="tag">${STAT_LABEL(c.stat)}</i>` : ''}
           ${!c.stat && c.risk ? `<i class="tag">🎲 Chance</i>` : ''}
           ${c.risk ? `<i class="risk ${c.risk.k}">${c.risk.t}</i>` : ''}
+          ${c.tw ? `<i class="tag tw" title="Même un choix sûr peut réserver une surprise">🎭 ${Math.round(c.tw * 100)} % d'imprévu</i>` : ''}
           ${c.cost ? `<i class="tag cost">💰 ${G.fmtPrime(c.cost)}</i>` : ''}
           ${c.aff?.length ? `<i class="aff" title="Jauges concernées">${c.aff.map(a => `<b>${a.emoji}</b>`).join('')}</i>` : ''}
           ${c.locked ? `<i class="tag lock">🔒 ${esc(c.lockText)}</i>` : ''}
