@@ -20,7 +20,7 @@ export const EVENTS = Object.fromEntries(ALL_EVENTS.map(e => [e.id, e]));
 
 export const LENGTHS = {
   rapide: { name: 'Rapide', maxTurns: 24, actions: 1, age: 0.6, blueMin: 1, paraMin: 3, desc: '≈ 10 minutes. Une carrière éclair.' },
-  saga: { name: 'Vraie saga', maxTurns: 41, actions: 1, age: 0.25, blueMin: 4, paraMin: 10, desc: '≈ 40 minutes. Le grand voyage.' },
+  saga: { name: 'Vraie saga', maxTurns: 36, actions: 1, age: 0.25, blueMin: 4, paraMin: 10, desc: '≈ 40 minutes. Le grand voyage.' },
 };
 
 const STAT_DC = { 1: 8, 2: 12, 3: 15, 4: 18 };
@@ -182,7 +182,7 @@ export function checkChance(S, ch) {
   if (stat === 'combat') { rating = combatRating(S); dc = ch.D ?? COMBAT_DC[tier] + d * 1.5; }
   else { rating = statRating(S, stat); dc = ch.D ?? STAT_DC[tier] + d; }
   const spread = stat === 'combat' ? 16 : 12;
-  return Math.max(0.05, Math.min(0.95, 0.5 + (rating - dc) / spread));
+  return Math.max(0.08, Math.min(0.95, 0.6 + (rating - dc) / spread));
 }
 export const riskLabel = p => (p >= 0.8 ? { t: 'Sûr', k: 'safe' } : p >= 0.6 ? { t: 'Jouable', k: 'ok' } : p >= 0.4 ? { t: 'Risqué', k: 'risk' } : p >= 0.2 ? { t: 'Dangereux', k: 'danger' } : { t: 'Suicidaire', k: 'suicide' });
 
@@ -471,7 +471,7 @@ export function applyEff(S, e = {}, chips = [], mult = null) {
     if (h.haki[k] > before) chips.push({ t: `${{ obs: '👁️ Haki de l\'observation', arm: '🛡️ Haki de l\'armement', roi: '👑 Haki des Rois' }[k]} ${before === 0 ? 'débloqué' : 'niv. ' + h.haki[k]}`, k: 'epic' });
   }
   if (E.hp) {
-    const dmg = E.hp < 0 ? Math.round(E.hp * (1 - Math.min(0.3, h.haki.arm * 0.07 + h.haki.obs * 0.03))) : E.hp;
+    const dmg = E.hp < 0 ? Math.round(E.hp * (1.2 + tier * 0.05) * (1 - Math.min(0.3, h.haki.arm * 0.07 + h.haki.obs * 0.03))) : E.hp;
     h.hp = clamp(h.hp + dmg, -999, h.hpMax);
     chips.push({ t: `PV ${dmg > 0 ? '+' : ''}${dmg}`, k: dmg > 0 ? 'good' : 'bad' });
   }
@@ -762,7 +762,7 @@ export function resolveChoice(S, i) {
   const text = interp(S, val(res.x, V));
   const e = res.e || {};
   const combo = Math.min(5, S.combo || 0);
-  applyEff(S, e, chips, c.r ? null : ok ? { good: 1.35 * (1 + combo * 0.05), bad: 1 } : { good: 1, bad: 1.3 });
+  applyEff(S, e, chips, c.r ? null : ok ? { good: 1.35 * (1 + combo * 0.05), bad: 1 } : { good: 1, bad: 1.6 });
   if (!c.r && (c.p || stat)) {
     if (ok) { S.combo = Math.min(5, combo + 1); if (S.combo >= 2) chips.push({ t: `🔥 Combo ×${S.combo} (+${S.combo * 5} % de gains)`, k: 'epic' }); }
     else { if (combo >= 2) chips.push({ t: '💨 Combo brisé', k: 'bad' }); S.combo = 0; }
