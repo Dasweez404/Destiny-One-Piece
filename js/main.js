@@ -346,6 +346,7 @@ function vResult(S) {
   </section>`;
 }
 
+const hasShop = S => { const svc = ISLANDS[S.loc].svc || []; return svc.some(x => x === 'market' || x === 'forge' || x === 'ship') || S.crew.some(c => c.role === 'charpentier'); };
 function vEscale(S) {
   if (U.sub) return vSub(S);
   const acts = G.escaleActions(S);
@@ -357,6 +358,7 @@ function vEscale(S) {
     ${S.flags.wounded ? '<p class="warn">🤕 Tu es <b>blessé grave</b>. Un nouveau K.O. peut être fatal : pense à te reposer (ou à embarquer un médecin).</p>' : ''}
     <div class="acts">${acts.map(a => `<button class="act ${a.badge ? 'upg' : ''} ${a.free ? 'free' : ''} ${a.id === rec ? 'rec' : ''}" data-act="action" data-arg="${a.id}">${a.id === rec ? '<i class="star">⭐ Conseillé</i>' : ''}<span class="e">${a.emoji}</span><b>${esc(a.label)}</b><small>${esc(a.sub)}</small></button>`).join('')}</div>${S.actionsLeft <= 0 ? '<p class="hint">Plus d\'action sur cette île. Le chantier naval reste ouvert.</p>' : ''}
     <div class="row gap">
+      ${hasShop(S) ? `<button class="btn" data-act="action" data-arg="market">🛒 Boutique${G.shipUpgradeReady(S) ? ' <i class="dot">⬆️</i>' : ''}</button>` : ''}
       <button class="btn" data-act="exam" data-arg="cale">🎒 Cale ${S.inventory.fruits.length ? `<i class="dot">${S.inventory.fruits.length}🍇</i>` : ''}</button>
       <button class="btn gold grow" data-act="leave">⛵ Lever l'ancre</button>
     </div>
@@ -376,7 +378,7 @@ function vSub(S) {
   const sb = U.sub;
   const tier = G.tierOf(S);
   if (sb.kind === 'done') return `<section class="card result neutral"><div class="banner">${sb.emoji || '⚓'} ${esc(sb.title || 'Escale')}</div><p class="story">${esc(sb.text)}</p>${chipsHtml(sb.chips)}<button class="btn big gold" data-act="subclose">OK</button></section>`;
-  if (sb.kind === 'services') return `<section class="card"><h3>🏪 Services du port</h3><p class="hint">Chaque service utilisé consomme ton action de l'escale.</p>
+  if (sb.kind === 'services') return `<section class="card"><h3>🏪 Services du port</h3><p class="hint">La boutique est gratuite ; les autres services consomment ton action.</p>
     <div class="acts">${G.serviceActions(S).map(a => `<button class="act" data-act="service" data-arg="${a.id}"><span class="e">${a.emoji}</span><b>${esc(a.label)}</b><small>${esc(a.sub)}</small></button>`).join('')}</div>
     <button class="btn ghost" data-act="subcancel">← Retour</button></section>`;
   if (sb.kind === 'job') {
@@ -411,7 +413,7 @@ function vSub(S) {
     ${sb.shop.fruits.length ? `<h4>🍇 Fruits du Démon</h4>${sb.shop.fruits.map((id, i) => { const f = FRUITS[id], p = G.price(S, fruitPrice(f)); return `<div class="item"><div><b>${FRUIT_TYPES[f.type].emoji} ${esc(f.name)}</b> <small>${esc(f.jp)} · ${FRUIT_TYPES[f.type].name} · ${'★'.repeat(f.tier)}</small><em>${esc(f.desc)}</em></div><button class="btn sm gold" data-act="buy" data-k="fruit" data-arg="${i}" ${S.hero.berrys < p || sb.bought?.includes('f' + i) ? 'disabled' : ''}>${sb.bought?.includes('f' + i) ? 'Acheté' : G.fmtPrime(p)}</button></div>`; }).join('')}` : '<p class="hint">Aucun fruit du démon à vendre ici.</p>'}
     <h4>⚔️ Armes</h4>${sb.shop.weapons.map((id, i) => { const w = WEAPONS[id], p = G.price(S, weaponPrice(w)); return `<div class="item"><div><b>${esc(w.name)}</b> <small>${WEAPON_TYPES[w.type]} · ${'★'.repeat(w.tier)}${w.seastone ? ' · granit marin' : ''}${w.cursed ? ' · maudit' : ''}</small><em>${esc(w.desc)}</em></div><button class="btn sm gold" data-act="buy" data-k="weapon" data-arg="${i}" ${S.hero.berrys < p || sb.bought?.includes('w' + i) ? 'disabled' : ''}>${sb.bought?.includes('w' + i) ? 'Acheté' : G.fmtPrime(p)}</button></div>`; }).join('')}
     <p class="hint">Arme actuelle : ${S.hero.weapon ? esc(WEAPONS[S.hero.weapon].name) + ' ' + '★'.repeat(WEAPONS[S.hero.weapon].tier) : 'aucune'}</p>
-    <button class="btn gold" data-act="subfinish">${sb.used ? 'Terminer' : '← Retour (sans utiliser d\'action)'}</button></section>`);
+    <button class="btn gold" data-act="subfinish">Fermer la boutique</button></section>`);
   if (sb.kind === 'ship') return portTabs(S, sb, vShipyard(S, sb));
   return '';
 }
@@ -617,7 +619,8 @@ function tEquipage(S) {
 
 function tCale(S) {
   const inv = S.inventory;
-  return `<h4>🍇 Fruits du Démon</h4>
+  return `${U.screen === 'game' && S.phase === 'escale' && hasShop(S) ? '<button class="btn sm gold" data-act="shopfromcale">🛒 Aller à la boutique (gratuit)</button>' : ''}
+  <h4>🍇 Fruits du Démon</h4>
   ${inv.fruits.length ? inv.fruits.map((id, i) => { const f = FRUITS[id]; return `<div class="item col"><div><b>${FRUIT_TYPES[f.type].emoji} ${esc(f.name)}</b> <small>${esc(f.jp)} · ${FRUIT_TYPES[f.type].name} · ${'★'.repeat(f.tier)}</small><em>${esc(f.desc)}</em></div>
     <div class="row gap wrap"><button class="btn sm gold" data-act="eat" data-arg="${i}" ${S.hero.fruit ? 'disabled' : ''}>${S.hero.fruit ? 'Tu as déjà un fruit' : 'Manger'}</button>
     ${S.crew.length ? `<select class="inp sm" id="give${i}">${S.crew.map((c, j) => `<option value="${j}" ${c.fruit ? 'disabled' : ''}>${esc(c.name)}${c.fruit ? ' (a déjà un fruit)' : ''}</option>`).join('')}</select><button class="btn sm" data-act="give" data-arg="${i}">Donner</button>` : ''}
@@ -882,7 +885,7 @@ function act(name, el) {
       if (S.phase === 'end') onEnd();
       save(); window.scrollTo(0, 0); break;
     case 'action': {
-      if (S.actionsLeft <= 0 && arg !== 'ship') return;
+      if (S.actionsLeft <= 0 && arg !== 'ship' && arg !== 'market') return;
       if (arg === 'services') { U.sub = { kind: 'services' }; save(); break; }
       if (arg === 'train') U.sub = { kind: 'train' };
       else if (arg === 'tavern') { if (S.escCache?.turn !== S.turn) S.escCache = { turn: S.turn }; S.escCache.tavern ||= { cands: G.tavernCandidates(S), status: {} }; U.sub = { kind: 'tavern', cands: S.escCache.tavern.cands, status: S.escCache.tavern.status }; }
@@ -916,11 +919,12 @@ function act(name, el) {
       save(); break;
     }
     case 'service': { U.sub = null; const fake = document.createElement('i'); fake.dataset.arg = arg; return act('action', fake); }
-    case 'subfinish': if (U.sub?.used && U.sub.kind !== 'ship') S.actionsLeft--; U.sub = null; save(); break;
+    case 'subfinish': if (U.sub?.used && !['ship', 'market'].includes(U.sub.kind)) S.actionsLeft--; U.sub = null; save(); break;
     case 'shiptab': U.sub.tab = arg; break;
     case 'rename': { const v = document.getElementById('shipname')?.value.trim(); if (v) { S.ship.name = v.slice(0, 28); toast('Navire renommé : ' + S.ship.name); save(); } break; }
     case 'beginIntro': U.intro = false; window.scrollTo(0, 0); break;
     case 'subcancel': U.sub = null; break;
+    case 'shopfromcale': U.modal = null; { const fake = document.createElement('i'); fake.dataset.arg = 'market'; return act('action', fake); }
     case 'porttab': {
       if (arg === 'ship') U.sub = { kind: 'ship', limited: !ISLANDS[S.loc].svc?.includes('ship'), used: U.sub?.used };
       else { if (S.escCache?.turn !== S.turn) S.escCache = { turn: S.turn }; S.escCache.shop ||= { shop: G.genShop(S), bought: [] }; U.sub = { kind: 'market', shop: S.escCache.shop.shop, bought: S.escCache.shop.bought, used: U.sub?.used }; }
