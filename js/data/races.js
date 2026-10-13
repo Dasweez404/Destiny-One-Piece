@@ -72,3 +72,9 @@ export const RACES = {
 };
 for (const [id, r] of Object.entries(RACES)) r.id = id;
 export const raceOf = S => RACES[S.hero.race || 'humain'];
+
+// Points de compétence à répartir : plus la race est avantagée, moins on en a (l'humain, sans talent, en a le plus)
+export function racePoints(r) {
+  const net = Object.values(r.stats || {}).reduce((a, v) => a + (v > 0 ? v : v * 0.6), 0);
+  return Math.max(6, Math.min(13, Math.round(13 - net - (r.hp || 0) / 12 - (r.combat || 0) * 1.2)));
+}

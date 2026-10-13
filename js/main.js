@@ -7,14 +7,21 @@ import { FACTIONS, LEVELS, PROGRESS, ERAS, YONKO, CAMPS } from './data/factions.
 import { FRUITS, FRUIT_TYPES, WEAPONS, WEAPON_TYPES, SHIPS, ROLES, STATS, ITEMS, fruitPrice, weaponPrice, SHIP_MODELS, SHIP_MODS, FIGUREHEADS, SAIL_COLORS } from './data/items.js';
 import { CHARACTERS } from './data/characters.js';
 import { LEGENDS, BADGES, DAILY_GOALS, randomHeroName } from './data/meta.js';
-import { RACES } from './data/races.js';
+import { RACES, racePoints } from './data/races.js';
 import { GROUPS, groupOfChar, standingOf } from './data/groups.js';
 import { drawPoster, posterBlob } from './share.js';
 
 const app = document.getElementById('app');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const STAT_KEYS = Object.keys(STATS);
-const POINTS = 12;
+const pointsOf = f => racePoints(RACES[f.race] || RACES.humain);
+// répartit au hasard les points restants (jamais au-dessus de 10)
+function trimStats(f) { let over = STAT_KEYS.reduce((a, k) => a + f.stats[k] - 3, 0) - pointsOf(f), guard = 200; while (over > 0 && guard--) { const k = [...STAT_KEYS].sort((a, b) => f.stats[b] - f.stats[a])[0]; f.stats[k]--; over--; } }
+function fillRandom(f) {
+  let left = pointsOf(f) - STAT_KEYS.reduce((a, k) => a + f.stats[k] - 3, 0), guard = 400;
+  while (left > 0 && guard--) { const k = STAT_KEYS[Math.floor(Math.random() * STAT_KEYS.length)]; if (f.stats[k] < 10) { f.stats[k]++; left--; } }
+  while (left < 0 && guard--) { const k = STAT_KEYS[Math.floor(Math.random() * STAT_KEYS.length)]; if (f.stats[k] > 1) { f.stats[k]--; left++; } }
+}
 
 // ───────────── stockage local (tout est optionnel) ─────────────
 const store = {
@@ -184,7 +191,7 @@ function backBar(title) {
 function vCreate() {
   const f = U.form;
   const used = STAT_KEYS.reduce((a, k) => a + f.stats[k] - 3, 0);
-  const left = POINTS - used;
+  const total = pointsOf(f), left = total - used;
   const isDuelJoin = f.mode === 'duel' && f.locked;
   const lock = f.locked ? 'disabled' : '';
   const seaOpts = START_SEAS.filter(s => s.id !== 'redline' || f.faction === 'chevalier');
@@ -229,7 +236,8 @@ function vCreate() {
       <div class="row"><label>Âge de départ <input class="inp sm" type="number" min="10" max="60" value="${f.age}" data-input="age" ${lock}></label></div>
     </section>
     <section class="card">
-      <h3>📊 Caractéristiques <span class="pts ${left ? '' : 'zero'}">${left} point${left > 1 ? 's' : ''} à répartir</span></h3>
+      <h3>📊 Caractéristiques <span class="pts ${left ? '' : 'zero'}">${left} / ${total} point${total > 1 ? 's' : ''} (selon ta race)</span></h3>
+      ${f.locked ? '' : '<div class="row"><button class="btn sm" data-act="randstats">🎲 Répartir au hasard</button></div>'}
       ${STAT_KEYS.map(k => `<div class="statrow"><span>${STATS[k].emoji} ${STATS[k].name}</span>
         <button class="sbtn" data-act="stat" data-k="${k}" data-arg="-1" ${lock || f.stats[k] <= 1 ? 'disabled' : ''}>−</button>
         <b>${f.stats[k]}</b>
@@ -239,8 +247,8 @@ function vCreate() {
     </section>
     ${vRecap(f)}
     ${f.mode === 'duel' && !f.locked ? `<p class="hint center">Une fois lancé, un code de duel apparaîtra : envoie-le à tes amis pour qu'ils partent du même profil.</p>` : ''}
-    <button class="btn big gold" data-act="launch" ${(!f.locked && left !== 0) ? 'disabled' : ''}>⛵ Prendre la mer</button>
-    ${!f.locked && left !== 0 ? `<p class="hint center">Répartis tous tes points pour partir.</p>` : ''}
+    <button class="btn big gold" data-act="launch">⛵ Prendre la mer</button>
+    ${!f.locked && left > 0 ? `<p class="hint center">Les ${left} point${left > 1 ? 's' : ''} restant${left > 1 ? 's' : ''} seront répartis au hasard.</p>` : ''}
   </div>`;
 }
 
@@ -836,14 +844,17 @@ function act(name, el) {
     case 'f': {
       const f = U.form;
       f[k] = arg;
+      if (k === 'race') trimStats(f);
       if (k === 'faction') { if (arg === 'chevalier') { f.sea = 'redline'; f.island = 'marygeoise'; f.race = 'humain'; } else if (f.sea === 'redline') { f.sea = 'east'; f.island = 'fuchsia'; } }
       if (k === 'sea') { f.island = START_ISLANDS[arg][0]; }
       break;
     }
+    case 'randstats': { const f = U.form; for (const q of STAT_KEYS) f.stats[q] = 3; fillRandom(f); break; }
     case 'randname': U.form.name = randomHeroName(); break;
     case 'stat': { const f = U.form; f.stats[k] = Math.max(1, Math.min(10, f.stats[k] + +arg)); break; }
     case 'launch': {
       const f = U.form;
+      if (!f.locked) fillRandom(f);
       const o = { mode: f.mode, length: f.length, era: f.era, name: f.name.trim() || randomHeroName(), race: f.race, faction: f.faction, role: f.role, island: f.island, stats: { ...f.stats }, shipName: f.shipName.trim() || undefined, age: +f.age || 17 };
       if (f.mode === 'duel') {
         o.seed = f.seed ?? Math.floor(Math.random() * 2 ** 31);
