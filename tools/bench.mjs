@@ -17,6 +17,7 @@ for (let g = 0; g < +N; g++) {
   const pri = arch === 'temeraire' ? ['force', 'force', 'vitesse'] : ['force', 'volonte', 'charisme', 'intel'];
   for (let i = 0; i < 12; i++) { const k = r() < 0.6 ? pk(pri) : pk(Object.keys(st)); if (st[k] < 10) st[k]++; else i--; }
   const S = G.newGame({ seed: g * 9973 + 11, length: len, era: r() < 0.5 ? 'pre' : 'post', faction: fac, race, role: pk(['capitaine', 'capitaine', 'bretteur', 'navigateur', 'medecin', 'combattant', 'archeologue']), island: pk(START_ISLANDS[sea]), stats: st });
+  const ISLANDS_SHIP = S => G.serviceActions(S).some(a => a.id === 'market');
   let steps = 0, nwTurn = null, fruitsSeen = new Set(), maxCrew = 0;
   try {
     while (S.phase !== 'end' && steps++ < 4000) {
@@ -46,7 +47,7 @@ for (let g = 0; g < +N; g++) {
           for (const f of sh.fruits) if (!S.hero.fruit && !S.inventory.fruits.length && S.hero.berrys > G.price(S, 0) + 1 && r() < 0.8) G.buy(S, 'fruit', f);
           for (const w of sh.weapons) if (!S.hero.weapon || WEAPONS[w].tier > WEAPONS[S.hero.weapon].tier) G.buy(S, 'weapon', w);
           S.actionsLeft--;
-        } else if (acts.includes('ship') && r() < 0.4) {
+        } else if (ISLANDS_SHIP(S) && r() < 0.4) {
           const nxt = Object.values(SHIP_MODELS).filter(m => m.tier === S.ship.tier + 1);
           if (nxt.length) G.buy(S, 'model', pk(nxt).id);
           if (!S.ship.coated && G.tierOf(S) >= 2) G.buy(S, 'coating');
@@ -56,7 +57,7 @@ for (let g = 0; g < +N; g++) {
           for (const c of G.tavernCandidates(S)) G.convinceRecruit(S, c); S.actionsLeft--;
         } else if (acts.includes('job') && r() < 0.3) G.doAction(S, 'job', pk(['port', 'prime', 'commerce']));
         else if (r() < 0.3 && G.startExplore(S)) {}
-        else G.doAction(S, 'train', pk(pri));
+        else G.doAction(S, 'rest');
         if (S.inventory.fruits.length && !S.hero.fruit && arch !== 'prudent' || (S.inventory.fruits.length && !S.hero.fruit && FRUITS[S.inventory.fruits[0]].tier >= 3)) G.eatFruit(S, 0);
         if (S.pendingEnd) G.finish(S, S.pendingEnd.kind, S.pendingEnd.cause); else G.checkFatal(S);
       } else if (S.phase === 'nav') {

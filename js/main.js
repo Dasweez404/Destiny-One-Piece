@@ -349,6 +349,15 @@ function vEscale(S) {
   </section>`;
 }
 
+// « Marché & chantier » : deux onglets d'un même lieu
+function portTabs(S, sb, html) {
+  const svc = ISLANDS[S.loc].svc || [];
+  const hasM = svc.includes('market') || svc.includes('forge');
+  const hasS = svc.includes('ship') || S.crew.some(c => c.role === 'charpentier');
+  if (!(hasM && hasS)) return html;
+  const tab = (id, label) => `<button class="btn sm ${sb.kind === id ? 'gold' : 'ghost'}" data-act="porttab" data-arg="${id === 'market' ? 'market' : 'ship'}">${label}</button>`;
+  return html.replace(/^(<section[^>]*>)/, `$1<div class="row gap porttabs">${tab('market', '🛒 Marché')}${tab('ship', '🔨 Chantier')}</div>`);
+}
 function vSub(S) {
   const sb = U.sub;
   const tier = G.tierOf(S);
@@ -383,13 +392,13 @@ function vSub(S) {
         <button class="btn sm" data-act="convince" data-arg="${i}">Convaincre <i class="risk ${G.riskLabel(p).k}">${Math.round(p * 100)} %</i></button>`}</div></div>`;
     }).join('')}
     <button class="btn gold" data-act="subfinish">${sb.used ? 'Quitter la taverne' : '← Retour (sans utiliser d\'action)'}</button></section>`;
-  if (sb.kind === 'market') return `<section class="card"><h3>🛒 ${ISLANDS[S.loc].svc?.includes('market') ? 'Marché' : 'Forge'}</h3>
+  if (sb.kind === 'market') return portTabs(S, sb, `<section class="card"><h3>🛒 ${ISLANDS[S.loc].svc?.includes('market') ? 'Marché' : 'Forge'}</h3>
     <p class="hint">Bourse : ${G.fmtPrime(S.hero.berrys)}. Les fruits achetés vont dans la cale.</p>
     ${sb.shop.fruits.length ? `<h4>🍇 Fruits du Démon</h4>${sb.shop.fruits.map((id, i) => { const f = FRUITS[id], p = G.price(S, fruitPrice(f)); return `<div class="item"><div><b>${FRUIT_TYPES[f.type].emoji} ${esc(f.name)}</b> <small>${esc(f.jp)} · ${FRUIT_TYPES[f.type].name} · ${'★'.repeat(f.tier)}</small><em>${esc(f.desc)}</em></div><button class="btn sm gold" data-act="buy" data-k="fruit" data-arg="${i}" ${S.hero.berrys < p || sb.bought?.includes('f' + i) ? 'disabled' : ''}>${sb.bought?.includes('f' + i) ? 'Acheté' : G.fmtPrime(p)}</button></div>`; }).join('')}` : '<p class="hint">Aucun fruit du démon à vendre ici.</p>'}
     <h4>⚔️ Armes</h4>${sb.shop.weapons.map((id, i) => { const w = WEAPONS[id], p = G.price(S, weaponPrice(w)); return `<div class="item"><div><b>${esc(w.name)}</b> <small>${WEAPON_TYPES[w.type]} · ${'★'.repeat(w.tier)}${w.seastone ? ' · granit marin' : ''}${w.cursed ? ' · maudit' : ''}</small><em>${esc(w.desc)}</em></div><button class="btn sm gold" data-act="buy" data-k="weapon" data-arg="${i}" ${S.hero.berrys < p || sb.bought?.includes('w' + i) ? 'disabled' : ''}>${sb.bought?.includes('w' + i) ? 'Acheté' : G.fmtPrime(p)}</button></div>`; }).join('')}
     <p class="hint">Arme actuelle : ${S.hero.weapon ? esc(WEAPONS[S.hero.weapon].name) + ' ' + '★'.repeat(WEAPONS[S.hero.weapon].tier) : 'aucune'}</p>
-    <button class="btn gold" data-act="subfinish">${sb.used ? 'Terminer' : '← Retour (sans utiliser d\'action)'}</button></section>`;
-  if (sb.kind === 'ship') return vShipyard(S, sb);
+    <button class="btn gold" data-act="subfinish">${sb.used ? 'Terminer' : '← Retour (sans utiliser d\'action)'}</button></section>`);
+  if (sb.kind === 'ship') return portTabs(S, sb, vShipyard(S, sb));
   return '';
 }
 
@@ -860,6 +869,7 @@ function act(name, el) {
       if (arg === 'services') { U.sub = { kind: 'services' }; save(); break; }
       if (arg === 'train') U.sub = { kind: 'train' };
       else if (arg === 'tavern') { if (S.escCache?.turn !== S.turn) S.escCache = { turn: S.turn }; S.escCache.tavern ||= { cands: G.tavernCandidates(S), status: {} }; U.sub = { kind: 'tavern', cands: S.escCache.tavern.cands, status: S.escCache.tavern.status }; }
+      else if (arg === 'market' && !ISLANDS[S.loc].svc?.some(x => x === 'market' || x === 'forge')) U.sub = { kind: 'ship', limited: !ISLANDS[S.loc].svc?.includes('ship') };
       else if (arg === 'market') { if (S.escCache?.turn !== S.turn) S.escCache = { turn: S.turn }; S.escCache.shop ||= { shop: G.genShop(S), bought: [] }; U.sub = { kind: 'market', shop: S.escCache.shop.shop, bought: S.escCache.shop.bought }; }
       else if (arg === 'job') U.sub = { kind: 'job' };
       else if (arg === 'ship') U.sub = { kind: 'ship', limited: !ISLANDS[S.loc].svc?.includes('ship') };
@@ -867,7 +877,7 @@ function act(name, el) {
         if (!G.startExplore(S)) U.sub = { kind: 'done', emoji: '🗺️', title: 'Exploration', text: 'Tu fais le tour de l\'île. Rien de spécial... à part une belle vue.', chips: [] };
       } else {
         const fr = G.friendHere(S);
-        const titles = { rest: ['🍖', 'Festin et repos'], report: ['📋', 'Rapport'], news: ['📰', 'Le journal'], raid: ['💥', 'Attaque de la base'], favor: [fr?.emoji || '🤝', 'Faveur'] };
+        const titles = { rest: ['💪', 'Se préparer'], report: ['📋', 'Rapport'], news: ['📰', 'Le journal'], raid: ['💥', 'Attaque de la base'], favor: [fr?.emoji || '🤝', 'Faveur'] };
         const r = G.doAction(S, arg);
         U.sub = { kind: 'done', emoji: titles[arg][0], title: titles[arg][1], text: r.text, chips: r.chips };
         if (S.pendingEnd) { G.finish(S, S.pendingEnd.kind, S.pendingEnd.cause); U.sub = null; onEnd(); }
@@ -894,6 +904,11 @@ function act(name, el) {
     case 'rename': { const v = document.getElementById('shipname')?.value.trim(); if (v) { S.ship.name = v.slice(0, 28); toast('Navire renommé : ' + S.ship.name); save(); } break; }
     case 'beginIntro': U.intro = false; window.scrollTo(0, 0); break;
     case 'subcancel': U.sub = null; break;
+    case 'porttab': {
+      if (arg === 'ship') U.sub = { kind: 'ship', limited: !ISLANDS[S.loc].svc?.includes('ship'), used: U.sub?.used };
+      else { if (S.escCache?.turn !== S.turn) S.escCache = { turn: S.turn }; S.escCache.shop ||= { shop: G.genShop(S), bought: [] }; U.sub = { kind: 'market', shop: S.escCache.shop.shop, bought: S.escCache.shop.bought, used: U.sub?.used }; }
+      break;
+    }
     case 'subclose': U.sub = null; break;
     case 'leave': U.sub = null; G.leaveIsland(S); if (S.phase === 'end') onEnd(); save(); window.scrollTo(0, 0); break;
     case 'sail': if (G.chooseDestination(S, arg)) { save(); } break;

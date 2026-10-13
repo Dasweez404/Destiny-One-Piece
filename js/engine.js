@@ -938,6 +938,7 @@ export function arrive(S, id) {
   if (!S.visited.includes(id)) S.visited.push(id);
   S.seaVisits[isl.sea] = (S.seaVisits[isl.sea] || 0) + 1;
   S.turn++;
+  if (id === 'jaya' || S.visited.includes('jaya')) S.flags.knows_skypiea = true;
   // les passages obligés (Calm Belt, Red Line, Impel Down, portes) ne comptent pas dans le temps imparti
   if ((isl.gate || isl.noNav || ['calm', 'redline'].includes(isl.sea) || id === 'impeldown') && id !== 'laughtale') S.maxTurns++;
   S.hero.age = Math.round((S.hero.age + L.age) * 100) / 100;
@@ -985,12 +986,13 @@ export function serviceActions(S) {
   const fr = friendHere(S);
   if (fr && S.favorTurn !== S.turn) acts.push({ id: 'favor', emoji: fr.emoji, label: `Faveur : ${fr.name}`, sub: grel(S, fr.id) >= 6 ? 'Tes alliés t\'aident (soins, navire, berrys)' : 'Tes amis te donnent un coup de main' });
   if (svc.has('tavern') || isl.pop >= 2 || S.crew.length < 3) acts.push({ id: 'tavern', emoji: '🍺', label: 'Taverne', sub: S.crew.length >= 10 ? 'Équipage complet : recruter pour ta flotte' : 'Recruter' });
-  if (svc.has('market') || svc.has('forge')) acts.push({ id: 'market', emoji: '🛒', label: svc.has('market') ? 'Marché' : 'Forge', sub: svc.has('market') ? 'Fruits, armes' : 'Armes' });
-  acts.push({ id: 'job', emoji: '💼', label: 'Gagner des berrys', sub: 'Port, prime, commerce, casino' });
+  if (svc.has('market') || svc.has('forge') || svc.has('ship') || S.crew.some(c => c.role === 'charpentier')) {
+    const up = shipUpgradeReady(S);
+    acts.push({ id: 'market', emoji: '🛒', label: 'Marché & chantier', sub: up ? '⬆️ Ton navire peut évoluer' : 'Fruits, armes, navire' });
+  }
   if (svc.has('marinebase') && camp === 'gardien') acts.push({ id: 'report', emoji: '📋', label: 'Rapport à la base', sub: 'Solde, soins, mérite' });
   if (svc.has('govbase') && camp === 'gardien') acts.push({ id: 'report', emoji: '📋', label: 'Rapport au Gouvernement', sub: 'Solde, mérite' });
   if (svc.has('marinebase') && camp === 'chercheur') acts.push({ id: 'raid', emoji: '💥', label: 'Attaquer la base Marine', sub: 'Gros risque, grosse prime' });
-  acts.push({ id: 'news', emoji: '📰', label: 'Lire le journal', sub: 'Rumeurs et nouvelles' });
   return acts;
 }
 
@@ -1006,19 +1008,19 @@ export function recommendedAction(S) {
 export function escaleActions(S) {
   const isl = ISLANDS[S.loc];
   const svc = new Set(isl.svc || []);
-  const out = [];
-  // le chantier naval ne consomme jamais d'action : on peut améliorer son navire à chaque escale
-  if (svc.has('ship')) { const up = shipUpgradeReady(S); out.push({ id: 'ship', free: true, emoji: '🔨', label: 'Chantier naval', sub: up === 'model' ? '⬆️ Un nouveau navire est à ta portée !' : up === 'mod' ? '⬆️ Un aménagement est à ta portée' : up === 'repair' ? '🔧 Ta coque a besoin de soins' : 'Navires, aménagements, apparence (gratuit)', badge: !!up }); }
-  else if (S.crew.some(c => c.role === 'charpentier')) out.push({ id: 'ship', free: true, emoji: '🔧', label: 'Atelier du charpentier', sub: 'Réparer, aménager, décorer (gratuit)', badge: shipUpgradeReady(S) === 'repair' });
-  if (S.actionsLeft <= 0) return out;
-  const main = [
-    { id: 'train', emoji: '🏋️', label: 'S\'entraîner', sub: svc.has('dojo') ? 'Dojo sur place : progrès doublés' : 'Améliore une caractéristique' },
-    { id: 'explore', emoji: '🗺️', label: 'Explorer l\'île', sub: 'Un nouvel événement' },
-    { id: 'services', emoji: '🏪', label: 'Services du port', sub: 'Taverne, marché, boulots, rapport...' },
+  const up = shipUpgradeReady(S);
+  const upTxt = up === 'model' ? '⬆️ Un nouveau navire est à ta portée !' : up === 'mod' ? '⬆️ Un aménagement est à ta portée' : up === 'repair' ? '🔧 Ta coque a besoin de soins' : '';
+  // une fois l'action dépensée, le chantier reste accessible (gratuit)
+  if (S.actionsLeft <= 0) {
+    if (svc.has('ship')) return [{ id: 'ship', free: true, emoji: '🔨', label: 'Chantier naval', sub: upTxt || 'Navires, aménagements, style', badge: !!up }];
+    if (S.crew.some(c => c.role === 'charpentier')) return [{ id: 'ship', free: true, emoji: '🔧', label: 'Atelier du charpentier', sub: 'Réparer, aménager, décorer', badge: up === 'repair' }];
+    return [];
+  }
+  return [
+    { id: 'explore', emoji: '🗺️', label: 'Explorer l\'île', sub: 'Un événement : butin, rencontre, danger' },
+    { id: 'rest', emoji: '💪', label: 'Se préparer', sub: svc.has('dojo') ? 'Festin, repos et dojo : soigne et entraîne' : 'Festin, repos et entraînement : soigne et entraîne', },
+    { id: 'services', emoji: '🏪', label: 'Services du port', sub: upTxt || 'Taverne, marché & chantier, missions', badge: !!up },
   ];
-  const needRest = S.flags.wounded || S.hero.hp < S.hero.hpMax * 0.85 || S.morale < 70 || S.ship.hp < shipMaxHp(S) * 0.8 || recommendedAction(S) === 'rest';
-  if (needRest) main.splice(1, 0, { id: 'rest', emoji: '🍖', label: 'Festin et repos', sub: 'Soigne, remonte le moral' });
-  return [...main, ...out];
 }
 
 export function genShop(S) {
@@ -1070,6 +1072,17 @@ export function doAction(S, id, arg) {
       if (S.flags.wounded) { delete S.flags.wounded; chips.push({ t: '🩹 Blessures soignées', k: 'good' }); }
       if (S.crew.some(c => c.role === 'charpentier')) applyEff(S, { shipHp: 30 }, chips);
       text = cook ? 'Ton cuisinier prépare un festin légendaire. Tout le monde chante.' : 'Un festin improvisé et une bonne nuit de sommeil.';
+      // et on s'entraîne : la caractéristique la plus faible progresse en priorité
+      const stat = Object.keys(S.hero.stats).sort((x, y) => S.hero.stats[x] - S.hero.stats[y] || rnd(S) - 0.5)[0];
+      const tries = svc.has('dojo') ? 2 : 1;
+      let n = 0;
+      for (let k = 0; k < tries; k++) if (chance(S, clamp((17 - S.hero.stats[stat] - n) / 10, 0.15, 0.9))) n++;
+      if (n) applyEff(S, { stats: { [stat]: n } }, chips);
+      text += svc.has('dojo') ? ' Le dojo local te pousse dans tes retranchements.' : ' Entre deux bouchées, tu t\'entraînes.';
+      if (tier >= 2 && chance(S, 0.05 + S.hero.stats.volonte * 0.004)) {
+        const k = S.hero.haki.obs <= S.hero.haki.arm ? 'obs' : 'arm';
+        if (S.hero.haki[k] < 3) { applyEff(S, { haki: { [k]: 1 } }, chips); text += ' Soudain, tu sens quelque chose de nouveau... le Haki !'; }
+      }
       break;
     }
     case 'favor': {
@@ -1171,6 +1184,10 @@ export function convinceRecruit(S, c) {
 
 export function startExplore(S) {
   S.actionsLeft--;
+  // l'exploration rapporte (ou coûte) parfois quelques berrys avant même la rencontre
+  { const tp = TIER_PRIME[tierOf(S)], r = rnd(S);
+    if (r < 0.4) { const g = Math.round(tp * (0.12 + rnd(S) * 0.18)); S.hero.berrys += g; log(S, `Trouvaille en explorant : +${fmtPrime(g)}.`, 'info'); }
+    else if (r < 0.52 && S.hero.berrys > 0) { const l = Math.min(S.hero.berrys, Math.round(tp * 0.1)); S.hero.berrys -= l; log(S, `Pickpocket en explorant : -${fmtPrime(l)}.`, 'info'); } }
   const ev = pickEvent(S, 'island', true);
   if (!ev) return false;
   S.cur = ev;
