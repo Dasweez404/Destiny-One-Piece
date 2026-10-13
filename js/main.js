@@ -1,5 +1,5 @@
 import { sfx, isMuted, setMuted } from './sfx.js';
-import { confetti, fireworks, banner, vignette } from './fx.js';
+import { banner, vignette } from './fx.js';
 // Interface : écrans, rendu, interactions.
 import * as G from './engine.js';
 import { SEAS, ISLANDS, START_SEAS, START_ISLANDS } from './data/islands.js';
@@ -53,9 +53,9 @@ function render() {
     app.classList.toggle('enter', changed);
     if (changed) document.querySelectorAll('.choice,.act,.dest,.fxc,.item').forEach((el, i) => el.style.setProperty('--i', Math.min(i, 9))); }
   if (U.screen === 'game' && S) hudFeedback(S); else U.prevHud = null;
-  if (U.screen === 'game' && S?.phase === 'result' && S.result && U.sfxFor !== S.result) { U.sfxFor = S.result; if (S.result.ok === true) { sfx.win(); confetti({ y: 0.3, n: 36 + (S.combo || 0) * 10, emoji: S.combo >= 3 ? '🔥' : null }); } else if (S.result.ok === false) { sfx.lose(); vignette('bad'); } }
+  if (U.screen === 'game' && S?.phase === 'result' && S.result && U.sfxFor !== S.result) { U.sfxFor = S.result; if (S.result.ok === true) { sfx.win(); } else if (S.result.ok === false) { sfx.lose(); vignette('bad'); } }
   if (U.screen === 'game' && S?.phase === 'voyage' && !U.voyaging) runVoyage();
-  if (U.screen === 'game' && S?.phase === 'end') { mountPoster(); if (U.endFx !== S) { U.endFx = S; if (S.ending?.kind === 'onepiece') { fireworks(); sfx.level(); } else if (S.ending?.kind === 'death') vignette('bad'); } }
+  if (U.screen === 'game' && S?.phase === 'end') { mountPoster(); if (U.endFx !== S) { U.endFx = S; if (S.ending?.kind === 'onepiece') { sfx.level(); } else if (S.ending?.kind === 'death') vignette('bad'); } }
   if (U.screen === 'game' && U.anim) { mountThumbs(); mountShipPrev(); }
 }
 
@@ -73,7 +73,7 @@ function hudFeedback(S) {
   if (cur.prog > p.prog) items.push({ t: `🎯 ${PROGRESS[G.campOf(S)][cur.prog]}`, k: 'gold' });
   if (cur.lvl > p.lvl) items.push({ t: `⭐ Niveau ${LEVELS[cur.lvl].name}`, k: 'gold' });
   if (!items.length) return;
-  if (cur.lvl > p.lvl) { banner('⭐ NIVEAU SUPÉRIEUR', LEVELS[cur.lvl].name); confetti({ n: 90, emoji: '⭐', power: 1.3 }); } else if (cur.prog > p.prog) { banner('🎯 NOUVEAU PALIER', PROGRESS[G.campOf(S)][cur.prog], 'blue'); confetti({ n: 60 }); }
+  if (cur.lvl > p.lvl) { banner('⭐ NIVEAU SUPÉRIEUR', LEVELS[cur.lvl].name); } else if (cur.prog > p.prog) { banner('🎯 NOUVEAU PALIER', PROGRESS[G.campOf(S)][cur.prog], 'blue'); }
   if (cur.lvl > p.lvl || cur.prog > p.prog) sfx.level(); else if (cur.hp < p.hp || cur.ship < p.ship) sfx.hit(); else if (cur.gold > p.gold) sfx.coin();
   let box = document.getElementById('floats');
   if (!box) { box = document.createElement('div'); box.id = 'floats'; document.body.appendChild(box); }
