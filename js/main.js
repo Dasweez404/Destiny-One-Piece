@@ -302,7 +302,7 @@ function vGame(S) {
   return vHud(S) + `<main class="game">${S.phase !== 'voyage' ? vLoc(S) : ''}${body}</main>`;
 }
 
-const STAT_LABEL = s => (s === 'combat' ? '⚔️ Combat' : s === 'naval' ? '⚓ Combat naval' : STATS[s] ? `${STATS[s].emoji} ${STATS[s].name}` : '🎲 Chance');
+const STAT_LABEL = s => (s === 'haki_obs' ? '👁️ Haki d\'observation' : s === 'haki_arm' ? '🛡️ Haki d\'armement' : s === 'haki_roi' ? '👑 Haki des Rois' : s === 'fruit' ? '🍇 Pouvoir du fruit' : s === 'combat' ? '⚔️ Combat' : s === 'naval' ? '⚓ Combat naval' : STATS[s] ? `${STATS[s].emoji} ${STATS[s].name}` : '🎲 Chance');
 
 function vEvent(S) {
   const ev = G.curEvent(S);

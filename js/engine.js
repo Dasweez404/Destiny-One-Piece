@@ -19,8 +19,8 @@ export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ..
 export const EVENTS = Object.fromEntries(ALL_EVENTS.map(e => [e.id, e]));
 
 export const LENGTHS = {
-  rapide: { name: 'Rapide', maxTurns: 24, actions: 1, age: 0.6, blueMin: 1, paraMin: 3, desc: '≈ 10 minutes. Une carrière éclair.' },
-  saga: { name: 'Vraie saga', maxTurns: 36, actions: 1, age: 0.25, blueMin: 4, paraMin: 10, desc: '≈ 40 minutes. Le grand voyage.' },
+  rapide: { name: 'Rapide', maxTurns: 23, actions: 1, age: 0.6, blueMin: 1, paraMin: 3, desc: '≈ 10 minutes. Une carrière éclair.' },
+  saga: { name: 'Vraie saga', maxTurns: 33, actions: 1, age: 0.25, blueMin: 4, paraMin: 10, desc: '≈ 40 minutes. Le grand voyage.' },
 };
 
 const STAT_DC = { 1: 8, 2: 12, 3: 15, 4: 18 };
@@ -404,6 +404,41 @@ function affectedOf(S, c, V) {
   }
   return [...out.entries()].slice(0, 4).map(([id, emoji]) => ({ id, emoji }));
 }
+// ───────────── pouvoirs : Haki et fruit du démon ouvrent des options propres aux situations à enjeu ─────────────
+const POWER_STATS = ['combat', 'naval', 'force', 'vitesse', 'charisme', 'volonte', 'navigation', 'intel'];
+function powerChoice(S, ev) {
+  if (ev.id === 'fatal' || ev.noPower) return null;
+  const base = (ev.ch || []).filter(c => typeof c.s === 'string' && POWER_STATS.includes(c.s) && c.ok && c.ko && !c.r);
+  if (!base.length) return null;
+  const V = view(S), h = S.hero;
+  const b = base.map(c => ({ c, p: (() => { try { return checkChance(S, c); } catch { return 1; } })() })).sort((x, y) => x.p - y.p)[0].c;   // la plus difficile
+  const stat = b.s, fighting = ['combat', 'naval', 'force', 'vitesse'].includes(stat);
+  const opts = [];
+  if (h.haki.obs > 0 && ['combat', 'naval', 'vitesse', 'intel', 'force'].includes(stat)) opts.push({ k: 'haki_obs', icon: '👁️', name: 'Haki de l\'observation', p: 0.48 + h.haki.obs * 0.08, pre: 'Ton Haki de l\'observation te souffle chaque mouvement avant qu\'il n\'arrive. ' });
+  if (h.haki.arm > 0 && fighting) opts.push({ k: 'haki_arm', icon: '🛡️', name: 'Haki de l\'armement', p: 0.5 + h.haki.arm * 0.08, pre: 'Ton Haki de l\'armement noircit tes poings et ton arme. ' });
+  if (h.haki.roi > 0 && ['charisme', 'volonte', 'combat', 'naval'].includes(stat)) opts.push({ k: 'haki_roi', icon: '👑', name: 'Haki des Rois', p: 0.44 + h.haki.roi * 0.1, pre: 'Ton Haki des Rois déferle : les plus faibles s\'effondrent, les autres reculent. ' });
+  const f = fruitOf(S);
+  if (f && f.id !== 'smile' && ['combat', 'naval', 'force', 'vitesse'].includes(stat)) {
+    const aw = h.fruit.awakened ? 0.08 : 0;
+    const how = f.type === 'logia' ? 'Ton corps se fait élément : rien ne peut te toucher. ' : f.type.startsWith('zoan') ? 'Tu te transformes : muscles, griffes, instinct. ' : `Tu utilises le pouvoir du ${f.name}. `;
+    opts.push({ k: 'fruit', icon: '🍇', name: f.name, p: 0.42 + fruitPower(f, h.fruit.awakened) / 70 + aw, pre: how });
+  }
+  if (!opts.length) return null;
+  const o = opts[Math.floor((S.tmp?.r ?? 0) * opts.length) % opts.length];
+  const pre = o.pre, fat = 3 + tierOf(S) * 2;   // l'effort se paie en PV
+  return {
+    t: `${o.icon} ${o.name} — ${b.t}`, s: o.k, p: Math.min(0.8, o.p), power: true,
+    req: S2 => S2.powerT !== S2.turn && (!b.req || b.req(S2)), rq: S.powerT === S.turn ? 'Épuisé jusqu\'à la prochaine escale' : (b.rq || 'Indisponible'),
+    ok: { ...b.ok, e: { ...(b.ok.e || {}), hp: (typeof b.ok.e?.hp === 'number' ? b.ok.e.hp : 0) - fat }, x: S2 => pre + (typeof b.ok.x === 'function' ? b.ok.x(S2) : b.ok.x) },
+    ko: { ...b.ko, e: { ...(b.ko.e || {}), hp: (typeof b.ko.e?.hp === 'number' ? b.ko.e.hp : 0) - fat }, x: S2 => pre + 'Mais ça ne suffit pas. ' + (typeof b.ko.x === 'function' ? b.ko.x(S2) : b.ko.x) },
+  };
+}
+export function allChoices(S, ev) {
+  const base = ev.ch || [];
+  const pc = powerChoice(S, ev);
+  return pc ? [...base, pc] : base;
+}
+
 // ───────────── imprévus : aucune issue n'est jamais certaine ─────────────
 const TWIST_SKIP = ['death', 'end', 'capture', 'pone', 'faction', 'yonko', 'goto', 'hpSet', 'heal'];
 const STAT_KEYS_LIST = ['force', 'vitesse', 'intel', 'charisme', 'navigation', 'volonte'];
@@ -420,7 +455,7 @@ export function twistOf(S, ev, c) {
 }
 export function choicesOf(S, ev) {
   const V = view(S);
-  const all = (ev.ch || []).map((c, i) => {
+  const all = allChoices(S, ev).map((c, i) => {
     let locked = false, lockText = '';
     if (c.req && !c.req(V)) { locked = true; lockText = c.rq || 'Indisponible'; }
     const cost = val(c.c, V);
@@ -429,7 +464,7 @@ export function choicesOf(S, ev) {
     const p = c.p || stat ? checkChance(S, c) : 1;
     const aff = affectedOf(S, c, V);
     const tw = twistOf(S, ev, c);
-    return { i, aff, tw, label: val(c.t, V), stat, cost, locked, lockText, p, risk: c.p || stat ? riskLabel(p) : null, filler: isFiller(c) };
+    return { i, aff, tw, power: !!c.power, label: val(c.t, V), stat, cost, locked, lockText, p, risk: c.p || stat ? riskLabel(p) : null, filler: isFiller(c) };
   });
   // moins de choix, plus décisifs : on masque les choix verrouillés et les « remplissages »
   let out = all.filter(c => !c.locked);
@@ -438,6 +473,7 @@ export function choicesOf(S, ev) {
   // jamais plus de 3 choix : on garde des approches différentes (stats distinctes) avant de remplir
   if (out.length > 3 && ev.id !== 'fatal') {
     const keep = new Set(), stats = new Set();
+    for (const c of out) if (c.power && !c.locked) { keep.add(c); stats.add(c.stat); }
     for (const c of out) if (keep.size < 3 && !stats.has(c.stat || '_')) { keep.add(c); stats.add(c.stat || '_'); }
     for (const c of out) if (keep.size < 3) keep.add(c);
     out = out.filter(c => keep.has(c));
@@ -750,11 +786,12 @@ export function startIsland(S, first = false) {
 
 export function resolveChoice(S, i) {
   const ev = curEvent(S);
-  const c = ev.ch[i];
+  const c = allChoices(S, ev)[i];
   const V = view(S);
   const cost = val(c.c, V);
   if (c.req && !c.req(V)) return null;
   if (cost && S.hero.berrys < cost) return null;
+  if (c.power) S.powerT = S.turn;
   const chips = [];
   if (cost) { S.hero.berrys -= cost; chips.push({ t: `-${fmtPrime(cost)}`, k: 'bad' }); }
   const stat = val(c.s, V);
