@@ -473,3 +473,43 @@ body.shake{animation:shk .45s}
 .gauge.love .track i{background:#4caf50}.gauge.hate .track i{background:#e53935}
 .combo{font-weight:800;color:#ff6d00;animation:pulse 1.2s infinite}
 .choice .aff{display:inline-flex;gap:2px;margin-left:auto;opacity:.9}.choice .aff b{font-size:.95em;background:rgba(0,0,0,.08);border-radius:10px;padding:0 5px}
+
+/* ═══ Juice : transitions et animations ═══ */
+.card{transition:box-shadow .2s,transform .2s}
+.enter .card{animation:cardin .28s cubic-bezier(.2,.8,.25,1) both}
+@keyframes cardin{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+.enter .choice,.enter .act,.enter .dest,.enter .item{animation:chin .3s cubic-bezier(.2,.9,.3,1.15) both;animation-delay:calc(var(--i,0)*45ms + 50ms)}
+@keyframes chin{from{opacity:0;transform:translateX(-22px) scale(.96)}to{opacity:1;transform:none}}
+.enter .fxc{animation-delay:calc(var(--i,0)*80ms + 200ms)}
+.choice,.act,.dest,.btn,.pick{transition:transform .12s,box-shadow .15s,background .15s,border-color .15s}
+.choice:hover:not(:disabled),.act:hover,.dest:hover:not(.locked){transform:translateY(-2px) scale(1.012);box-shadow:0 6px 16px rgba(60,35,10,.22)}
+.choice:active:not(:disabled),.act:active,.btn:active,.dest:active,.pick:active{transform:scale(.96);box-shadow:none}
+.btn.gold,.btn.big{background-size:200% 100%}
+.btn.gold:hover{filter:brightness(1.07);box-shadow:0 0 14px rgba(240,194,94,.55)}
+.act.rec,.pick.rec{animation:recglow 1.8s ease-in-out infinite}
+@keyframes recglow{50%{box-shadow:0 0 14px 2px rgba(212,160,23,.65)}}
+.act.upg{animation:recglow 1.4s ease-in-out infinite}
+.hp .bar i,.goalbar i,.gauge .track i{transition:width .6s cubic-bezier(.2,.8,.3,1),background .3s}
+.goalbar i.next{animation:pulse 1.4s infinite}
+.result.win .banner{animation:bannerwin .6s cubic-bezier(.2,1.4,.4,1) both}
+.result.lose .banner{animation:bannerlose .55s both}
+@keyframes bannerwin{from{transform:scale(.4) rotate(-6deg);opacity:0}60%{transform:scale(1.15) rotate(2deg)}to{transform:none;opacity:1}}
+@keyframes bannerlose{from{transform:translateX(-12px);opacity:0}25%{transform:translateX(10px)}50%{transform:translateX(-7px)}75%{transform:translateX(4px)}to{transform:none;opacity:1}}
+.event h3 .e{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+.event .story{animation:fadeup .5s .1s both}
+@keyframes fadeup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.fl{font-size:1.1em}
+.bigbanner{position:fixed;left:50%;top:32%;transform:translate(-50%,-50%);z-index:80;text-align:center;pointer-events:none;padding:14px 34px;border-radius:16px;color:#fff;font-family:var(--title,inherit);animation:bigin 2.2s cubic-bezier(.2,1.3,.4,1) both;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+.bigbanner b{display:block;font-size:2rem;letter-spacing:.04em;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.bigbanner small{display:block;font-size:1.05rem;opacity:.95;margin-top:2px}
+.bigbanner.gold{background:linear-gradient(135deg,#b8860b,#f4c542 55%,#b8860b);color:#2a1a05}
+.bigbanner.blue{background:linear-gradient(135deg,#1b4f72,#3fa7d6)}
+.bigbanner.red{background:linear-gradient(135deg,#7b1e12,#e8553d)}
+@keyframes bigin{0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(-8deg)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.12) rotate(1deg)}25%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-62%) scale(1)}}
+.vignette{position:fixed;inset:0;z-index:75;pointer-events:none;animation:vig .7s ease-out both}
+.vignette.bad{box-shadow:inset 0 0 120px 30px rgba(200,30,20,.55)}
+.vignette.good{box-shadow:inset 0 0 120px 30px rgba(80,200,90,.45)}
+@keyframes vig{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
+.hud .hp .bar{transition:box-shadow .3s}
+.hud .hp.wounded .bar{animation:pulse 1s infinite}
+@media (prefers-reduced-motion: reduce){.enter .card,.enter .choice,.enter .act,.enter .dest,.enter .item,.act.rec,.pick.rec,.act.upg,.event h3 .e,.result .banner{animation:none!important}}

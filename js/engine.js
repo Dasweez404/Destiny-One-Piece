@@ -1010,12 +1010,8 @@ export function escaleActions(S) {
   const svc = new Set(isl.svc || []);
   const up = shipUpgradeReady(S);
   const upTxt = up === 'model' ? '⬆️ Un nouveau navire est à ta portée !' : up === 'mod' ? '⬆️ Un aménagement est à ta portée' : up === 'repair' ? '🔧 Ta coque a besoin de soins' : '';
-  // une fois l'action dépensée, le chantier reste accessible (gratuit)
-  if (S.actionsLeft <= 0) {
-    if (svc.has('ship')) return [{ id: 'ship', free: true, emoji: '🔨', label: 'Chantier naval', sub: upTxt || 'Navires, aménagements, style', badge: !!up }];
-    if (S.crew.some(c => c.role === 'charpentier')) return [{ id: 'ship', free: true, emoji: '🔧', label: 'Atelier du charpentier', sub: 'Réparer, aménager, décorer', badge: up === 'repair' }];
-    return [];
-  }
+  // plus d'action : on n'affiche plus que « Lever l'ancre » (le chantier est dans « Marché & chantier »)
+  if (S.actionsLeft <= 0) return [];
   return [
     { id: 'explore', emoji: '🗺️', label: 'Explorer l\'île', sub: 'Un événement : butin, rencontre, danger' },
     { id: 'rest', emoji: '💪', label: 'Se préparer', sub: svc.has('dojo') ? 'Festin, repos et dojo : soigne et entraîne' : 'Festin, repos et entraînement : soigne et entraîne', },
