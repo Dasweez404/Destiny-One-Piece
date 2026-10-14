@@ -1,5 +1,5 @@
 import { EXTRA_GROUPS } from './generated.js';
-import { ORIG_GROUPS } from './orig_groups.js';
+import { ORIG_GROUPS, CANON_GROUPS } from './orig_groups.js';
 import { MORE_GROUPS } from './characters_more.js';
 // Puissances du monde : la réputation se gagne auprès des groupes (factions, équipages, peuples),
 // pas seulement des individus. Chaque personnage canon appartient à un groupe (selon l'époque).
@@ -30,7 +30,7 @@ export const GROUPS = {
   vegapunk:   { name: 'Laboratoires de Vegapunk', emoji: '🧪', terr: { pre: ['karakuri'], post: ['egghead', 'karakuri'] } },
   roger:      { name: 'Les anciens de Roger', emoji: '👓', terr: { pre: ['reverse'], post: ['reverse'] } },
 };
-Object.assign(GROUPS, ORIG_GROUPS);
+Object.assign(GROUPS, ORIG_GROUPS, CANON_GROUPS);
 for (const [id, g] of Object.entries(GROUPS)) g.id = id;
 
 // personnage → groupe (une chaîne, ou { pre, post } si ça change avec l'époque)
@@ -57,6 +57,7 @@ const CG = {
   enel: 'ciel',
   rayleigh: 'roger', shakky: 'roger', crocus: 'roger', laboon: 'roger',
   judge: 'germa',
+  law: { pre: 'heart', post: 'heart' }, kidd: 'kidd', killer: 'kidd', bege: 'firetank', crocodile: { pre: 'baroque', post: 'crossguild' }, doflamingo: 'donquixote', trebol: 'donquixote', diamante: 'donquixote', pica: 'donquixote', jinbe: { pre: 'soleil', post: 'chapeau' },
 };
 export function groupOfChar(id, era) {
   const g = CG[id] ?? EXTRA_GROUPS[id] ?? MORE_GROUPS[id];

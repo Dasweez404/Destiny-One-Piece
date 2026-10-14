@@ -24,7 +24,7 @@ export const NAVAL_EVENTS = [
   {
     id: 'n_broadside', emoji: '💥', title: 'Duel d\'artillerie',
     w: { ctx: 'sea', weight: 9, test: hasShipPower },
-    x: S => S.tier >= 3 ? 'Un navire pirate lourdement armé coupe ta route et ouvre le feu sans sommation. Ses canons couvrent le pont de gerbes d\'eau.' : 'Un navire pirate te prend en chasse et envoie une première salve. Elle tombe à dix mètres. La suivante, non.',
+    x: S => S.tier >= 3 ? `Un navire des ${S.rival().emoji} ${S.rival().name}, lourdement armé, coupe ta route et ouvre le feu sans sommation. Ses canons couvrent le pont de gerbes d'eau.` : `Un navire des ${S.rival().emoji} ${S.rival().name} te prend en chasse et envoie une première salve. Elle tombe à dix mètres. La suivante, non.`,
     ch: [
       { t: 'Répondre par une bordée', s: 'naval', d: 0,
         ok: { x: 'Ta bordée touche le mât adverse. Le navire ennemi s\'incline et fuit, laissant flotter sa cargaison.', e: { glory: 2, berrys: S => S.tierPrime() / 3, shipHp: -10, morale: 8 } },
@@ -70,7 +70,7 @@ export const NAVAL_EVENTS = [
   {
     id: 'n_patrol', emoji: '⚓', title: 'Poursuite en mer',
     w: { ctx: 'sea', camp: 'gardien', weight: 7, test: hasShipPower },
-    x: 'La vigie hurle : un navire pirate, voiles noires, file vers le large avec un coffre qui n\'est pas à lui. Ton navire est le plus proche.',
+    x: S => `La vigie hurle : un navire des ${S.rival().emoji} ${S.rival().name}, voiles noires, file vers le large avec un coffre qui n'est pas à lui. Ton navire est le plus proche.`,
     ch: [
       { t: 'L\'intercepter et le couler', s: 'naval', d: 1,
         ok: { x: 'Quelques bordées bien placées, et le pirate lève le drapeau blanc. Tu rapportes le coffre et les prisonniers.', e: { glory: 3, merit: 3, shipHp: -12, rep: 2 } },
@@ -102,7 +102,7 @@ export const NAVAL_EVENTS = [
   {
     id: 'n_duel_captains', emoji: '⚔️', title: 'Défi de capitaines',
     w: { ctx: 'sea', camp: 'chercheur', weight: 3, test: S => hasShipPower(S) && S.hero.isCaptain && S.hero.berrys >= S.tierPrime() / 6 },
-    x: 'Un capitaine rival, pavillon à tête de mort fendue, te hèle au porte-voix : « Un duel entre navires ! Le perdant donne son or. Le gagnant, la réputation. »',
+    x: S => `Un capitaine des ${S.rival().emoji} ${S.rival().name}, pavillon fièrement hissé, te hèle au porte-voix : « Un duel entre navires ! Le perdant donne son or. Le gagnant, la réputation. »`,
     ch: [
       { t: 'Accepter, mise : le tiers d\'un trésor', s: 'naval', d: 2,
         ok: { x: 'Votre duel de manœuvre dure une heure. Ton gouvernail ne l\'a pas laissé échapper. Il paie en riant.', e: { berrys: S => S.tierPrime() / 2, glory: 3, morale: 10 } },

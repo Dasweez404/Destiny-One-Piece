@@ -858,10 +858,10 @@ export const SEA_EVENTS = [
   {
     id: 's_pirate_ship', emoji: '🏴‍☠️', title: 'Navire pirate',
     w: { ctx: 'sea', weight: 2 },
-    x: S => S.camp === 'gardien' ? 'Un navire pirate en vue. Leur drapeau est connu. Ils fuient en te voyant.' : 'Un navire pirate en vue. Ils hissent le drapeau noir et chargent les canons.',
+    x: S => S.camp === 'gardien' ? `Un navire des ${S.rival().emoji} ${S.rival().name} en vue. Leur drapeau est connu. Ils fuient en te voyant.` : `Un navire des ${S.rival().emoji} ${S.rival().name} en vue. Ils hissent le drapeau noir et chargent les canons.`,
     ch: [
       { t: 'Combattre', s: 'combat', d: 0,
-        ok: { x: 'Victoire ! Tu récupères leur butin.', e: { glory: 3, merit: 4, berrys: S => S.tierPrime() / 4 } },
+        ok: { x: 'Victoire ! Tu récupères leur butin.', e: { glory: 3, merit: 4, berrys: S => S.tierPrime() / 4, frel: S => ({ [S.rival().g]: -1 }) } },
         ko: { x: 'Ils te pillent.', e: { berrys: S => -S.tierPrime() / 6, hp: -25 } } },
       { t: 'Parlementer', s: 'charisme', d: 0,
         ok: { x: 'Échange d\'informations et de rhum.', e: { stats: { navigation: 1 } } },

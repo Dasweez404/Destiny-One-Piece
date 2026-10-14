@@ -14,15 +14,16 @@ import { SH_EVENTS } from './data/events_strawhats.js';
 import { SUBMISSION_EVENTS } from './data/events_submission.js';
 import { ORIG_EVENTS, ORIG_ARCS } from './data/events_originals.js';
 import { LORE_EVENTS, LORE_ARCS } from './data/events_lore.js';
-import { CANON_CREW_EVENTS } from './data/events_canon_crews.js';
+import { CANON_CREW_EVENTS, RIVALS } from './data/events_canon_crews.js';
 import { PERSONA_EVENTS } from './data/events_personas.js';
+import { SEASON_EVENTS } from './data/events_seasons.js';
 import { ISL_GEN_EVENTS } from './data/events_isl_gen.js';
 import { NAVAL_EVENTS, WAR_EVENTS, WAR_ARCS } from './data/events_war.js';
 import { CREW_FIRST, CREW_EPI, CREW_TRAITS, LEGENDS, STORY_FRUITS, CANON_CAREERS, BADGES, DAILY_GOALS, randomHeroName } from './data/meta.js';
 
 Object.assign(FRUITS, Object.fromEntries(Object.entries(STORY_FRUITS).map(([id, f]) => [id, { ...f, id }])));
 
-export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS, ...GROUP_EVENTS, ...SH_EVENTS, ...ISL_GEN_EVENTS, ...SUBMISSION_EVENTS, ...ORIG_EVENTS, ...LORE_EVENTS, ...CANON_CREW_EVENTS, ...PERSONA_EVENTS];
+export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS, ...GROUP_EVENTS, ...SH_EVENTS, ...ISL_GEN_EVENTS, ...SUBMISSION_EVENTS, ...ORIG_EVENTS, ...LORE_EVENTS, ...CANON_CREW_EVENTS, ...PERSONA_EVENTS, ...SEASON_EVENTS];
 // les événements de bataille proposent un « Livrer bataille » tactique construit sur leur jet naval ou de combat le plus marquant
 const BATTLE_EV = /^(l_[a-z]+_[23]|of_sea_|of_recur_|s_warship|s_pirate_ship|gv_first_|n_merchant|n_patrol|n_duel_captains|n_broadside|n_blockade|n_fleet_yonko|n_hunters|n_ghost|n_harbor|w_own[23]|war_j\d_(sea|land)|wa_|gv_fleet_)/;
 for (const ev of ALL_EVENTS) {
@@ -242,6 +243,11 @@ const VIEW = {
   lvl: S => levelIdxOf(S),
   allyCount: S => allyGroups(S).length,
   grel: S => id => grel(S, id),
+  rival: S => () => {
+    const t = tierOf(S), pool = RIVALS.filter(r => r.eras.includes(S.era) && r.tier <= Math.max(1, t) + (t >= 2 ? 0 : 0) && r.sea.includes(ISLANDS[S.loc].sea === 'calm' ? 'paradise' : ISLANDS[S.loc].sea));
+    const list = pool.length ? pool : RIVALS.filter(r => r.eras.includes(S.era) && r.tier <= Math.max(1, t));
+    return list[Math.floor((S.tmp?.r ?? 0) * (list.length || 1)) % (list.length || 1)] || { name: 'une bande de pirates', g: 'pirates', emoji: '🏴‍☠️' };
+  },
   fleetPower: S => S.fleet.reduce((a, f) => a + f.power, 0),
   support: S => Math.min(5, allyGroups(S).length + S.fleet.reduce((a, f) => a + f.power, 0) / 5),
   extreme: S => sign => Object.values(GROUPS).find(g => (sign > 0 ? grel(S, g.id) >= 8 : grel(S, g.id) <= -8)) || null,
