@@ -63,12 +63,13 @@ for (const c of CFG) {
   const terr = S => (gr.terr[S.era] || []).includes(S.loc);
   const flagMet = 'of_met_' + g, arc = 'of_' + g, flagDown = 'of_down_' + g;
   ORIG_ARCS[arc] = { name: `Contre ${name}`, stages: 3 };
+  const rare = ['corbeaux', 'rhon', 'recif'].includes(g), K = rare ? 0.9 : 3;   // les factions inventées ne doivent pas écraser les personnages canon
   const kind = c.kind, battleSkill = kind === 'naval' ? 'naval' : 'combat';
   const lose = { x: `La bataille est perdue. ${name} te laisse la vie sauve, mais ne l'oubliera pas.`, e: { hp: -30, shipHp: kind === 'naval' ? -40 : 0, frel: { [g]: 1 }, arc: A(arc, 3), flag2: 'of_over_' + g } };
   // 1. première rencontre
   ORIG_EVENTS.push({
-    id: `of_first_${g}`, pri: 10, once: true, emoji: gr.emoji, title: name,
-    w: { minTier: c.minTier, test: S => terr(S) },
+    id: `of_first_${g}`, once: true, emoji: gr.emoji, title: name,
+    w: { minTier: c.minTier, weight: Math.round(10 * K), test: S => terr(S) },
     x: c.intro,
     ch: [
       { t: 'Infiltrer leurs rangs', s: 'intel', d: 2,
@@ -83,7 +84,7 @@ for (const c of CFG) {
   // 2. présence récurrente en territoire
   ORIG_EVENTS.push({
     id: `of_recur_${g}`, emoji: gr.emoji, title: `${name} : sur leurs terres`,
-    w: { minTier: c.minTier, weight: 7, test: S => terr(S) && S.hasFlag(flagMet) },
+    w: { minTier: c.minTier, weight: Math.max(1, Math.round(5 * K)), test: S => terr(S) && S.hasFlag(flagMet) },
     x: c.recur,
     ch: [
       { t: 'Leur tenir tête', s: battleSkill, d: 2,
@@ -98,7 +99,7 @@ for (const c of CFG) {
   // 3. rencontre en mer
   ORIG_EVENTS.push({
     id: `of_sea_${g}`, emoji: gr.emoji, title: `${name} en mer`,
-    w: { ctx: 'sea', minTier: c.minTier, weight: 4, test: S => S.ship.hp > 0 },
+    w: { ctx: 'sea', minTier: c.minTier, weight: Math.max(1, Math.round(3 * K)), test: S => S.ship.hp > 0 },
     x: c.sea,
     ch: [
       { t: 'Livrer combat', s: 'naval', d: 3,
@@ -114,7 +115,7 @@ for (const c of CFG) {
   });
   // 4. trame en 3 actes
   ORIG_EVENTS.push({
-    id: `of_arc1_${g}`, pri: 10, emoji: gr.emoji, title: `Contre ${name} (1/3)`,
+    id: `of_arc1_${g}`, pri: 9, emoji: gr.emoji, title: `Contre ${name} (1/3)`,
     w: { minTier: c.minTier, test: S => S.hasFlag(flagMet) && S.arc(arc, 0, 2) && !S.hasFlag('of_over_' + g) },
     x: c.a1,
     ch: [
