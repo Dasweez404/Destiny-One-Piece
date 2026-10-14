@@ -12,15 +12,17 @@ import { ARC_EVENTS, ARCS } from './data/events_arcs.js';
 import { GROUP_EVENTS } from './data/events_groups.js';
 import { SH_EVENTS } from './data/events_strawhats.js';
 import { SUBMISSION_EVENTS } from './data/events_submission.js';
+import { ORIG_EVENTS, ORIG_ARCS } from './data/events_originals.js';
+import { LORE_EVENTS, LORE_ARCS } from './data/events_lore.js';
 import { ISL_GEN_EVENTS } from './data/events_isl_gen.js';
 import { NAVAL_EVENTS, WAR_EVENTS, WAR_ARCS } from './data/events_war.js';
 import { CREW_FIRST, CREW_EPI, CREW_TRAITS, LEGENDS, STORY_FRUITS, CANON_CAREERS, BADGES, DAILY_GOALS, randomHeroName } from './data/meta.js';
 
 Object.assign(FRUITS, Object.fromEntries(Object.entries(STORY_FRUITS).map(([id, f]) => [id, { ...f, id }])));
 
-export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS, ...GROUP_EVENTS, ...SH_EVENTS, ...ISL_GEN_EVENTS, ...SUBMISSION_EVENTS];
+export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS, ...GROUP_EVENTS, ...SH_EVENTS, ...ISL_GEN_EVENTS, ...SUBMISSION_EVENTS, ...ORIG_EVENTS, ...LORE_EVENTS];
 // les événements de bataille proposent un « Livrer bataille » tactique construit sur leur jet naval ou de combat le plus marquant
-const BATTLE_EV = /^(s_warship|s_pirate_ship|gv_first_|n_merchant|n_patrol|n_duel_captains|n_broadside|n_blockade|n_fleet_yonko|n_hunters|n_ghost|n_harbor|w_own[23]|war_j\d_(sea|land)|wa_|gv_fleet_)/;
+const BATTLE_EV = /^(l_[a-z]+_[23]|of_sea_|of_recur_|s_warship|s_pirate_ship|gv_first_|n_merchant|n_patrol|n_duel_captains|n_broadside|n_blockade|n_fleet_yonko|n_hunters|n_ghost|n_harbor|w_own[23]|war_j\d_(sea|land)|wa_|gv_fleet_)/;
 for (const ev of ALL_EVENTS) {
   if (/^n_/.test(ev.id) && ev.w?.weight) ev.w.weight = Math.round(ev.w.weight * 1.6);
   if (!BATTLE_EV.test(ev.id) || !ev.ch) continue;
@@ -34,7 +36,7 @@ export const EVENTS = Object.fromEntries(ALL_EVENTS.map(e => [e.id, e]));
 
 export const LENGTHS = {
   rapide: { name: 'Rapide', maxTurns: 23, actions: 1, age: 0.6, blueMin: 1, paraMin: 3, desc: '≈ 10 minutes. Une carrière éclair.' },
-  saga: { name: 'Vraie saga', maxTurns: 36, actions: 1, age: 0.25, blueMin: 4, paraMin: 10, desc: '≈ 40 minutes. Le grand voyage.' },
+  saga: { name: 'Vraie saga', maxTurns: 37, actions: 1, age: 0.25, blueMin: 4, paraMin: 10, desc: '≈ 40 minutes. Le grand voyage.' },
 };
 
 const STAT_DC = { 1: 8, 2: 12, 3: 15, 4: 18 };
@@ -536,7 +538,7 @@ export function applyEff(S, e = {}, chips = [], mult = null) {
     if (h.haki[k] > before) chips.push({ t: `${{ obs: '👁️ Haki de l\'observation', arm: '🛡️ Haki de l\'armement', roi: '👑 Haki des Rois' }[k]} ${before === 0 ? 'débloqué' : 'niv. ' + h.haki[k]}`, k: 'epic' });
   }
   if (E.hp) {
-    const dmg = E.hp < 0 ? Math.round(E.hp * (1.2 + tier * 0.05) * (1 - Math.min(0.3, h.haki.arm * 0.07 + h.haki.obs * 0.03))) : E.hp;
+    const dmg = E.hp < 0 ? Math.round(E.hp * (1.1 + tier * 0.04) * (1 - Math.min(0.3, h.haki.arm * 0.07 + h.haki.obs * 0.03))) : E.hp;
     h.hp = clamp(h.hp + dmg, -999, h.hpMax);
     chips.push({ t: `PV ${dmg > 0 ? '+' : ''}${dmg}`, k: dmg > 0 ? 'good' : 'bad' });
   }
@@ -596,7 +598,7 @@ export function applyEff(S, e = {}, chips = [], mult = null) {
   if (E.flag2) S.flags[E.flag2] = true;
   if (E.arc) {
     (S.arcs ||= {})[E.arc.id] = E.arc.stage; (S.arcT ||= {})[E.arc.id] = S.turn;
-    const A = ARCS[E.arc.id] || WAR_ARCS[E.arc.id] || (E.arc.id.startsWith('isl_') ? { name: 'Trame locale', stages: 2 } : null);
+    const A = ARCS[E.arc.id] || WAR_ARCS[E.arc.id] || ORIG_ARCS[E.arc.id] || LORE_ARCS[E.arc.id] || (E.arc.id.startsWith('isl_') ? { name: 'Trame locale', stages: 2 } : null);
     if (A) { const done = E.arc.stage >= A.stages; chips.push({ t: `📖 ${A.name} : ${done ? 'terminée' : `étape ${E.arc.stage}/${A.stages}`}`, k: 'level' }); log(S, `📖 Trame « ${A.name} » : ${done ? 'dénouement' : 'étape ' + E.arc.stage}.`, 'big'); }
   }
   if (E.unflag) delete S.flags[E.unflag];

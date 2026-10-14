@@ -1,4 +1,5 @@
 import { EXTRA_GROUPS } from './generated.js';
+import { ORIG_GROUPS } from './orig_groups.js';
 // Puissances du monde : la réputation se gagne auprès des groupes (factions, équipages, peuples),
 // pas seulement des individus. Chaque personnage canon appartient à un groupe (selon l'époque).
 // terr : îles où le groupe fait la loi (réductions et faveurs si ami, embuscades si hostile)
@@ -28,6 +29,7 @@ export const GROUPS = {
   vegapunk:   { name: 'Laboratoires de Vegapunk', emoji: '🧪', terr: { pre: ['karakuri'], post: ['egghead', 'karakuri'] } },
   roger:      { name: 'Les anciens de Roger', emoji: '👓', terr: { pre: ['reverse'], post: ['reverse'] } },
 };
+Object.assign(GROUPS, ORIG_GROUPS);
 for (const [id, g] of Object.entries(GROUPS)) g.id = id;
 
 // personnage → groupe (une chaîne, ou { pre, post } si ça change avec l'époque)
