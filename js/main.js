@@ -133,6 +133,7 @@ function vHome() {
     </div>
     <div class="menu">
       ${save ? `<button class="btn big gold" data-act="resume">⏯️ Reprendre : ${esc(save.hero.name)} <small>${esc(ISLANDS[save.loc].name)} · tour ${save.turn}</small></button>` : ''}
+      <button class="btn big gold" data-act="quick">⚡ Partie express <small>Un perso au hasard, tu pars tout de suite</small></button>
       <button class="btn big" data-act="new">🧭 Carrière <small>Crée ton perso et construis ta légende</small></button>
       <button class="btn big" data-act="go" data-arg="daily">📅 Défi du jour ${daily ? '<small>✅ Joué aujourd\'hui</small>' : '<small>Un profil imposé, un objectif, le même pour tous</small>'}</button>
       <button class="btn big" data-act="go" data-arg="duel">⚔️ Duel entre amis <small>Même départ, deux destins</small></button>
@@ -271,11 +272,13 @@ function vHud(S) {
       <div class="hud-btns"><button class="btn sm" data-act="exam">🔍 Examiner</button><button class="btn sm ghost" data-act="menu">☰</button></div>
     </div>
     <div class="hud-stats">
-      <span class="hp ${S.flags.wounded ? 'wounded' : ''}" title="Points de vie">❤️ <span class="bar"><i style="width:${hpPct}%"></i></span> ${Math.max(0, h.hp)}/${h.hpMax}${S.flags.wounded ? ' 🤕' : ''}</span>
-      <span title="Berrys">💰 ${G.fmtPrime(h.berrys)}</span>
-      <span title="Prime">${h.faction === 'corsaire' ? '🔒' : '📜'} ${h.bounty ? G.fmtPrime(h.bounty) : '—'}</span>
-      <span title="Îles visitées / limite">⏳ ${S.turn}/${S.maxTurns}</span>
-      <span title="Moral">${S.morale >= 60 ? '😄' : S.morale >= 30 ? '😐' : '😞'} ${S.morale}</span>
+      <span class="hp ${S.flags.wounded ? 'wounded' : ''}" title="Points de vie">❤️ <span class="bar"><i style="width:${hpPct}%"></i></span> <b>${Math.max(0, h.hp)}</b>/${h.hpMax}${S.flags.wounded ? ' 🤕' : ''}</span>
+      <span class="chips">
+        <span class="chip" title="Berrys">💰 ${G.fmtPrime(h.berrys)}</span>
+        <span class="chip" title="Moral de l'équipage">${S.morale >= 60 ? '😄' : S.morale >= 30 ? '😐' : '😞'} ${S.morale}</span>
+        ${h.bounty ? `<span class="chip" title="Prime">📜 ${G.fmtPrime(h.bounty)}</span>` : ''}
+        <span class="chip ${S.turn >= S.maxTurns - 4 ? 'late' : ''}" title="Escales / limite">⏳ ${S.turn}/${S.maxTurns}</span>
+      </span>
     </div>
     ${vAffinity(S)}
     <div class="goalbar" title="${esc(PROGRESS[G.campOf(S)][Math.min(9, S.progress + 1)] || '')}">${PROGRESS[G.campOf(S)].map((x, i) => `<i class="${i <= S.progress ? 'on' : ''} ${i === S.progress + 1 ? 'next' : ''}" title="${esc(x)}"></i>`).join('')}<span>🗺️ ${esc(PROGRESS[G.campOf(S)][S.progress])} <small>→ ${esc(PROGRESS[G.campOf(S)][Math.min(9, S.progress + 1)])}</small></span></div>
@@ -329,17 +332,18 @@ function vBattle(S) {
   </section>`;
 }
 
+const TUTO = () => store.get('tuto', false) ? '' : `<div class="tuto"><b>👋 Comment jouer</b><ol><li>Lis la situation, puis touche un choix : il se <b>surligne</b>.</li><li>Touche-le <b>encore</b> pour valider (ça évite les erreurs).</li><li>Les <b>jauges</b> en haut montrent ta vie, ton argent et ton moral. ⭐ = l'option conseillée.</li></ol><button class="btn sm gold" data-act="tutoOk">J'ai compris</button></div>`;
 function vEvent(S) {
   const ev = G.curEvent(S);
   const V = G.view(S);
   const text = G.interp(S, typeof ev.x === 'function' ? ev.x(V) : ev.x);
   const chs = G.choicesOf(S, ev);
-  return `<section class="card event ${S.ctx === 'sea' ? 'at-sea' : ''}">
+  return `${TUTO()}<section class="card event ${S.ctx === 'sea' ? 'at-sea' : ''}">
     ${S.ctx === 'sea' ? `<div class="kicker">🌊 En mer, vers ${esc(ISLANDS[S.next].name)}</div>` : ''}
     <h3><span class="e">${ev.emoji || '❗'}</span> ${esc(ev.title)}</h3>
     <p class="story">${esc(text)}</p>
     <div class="choices">${chs.map((c, n) => `
-      <button class="choice ${c.locked ? 'locked' : ''} ${U.selChoice === c.i ? 'sel' : ''}" data-act="choose" data-arg="${c.i}" ${c.locked ? 'disabled' : ''}>
+      <button class="choice ${c.locked ? 'locked' : ''} ${U.selChoice === c.i ? 'sel' : ''} ${c.risk ? 'rk-' + c.risk.k : ''}" data-act="choose" data-arg="${c.i}" ${c.locked ? 'disabled' : ''}>
         <span class="num">${n + 1}</span>
         <span class="lbl">${esc(c.label)}${U.selChoice === c.i ? ' <em class="confirm">👆 Touche encore pour valider</em>' : ''}</span>
         <span class="meta">
@@ -382,7 +386,7 @@ function vEscale(S) {
     <h3>⚓ Escale ${S.actionsLeft > 0 ? `<span class="pts">${S.actionsLeft} action${S.actionsLeft > 1 ? 's' : ''}</span>` : ''}</h3>
     <p class="hint">${esc(isl.desc)}</p>
     ${S.flags.wounded ? '<p class="warn">🤕 Tu es <b>blessé grave</b>. Un nouveau K.O. peut être fatal : pense à te reposer (ou à embarquer un médecin).</p>' : ''}
-    <div class="acts">${acts.map(a => `<button class="act ${a.badge ? 'upg' : ''} ${a.free ? 'free' : ''} ${a.id === rec ? 'rec' : ''}" data-act="action" data-arg="${a.id}">${a.id === rec ? '<i class="star">⭐ Conseillé</i>' : ''}<span class="e">${a.emoji}</span><b>${esc(a.label)}</b><small>${esc(a.sub)}</small></button>`).join('')}</div>${S.actionsLeft <= 0 ? '<p class="hint">Plus d\'action sur cette île. Le chantier naval reste ouvert.</p>' : ''}
+    <div class="acts">${acts.map(a => `<button class="act ${a.badge ? 'upg' : ''} ${a.free ? 'free' : ''} ${a.id === rec ? 'rec' : ''}" data-act="action" data-arg="${a.id}">${a.id === rec ? '<i class="star">⭐ Conseillé</i>' : ''}<span class="e">${a.emoji}</span><span class="t"><b>${esc(a.label)}</b><small>${esc(a.sub)}</small></span></button>`).join('')}</div>${S.actionsLeft <= 0 ? '<p class="hint">Plus d\'action sur cette île. Le chantier naval reste ouvert.</p>' : ''}
     <div class="row gap">
       ${hasShop(S) ? `<button class="btn" data-act="action" data-arg="market">🛒 Boutique${G.shipUpgradeReady(S) ? ' <i class="dot">⬆️</i>' : ''}</button>` : ''}
       <button class="btn" data-act="exam" data-arg="cale">🎒 Cale ${S.inventory.fruits.length ? `<i class="dot">${S.inventory.fruits.length}🍇</i>` : ''}</button>
@@ -405,7 +409,7 @@ function vSub(S) {
   const tier = G.tierOf(S);
   if (sb.kind === 'done') return `<section class="card result neutral"><div class="banner">${sb.emoji || '⚓'} ${esc(sb.title || 'Escale')}</div><p class="story">${esc(sb.text)}</p>${chipsHtml(sb.chips)}<button class="btn big gold" data-act="subclose">OK</button></section>`;
   if (sb.kind === 'services') return `<section class="card"><h3>🏪 Services du port</h3><p class="hint">La boutique est gratuite ; les autres services consomment ton action.</p>
-    <div class="acts">${G.serviceActions(S).map(a => `<button class="act" data-act="service" data-arg="${a.id}"><span class="e">${a.emoji}</span><b>${esc(a.label)}</b><small>${esc(a.sub)}</small></button>`).join('')}</div>
+    <div class="acts">${G.serviceActions(S).map(a => `<button class="act" data-act="service" data-arg="${a.id}"><span class="e">${a.emoji}</span><span class="t"><b>${esc(a.label)}</b><small>${esc(a.sub)}</small></span></button>`).join('')}</div>
     <button class="btn ghost" data-act="subcancel">← Retour</button></section>`;
   if (sb.kind === 'job') {
     const tp = { 1: 3_000_000, 2: 30_000_000, 3: 150_000_000, 4: 500_000_000 }[tier];
@@ -882,6 +886,16 @@ function act(name, el) {
     case 'randstats': { const f = U.form; for (const q of STAT_KEYS) f.stats[q] = 3; fillRandom(f); break; }
     case 'randname': U.form.name = randomHeroName(); break;
     case 'stat': { const f = U.form; f.stats[k] = Math.max(1, Math.min(10, f.stats[k] + +arg)); break; }
+    case 'quick': {
+      const f = defaultForm('career');
+      const races = Object.keys(RACES).filter(r => r !== 'geant' && r !== 'lunarien');
+      f.race = races[Math.floor(Math.random() * races.length)] || 'humain';
+      const seas = ['east', 'east', 'north', 'west', 'south'];
+      f.sea = seas[Math.floor(Math.random() * seas.length)]; f.island = START_ISLANDS[f.sea][0];
+      fillRandom(f);
+      startGame({ mode: 'career', length: 'rapide', era: 'pre', name: randomHeroName(), race: f.race, faction: 'pirate', role: 'capitaine', island: f.island, stats: { ...f.stats }, age: 17 });
+      return;
+    }
     case 'launch': {
       const f = U.form;
       if (!f.locked) fillRandom(f);
@@ -896,6 +910,7 @@ function act(name, el) {
     }
     case 'exam': U.modal = 'exam'; U.tab = arg || U.tab || 'profil'; break;
     case 'btac': { const r = B.battleAct(S, arg); if (r?.dYou >= 25) { document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 450); } if (r) sfx[r.dYou > r.dFoe ? 'hit' : 'coin'](); save(); break; }
+    case 'tutoOk': store.set('tuto', true); break;
     case 'menu': U.modal = 'menu'; break;
     case 'toggleSfx': setMuted(!isMuted()); if (!isMuted()) sfx.coin(); break;
     case 'journal': U.modal = 'exam'; U.tab = 'journal'; break;
