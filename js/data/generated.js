@@ -1,4 +1,4 @@
-// GÉNÉRÉ par tools/build-data.mjs le 2026-10-12 — ne pas modifier à la main.
+// GÉNÉRÉ par tools/build-data.mjs le 2026-10-14 — ne pas modifier à la main.
 // Corrections : tools/overrides.json. Source des faits : One Piece Encyclopédie (wiki Fandom francophone), texte sous licence CC BY-SA 3.0.
 // ch = chapitre de première apparition (sert à ordonner les routes).
 export const EXTRA_ISLANDS = {
@@ -132,6 +132,24 @@ export const EXTRA_ISLANDS = {
    "rest"
   ],
   "ch": 524,
+  "generated": true
+ },
+ "desert_sandora": {
+  "id": "desert_sandora",
+  "sea": "paradise",
+  "pop": 1,
+  "name": "Désert de Sandora",
+  "sub": "Paradis",
+  "desc": "Le désert de Sandora est le désert d'Alabasta.",
+  "th": {
+   "k": "desert",
+   "g": 15123066,
+   "a": 7163969
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 162,
   "generated": true
  },
  "downs": {
@@ -598,6 +616,26 @@ export const EXTRA_ISLANDS = {
   "ch": 711,
   "generated": true
  },
+ "royaume_des_cerisiers": {
+  "id": "royaume_des_cerisiers",
+  "sea": "paradise",
+  "pop": 2,
+  "name": "Royaume des Cerisiers",
+  "sub": "Paradis",
+  "desc": "Le Royaume des Cerisiers (aussi appelé Royaume de Sakura), anciennement Royaume de Drum, est situé sur l'île de Drum. Son souverain actuel est Dalton.",
+  "th": {
+   "k": "ville",
+   "g": 10265195,
+   "a": 14935240
+  },
+  "svc": [
+   "tavern",
+   "market",
+   "rest"
+  ],
+  "ch": 142,
+  "generated": true
+ },
  "saint_reia": {
   "id": "saint_reia",
   "sea": "south",
@@ -872,6 +910,24 @@ export const EXTRA_ISLANDS = {
    "rest"
   ],
   "ch": 114,
+  "generated": true
+ },
+ "ile_scrap": {
+  "id": "ile_scrap",
+  "sea": "paradise",
+  "pop": 1,
+  "name": "Île Scrap",
+  "sub": "Paradis",
+  "desc": "L'île Scrap est constituée des restes de centaines de carcasses de navires abandonnés. Elle est reliée à Water Seven par un pont en pierre.",
+  "th": {
+   "k": "ruines",
+   "g": 9211243,
+   "a": 4073251
+  },
+  "svc": [
+   "rest"
+  ],
+  "ch": 353,
   "generated": true
  },
  "ile_tony_tony": {
@@ -1367,10 +1423,13 @@ export const EXTRA_CHARACTERS = {
   "align": "yonko",
   "power": 48,
   "isl": {
-   "pre": [],
+   "pre": [
+    "jaya",
+    "banaro"
+   ],
    "post": [
-    "hachinosu",
-    "baltigo"
+    "baltigo",
+    "sabaody"
    ]
   },
   "quote": "...",
@@ -2088,8 +2147,8 @@ export const EXTRA_CHARACTERS = {
   "power": 40,
   "isl": {
    "pre": [
-    "thriller",
-    "kuraigana"
+    "amazonlily",
+    "weatheria"
    ],
    "post": []
   },
@@ -2424,10 +2483,13 @@ export const EXTRA_CHARACTERS = {
   "align": "yonko",
   "power": 48,
   "isl": {
-   "pre": [],
+   "pre": [
+    "jaya",
+    "banaro"
+   ],
    "post": [
-    "hachinosu",
-    "baltigo"
+    "baltigo",
+    "sabaody"
    ]
   },
   "quote": "...",
@@ -2481,14 +2543,35 @@ export const EXTRA_CHARACTERS = {
   "power": 8,
   "isl": {
    "pre": [
-    "sphinx"
+    "marineford",
+    "jaya"
    ],
-   "post": [
-    "sphinx"
-   ]
+   "post": []
   },
   "quote": "...",
   "desc": "Commandant) de la 3e Division, Pirate « Diamant\" Joz ».",
+  "generated": true
+ },
+ "kaashii": {
+  "id": "kaashii",
+  "name": "Kaashii",
+  "emoji": "🪓",
+  "align": "neutre",
+  "power": 8,
+  "isl": {
+   "pre": [
+    "enies",
+    "water7",
+    "elbaf"
+   ],
+   "post": [
+    "enies",
+    "water7",
+    "elbaf"
+   ]
+  },
+  "quote": "...",
+  "desc": "Gardien d'Enies Lobby.",
   "generated": true
  },
  "kairo_kureyo": {
@@ -2686,10 +2769,13 @@ export const EXTRA_CHARACTERS = {
   "align": "yonko",
   "power": 26,
   "isl": {
-   "pre": [],
+   "pre": [
+    "jaya",
+    "banaro"
+   ],
    "post": [
-    "hachinosu",
-    "baltigo"
+    "baltigo",
+    "sabaody"
    ]
   },
   "quote": "...",
@@ -2763,11 +2849,10 @@ export const EXTRA_CHARACTERS = {
   "power": 38,
   "isl": {
    "pre": [
-    "sphinx"
+    "marineford",
+    "jaya"
    ],
-   "post": [
-    "sphinx"
-   ]
+   "post": []
   },
   "quote": "On l'appelle Oz Jr. C'est le descendant de \"L'Escamotteur d'Îles\" !",
   "desc": "Capitaine Pirate.",
@@ -2780,9 +2865,13 @@ export const EXTRA_CHARACTERS = {
   "align": "yonko",
   "power": 8,
   "isl": {
-   "pre": [],
+   "pre": [
+    "goa",
+    "sabaody"
+   ],
    "post": [
-    "elbaf"
+    "elbaf",
+    "sabaody"
    ]
   },
   "quote": "...",
@@ -3248,9 +3337,13 @@ export const EXTRA_CHARACTERS = {
   "align": "yonko",
   "power": 30,
   "isl": {
-   "pre": [],
+   "pre": [
+    "goa",
+    "sabaody"
+   ],
    "post": [
-    "elbaf"
+    "elbaf",
+    "sabaody"
    ]
   },
   "quote": "...",
@@ -3729,11 +3822,10 @@ export const EXTRA_CHARACTERS = {
   "power": 34,
   "isl": {
    "pre": [
-    "sphinx"
+    "marineford",
+    "jaya"
    ],
-   "post": [
-    "sphinx"
-   ]
+   "post": []
   },
   "quote": "...",
   "desc": "Pirate, Capitaine « L'Araignée des Maelstrom ».",
@@ -3931,10 +4023,13 @@ export const EXTRA_CHARACTERS = {
   "align": "yonko",
   "power": 48,
   "isl": {
-   "pre": [],
+   "pre": [
+    "jaya",
+    "banaro"
+   ],
    "post": [
-    "hachinosu",
-    "baltigo"
+    "baltigo",
+    "sabaody"
    ]
   },
   "quote": "...",
@@ -4025,11 +4120,10 @@ export const EXTRA_CHARACTERS = {
   "power": 24,
   "isl": {
    "pre": [
-    "sphinx"
+    "marineford",
+    "jaya"
    ],
-   "post": [
-    "sphinx"
-   ]
+   "post": []
   },
   "quote": "...",
   "desc": "Capitaine Pirate « La Sorcière des Glaces ».",
@@ -4059,9 +4153,13 @@ export const EXTRA_CHARACTERS = {
   "align": "yonko",
   "power": 8,
   "isl": {
-   "pre": [],
+   "pre": [
+    "goa",
+    "sabaody"
+   ],
    "post": [
-    "elbaf"
+    "elbaf",
+    "sabaody"
    ]
   },
   "quote": "...",
@@ -4208,6 +4306,7 @@ export const EXTRA_GROUPS = {
  "jiron": "revo",
  "jorge": "gov",
  "joz": "wb",
+ "kaashii": "geants",
  "kalik_meidara": "pirates",
  "karasu": "revo",
  "kashii": "geants",

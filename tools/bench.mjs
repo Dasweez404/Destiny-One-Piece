@@ -2,6 +2,7 @@
 // Usage : node tools/bench.mjs <prudent|moyen|temeraire> <rapide|saga> [parties] [full]
 // À relancer après chaque import massif de données ou de nouveaux événements.
 import * as G from '../js/engine.js';
+import * as B from '../js/battle.js';
 import { START_ISLANDS, ISLANDS, SEAS } from '../js/data/islands.js';
 import { FRUITS, WEAPONS, SHIP_MODELS } from '../js/data/items.js';
 const [arch = 'prudent', len = 'rapide', N = 300, mode = 'sum'] = process.argv.slice(2);
@@ -67,6 +68,7 @@ for (let g = 0; g < +N; g++) {
         const pickO = (arch !== 'moyen' || r() < 0.6) && pone ? pone : (big && r() < (len === 'saga' ? 0.3 : 0.55) ? big : pk(o));
         G.chooseDestination(S, pickO.id);
       } else if (S.phase === 'voyage') G.afterVoyage(S);
+      else if (S.phase === 'battle') { if (!S.battle) B.initBattle(S); const as = B.battleActs(S).filter(a => a.enabled); B.battleAct(S, as[Math.floor(Math.random() * as.length)].id); }
       for (const f of S.inventory.fruits) fruitsSeen.add(f);
       if (S.hero.fruit) fruitsSeen.add(S.hero.fruit.id);
       maxCrew = Math.max(maxCrew, S.crew.length);

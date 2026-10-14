@@ -10,17 +10,30 @@ import { GROUPS, groupOfChar, groupOfFaction, groupOfYonko, standingOf } from '.
 import { ALT_EVENTS, PUFFING_EVENTS } from './data/events_alt.js';
 import { ARC_EVENTS, ARCS } from './data/events_arcs.js';
 import { GROUP_EVENTS } from './data/events_groups.js';
+import { SH_EVENTS } from './data/events_strawhats.js';
+import { ISL_GEN_EVENTS } from './data/events_isl_gen.js';
 import { NAVAL_EVENTS, WAR_EVENTS, WAR_ARCS } from './data/events_war.js';
 import { CREW_FIRST, CREW_EPI, CREW_TRAITS, LEGENDS, STORY_FRUITS, CANON_CAREERS, BADGES, DAILY_GOALS, randomHeroName } from './data/meta.js';
 
 Object.assign(FRUITS, Object.fromEntries(Object.entries(STORY_FRUITS).map(([id, f]) => [id, { ...f, id }])));
 
-export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS, ...GROUP_EVENTS];
+export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS, ...GROUP_EVENTS, ...SH_EVENTS, ...ISL_GEN_EVENTS];
+// les événements de bataille proposent un « Livrer bataille » tactique construit sur leur jet naval ou de combat le plus marquant
+const BATTLE_EV = /^(s_warship|s_pirate_ship|gv_first_|n_merchant|n_patrol|n_duel_captains|n_broadside|n_blockade|n_fleet_yonko|n_hunters|n_ghost|n_harbor|w_own[23]|war_j\d_(sea|land)|wa_|gv_fleet_)/;
+for (const ev of ALL_EVENTS) {
+  if (/^n_/.test(ev.id) && ev.w?.weight) ev.w.weight = Math.round(ev.w.weight * 1.6);
+  if (!BATTLE_EV.test(ev.id) || !ev.ch) continue;
+  const bi = ev.ch.findIndex(c => (c.s === 'naval' || c.s === 'combat') && c.ok && c.ko && !c.r && !c.power);
+  if (bi < 0) continue;
+  const b = ev.ch[bi], kind = b.s === 'naval' ? 'naval' : 'land';
+  ev.ch.unshift({ t: kind === 'naval' ? '⚔️ Livrer bataille (tactique)' : '⚔️ Mener la bataille (tactique)', keep: true,
+    r: { x: kind === 'naval' ? 'Les lignes se forment : tes canons contre les leurs. Tu prends le commandement.' : 'Les lignes se heurtent. Tu prends la tête de la bataille.', e: { battle: { evId: ev.id, ci: bi + 1, kind, d: typeof b.d === 'number' ? b.d : 2 } } } });
+}
 export const EVENTS = Object.fromEntries(ALL_EVENTS.map(e => [e.id, e]));
 
 export const LENGTHS = {
   rapide: { name: 'Rapide', maxTurns: 23, actions: 1, age: 0.6, blueMin: 1, paraMin: 3, desc: '≈ 10 minutes. Une carrière éclair.' },
-  saga: { name: 'Vraie saga', maxTurns: 33, actions: 1, age: 0.25, blueMin: 4, paraMin: 10, desc: '≈ 40 minutes. Le grand voyage.' },
+  saga: { name: 'Vraie saga', maxTurns: 36, actions: 1, age: 0.25, blueMin: 4, paraMin: 10, desc: '≈ 40 minutes. Le grand voyage.' },
 };
 
 const STAT_DC = { 1: 8, 2: 12, 3: 15, 4: 18 };
@@ -168,7 +181,7 @@ export function statRating(S, stat) {
   return r;
 }
 
-const val = (v, V) => (typeof v === 'function' ? v(V) : v);
+export const val = (v, V) => (typeof v === 'function' ? v(V) : v);
 
 export function combatDcOf(S, ch) { return ch.D ?? COMBAT_DC[tierOf(S)] + (val(ch.d, view(S)) || 0) * 1.5; }
 export function checkChance(S, ch) {
@@ -440,7 +453,7 @@ export function allChoices(S, ev) {
 }
 
 // ───────────── imprévus : aucune issue n'est jamais certaine ─────────────
-const TWIST_SKIP = ['death', 'end', 'capture', 'pone', 'faction', 'yonko', 'goto', 'hpSet', 'heal'];
+const TWIST_SKIP = ['battle', 'death', 'end', 'capture', 'pone', 'faction', 'yonko', 'goto', 'hpSet', 'heal'];
 const STAT_KEYS_LIST = ['force', 'vitesse', 'intel', 'charisme', 'navigation', 'volonte'];
 const SOUR = ['Mais rien ne se passe exactement comme prévu : un imprévu gâche une partie du bénéfice.', 'Il y a un hic : on te réclame quelque chose en retour.', 'Un grain de sable s\'est glissé dans l\'affaire.', 'Un détail que tu n\'avais pas vu te coûte cher.', 'Le sort est taquin : tout n\'est pas aussi rose que prévu.'];
 const SWEET = ['Mais le sort te sourit à la dernière seconde.', 'Contre toute attente, quelque chose te sauve la mise.', 'Une chance inattendue amortit le coup.', 'Un inconnu surgit et tourne la situation à ton avantage.', 'Heureusement, ça aurait pu être pire : un coup de pouce du destin.'];
@@ -464,7 +477,7 @@ export function choicesOf(S, ev) {
     const p = c.p || stat ? checkChance(S, c) : 1;
     const aff = affectedOf(S, c, V);
     const tw = twistOf(S, ev, c);
-    return { i, aff, tw, power: !!c.power, label: val(c.t, V), stat, cost, locked, lockText, p, risk: c.p || stat ? riskLabel(p) : null, filler: isFiller(c) };
+    return { i, aff, tw, power: !!c.power, keep: !!c.keep, label: val(c.t, V), stat, cost, locked, lockText, p, risk: c.p || stat ? riskLabel(p) : null, filler: isFiller(c) };
   });
   // moins de choix, plus décisifs : on masque les choix verrouillés et les « remplissages »
   let out = all.filter(c => !c.locked);
@@ -473,7 +486,7 @@ export function choicesOf(S, ev) {
   // jamais plus de 3 choix : on garde des approches différentes (stats distinctes) avant de remplir
   if (out.length > 3 && ev.id !== 'fatal') {
     const keep = new Set(), stats = new Set();
-    for (const c of out) if (c.power && !c.locked) { keep.add(c); stats.add(c.stat); }
+    for (const c of out) if ((c.power || c.keep) && !c.locked && keep.size < 3) { keep.add(c); stats.add(c.stat || '_'); }
     for (const c of out) if (keep.size < 3 && !stats.has(c.stat || '_')) { keep.add(c); stats.add(c.stat || '_'); }
     for (const c of out) if (keep.size < 3) keep.add(c);
     out = out.filter(c => keep.has(c));
@@ -577,11 +590,12 @@ export function applyEff(S, e = {}, chips = [], mult = null) {
   }
   if (E.frel) for (const [k, v] of Object.entries(E.frel)) addGrel(S, k, v, chips);
   if (E.stamp) S[E.stamp] = S.turn;
+  if (E.battle) S.battleSpec = E.battle;
   if (E.flag) S.flags[E.flag] = true;
   if (E.flag2) S.flags[E.flag2] = true;
   if (E.arc) {
     (S.arcs ||= {})[E.arc.id] = E.arc.stage; (S.arcT ||= {})[E.arc.id] = S.turn;
-    const A = ARCS[E.arc.id] || WAR_ARCS[E.arc.id];
+    const A = ARCS[E.arc.id] || WAR_ARCS[E.arc.id] || (E.arc.id.startsWith('isl_') ? { name: 'Trame locale', stages: 2 } : null);
     if (A) { const done = E.arc.stage >= A.stages; chips.push({ t: `📖 ${A.name} : ${done ? 'terminée' : `étape ${E.arc.stage}/${A.stages}`}`, k: 'level' }); log(S, `📖 Trame « ${A.name} » : ${done ? 'dénouement' : 'étape ' + E.arc.stage}.`, 'big'); }
   }
   if (E.unflag) delete S.flags[E.unflag];
@@ -619,7 +633,7 @@ export function applyEff(S, e = {}, chips = [], mult = null) {
   return chips;
 }
 
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 function setYonko(S, id, chips) {
   const y = [...YONKO.pre, ...YONKO.post].find(y => y.id === id);
@@ -875,6 +889,7 @@ export function afterResult(S) {
   S.result = null;
   if (S.pendingEnd) return finish(S, S.pendingEnd.kind, S.pendingEnd.cause);
   if (checkFatal(S)) return;
+  if (S.battleSpec && !S.battle) { S.phase = 'battle'; return; }
   if (S.progress >= 9) return finish(S, 'onepiece');
   if (S.ctx === 'sea') { S.ctx = null; const dest = S.forcedNext || S.next; S.forcedNext = null; return arrive(S, dest); }
   if (S.forcedNext && (S.forcedNext === 'impeldown' || ISLANDS[S.loc].noNav)) { S.phase = 'nav'; return; }
@@ -911,7 +926,7 @@ export function navOptions(S) {
 // Route linéaire : on avance toujours vers l'avant, avec un choix entre deux îles.
 function routeAhead(S) {
   const key = routeKeyOf(ISLANDS[S.loc].sea);
-  const route = (ROUTES[key] || []).filter(id => { const i = ISLANDS[id]; return (!i.era || i.era === S.era) && !(S.length === 'rapide' && i.generated && i.pop < 3) && !(i.generated && i.pop < 2); });
+  const route = (ROUTES[key] || []).filter(id => { const i = ISLANDS[id]; return (!i.era || i.era === S.era) && !(S.length === 'rapide' && i.generated && i.pop < 3) && !(i.generated && i.pop < 2 && (id.length + id.charCodeAt(id.length - 1)) % 3 !== 0); });
   const camp = campOf(S);
   // position sur la route : seules les arrivées choisies font avancer (pas les renvois forcés) ; ce qui est derrière toi est derrière toi
   const cur = S.routePos?.[key] ?? -1;

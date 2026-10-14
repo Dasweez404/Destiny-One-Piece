@@ -2,6 +2,7 @@ import { sfx, isMuted, setMuted } from './sfx.js';
 import { banner, vignette } from './fx.js';
 // Interface : écrans, rendu, interactions.
 import * as G from './engine.js';
+import * as B from './battle.js';
 import { SEAS, ISLANDS, START_SEAS, START_ISLANDS } from './data/islands.js';
 import { FACTIONS, LEVELS, PROGRESS, ERAS, YONKO, CAMPS } from './data/factions.js';
 import { FRUITS, FRUIT_TYPES, WEAPONS, WEAPON_TYPES, SHIPS, ROLES, STATS, ITEMS, fruitPrice, weaponPrice, SHIP_MODELS, SHIP_MODS, FIGUREHEADS, SAIL_COLORS } from './data/items.js';
@@ -299,10 +300,34 @@ function vGame(S) {
   else if (S.phase === 'escale') body = vEscale(S);
   else if (S.phase === 'nav') body = vNav(S);
   else if (S.phase === 'voyage') body = vVoyage(S);
+  else if (S.phase === 'battle') { if (!S.battle) B.initBattle(S); body = vBattle(S); }
   return vHud(S) + `<main class="game">${S.phase !== 'voyage' ? vLoc(S) : ''}${body}</main>`;
 }
 
 const STAT_LABEL = s => (s === 'haki_obs' ? '👁️ Haki d\'observation' : s === 'haki_arm' ? '🛡️ Haki d\'armement' : s === 'haki_roi' ? '👑 Haki des Rois' : s === 'fruit' ? '🍇 Pouvoir du fruit' : s === 'combat' ? '⚔️ Combat' : s === 'naval' ? '⚓ Combat naval' : STATS[s] ? `${STATS[s].emoji} ${STATS[s].name}` : '🎲 Chance');
+
+// ───────────── bataille tactique ─────────────
+function vBattle(S) {
+  const b = S.battle, acts = B.battleActs(S);
+  const pct = x => Math.max(0, Math.round(x.hp / x.max * 100));
+  const hint = b.hint, hintTxt = { A: 'préparent une charge', G: 'se mettent en garde', R: 'manœuvrent pour une feinte' }[hint];
+  const sure = S.hero.haki.obs >= 1;
+  const last = b.last;
+  const lastTxt = last ? `<div class="blast ${last.outcome}"><b>Manche ${last.round}</b> · ${esc(last.text)} <i class="dmg">ennemi −${last.dFoe}</i>${last.dYou ? ` <i class="dmg you">toi −${last.dYou}</i>` : ''}</div>` : '';
+  const tac = acts.filter(a => a.kind === 'tac'), sp = acts.filter(a => a.kind === 'sp');
+  return `<section class="card battle ${b.kind}">
+    <h3><span class="e">${b.emoji}</span> ${esc(b.title)} <span class="pts">Manche ${Math.min(b.round, b.maxRounds)} / ${b.maxRounds}</span></h3>
+    <div class="forces">
+      <div class="side you"><span>${b.kind === 'naval' ? '⛵' : '🧑‍✈️'} Ton camp</span><i class="hb"><i style="width:${pct(b.you)}%"></i></i><small>${Math.max(0, b.you.hp)} / ${b.you.max}</small></div>
+      <div class="vs">VS</div>
+      <div class="side foe"><span>${b.kind === 'naval' ? '🏴' : '👹'} ${esc(b.foeName.replace(/^./, c => c.toUpperCase()))}</span><i class="hb"><i style="width:${pct(b.foe)}%"></i></i><small>${Math.max(0, b.foe.hp)} / ${b.foe.max}</small></div>
+    </div>
+    <p class="intent">${sure ? '👁️' : '🔭'} ${sure ? 'Tu lis leur jeu : ils' : 'Il semble que l\'ennemi'} ${hintTxt}${sure ? '.' : '… (pas sûr)'}</p>
+    ${lastTxt}
+    <div class="tacs">${tac.map(a => `<button class="tac" data-act="btac" data-arg="${a.id}"><span class="e">${a.emoji}</span><b>${a.label}</b><small>${a.sub}</small></button>`).join('')}</div>
+    ${sp.length ? `<h4>✨ Coups spéciaux (une fois par bataille)</h4><div class="tacs sp">${sp.map(a => `<button class="tac special" data-act="btac" data-arg="${a.id}" ${a.enabled ? '' : 'disabled'}><span class="e">${a.emoji}</span><b>${a.label}</b><small>${a.sub}</small></button>`).join('')}</div>` : ''}
+  </section>`;
+}
 
 function vEvent(S) {
   const ev = G.curEvent(S);
@@ -338,7 +363,7 @@ function vResult(S) {
   const r = S.result;
   const cls = r.ok === null ? 'neutral' : r.ok ? 'win' : 'lose';
   return `<section class="card result ${cls}">
-    <div class="banner">${r.ok === null ? (r.emoji || '📜') + ' ' + esc(r.title) : r.ok ? '✅ Réussite' : '❌ Échec'}${r.ok !== null ? `<small>${Math.round(r.p * 100)} % de chances</small>` : ''}</div>
+    <div class="banner">${r.ok === null ? (r.emoji || '📜') + ' ' + esc(r.title) : r.ok ? '✅ Réussite' : '❌ Échec'}${r.ok !== null && r.p != null ? `<small>${Math.round(r.p * 100)} % de chances</small>` : ''}</div>
     <p class="choice-made">« ${esc(r.choice)} »</p>
     ${r.roll !== null && r.roll !== undefined ? `<div class="roll"><div class="rollbar"><div class="zone" style="width:${Math.round(r.p * 100)}%"></div><div class="mark" style="left:${Math.round(r.roll * 100)}%"></div></div><small>${r.stat && r.stat !== 'chance' ? STAT_LABEL(r.stat) + ' · ' : ''}il fallait tomber dans la zone verte</small></div>` : ''}
     <p class="story">${esc(r.text)}</p>
@@ -869,6 +894,7 @@ function act(name, el) {
       return;
     }
     case 'exam': U.modal = 'exam'; U.tab = arg || U.tab || 'profil'; break;
+    case 'btac': { const r = B.battleAct(S, arg); if (r?.dYou >= 25) { document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 450); } if (r) sfx[r.dYou > r.dFoe ? 'hit' : 'coin'](); save(); break; }
     case 'menu': U.modal = 'menu'; break;
     case 'toggleSfx': setMuted(!isMuted()); if (!isMuted()) sfx.coin(); break;
     case 'journal': U.modal = 'exam'; U.tab = 'journal'; break;

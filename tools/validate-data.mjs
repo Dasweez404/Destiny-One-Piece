@@ -5,6 +5,7 @@ import { ISLANDS, SEAS, ROUTES, routeKeyOf } from '../js/data/islands.js';
 import { CHARACTERS } from '../js/data/characters.js';
 import { GROUPS, groupOfChar } from '../js/data/groups.js';
 import * as G from '../js/engine.js';
+import * as B from '../js/battle.js';
 const games = +(process.argv[process.argv.indexOf('--games') + 1]) || 150;
 const errors = [], warns = [];
 const err = m => errors.push(m), warn = m => warns.push(m);
@@ -43,9 +44,10 @@ for (let g = 0; g < games; g++) {
       else if (S.phase === 'escale') { if (S.actionsLeft > 0) { if (!G.startExplore(S)) G.doAction(S, 'rest'); } else G.leaveIsland(S); if (S.pendingEnd) G.finish(S, S.pendingEnd.kind, S.pendingEnd.cause); else G.checkFatal(S); }
       else if (S.phase === 'nav') { const o = G.navOptions(S).filter(x => !x.locked); G.chooseDestination(S, pk(o).id); }
       else if (S.phase === 'voyage') G.afterVoyage(S);
+      else if (S.phase === 'battle') { if (!S.battle) B.initBattle(S); const as = B.battleActs(S).filter(a => a.enabled); B.battleAct(S, as[Math.floor(Math.random() * as.length)].id); }
     }
     if (S.phase !== 'end') throw new Error('partie bloquée en phase ' + S.phase);
-    for (const [k, v] of Object.entries(S.seen)) if (/^(gv_|n_|w_|wa_|war_)/.test(k)) seenAll[k] = (seenAll[k] || 0) + 1;
+    for (const [k, v] of Object.entries(S.seen)) if (/^(gv_|n_|w_|wa_|war_|sh_|isl_)/.test(k)) seenAll[k] = (seenAll[k] || 0) + 1;
   } catch (e) { crashes++; if (crashes < 4) err(`partie ${g} : ${e.message}\n${e.stack.split("\n").slice(1,4).join("\n")}`); }
 }
 console.log(`${games} parties de test : ${crashes} plantage(s)`);
