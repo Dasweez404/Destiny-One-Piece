@@ -15,7 +15,8 @@ const base = S => { const ev = EVENTS[S.battleSpec.evId]; return ev ? { ev, c: e
 const pickIntent = S => ['A', 'G', 'R'][Math.floor(rnd(S) * 3)];
 function hintFor(S, truth) {
   const obs = S.hero.haki.obs;
-  const acc = obs >= 1 ? 0.95 : 0.62;
+  const t = tierOf(S);
+  const acc = obs >= 1 ? [0.95, 0.9, 0.85, 0.8][t - 1] ?? 0.8 : [0.72, 0.65, 0.6, 0.56][t - 1] ?? 0.55;
   if (rnd(S) < acc) return truth;
   const others = ['A', 'G', 'R'].filter(x => x !== truth);
   return others[Math.floor(rnd(S) * 2)];
@@ -24,13 +25,18 @@ function hintFor(S, truth) {
 export function initBattle(S) {
   const sp = S.battleSpec, naval = sp.kind === 'naval';
   const youP = Math.max(5, naval ? navalRating(S) : combatRating(S));
-  const foeP = Math.max(5, youP * (0.86 + 0.08 * (sp.d ?? 2))), youP2 = youP * (1 + (sp.ally || 0));
+  const tier = tierOf(S);
+  // l'ennemi suit le niveau de la mer : doux au début, plus coriace et plus nombreux ensuite ; les coups spéciaux dont tu disposes comptent dans son niveau
+  const nSpecial = (S.hero.haki.obs > 0) + (S.hero.haki.arm > 0) + (S.hero.haki.roi > 0) + (fruitOf(S) && fruitOf(S).id !== 'smile' ? 1 : 0) + (S.fleet.length > 0 || allyGroups(S).length > 0 ? 1 : 0);
+  const tierF = [1.1, 1.12, 1.2, 1.3][tier - 1] ?? 1.2;
+  const foeP = Math.max(5, youP * (0.82 + 0.06 * (sp.d ?? 2)) * tierF * (1 + 0.05 * nSpecial)), youP2 = youP * (1 + (sp.ally || 0));
+  const foeMax = [100, 112, 132, 155][tier - 1] ?? 150;
   const { ev } = base(S);
   const intent = pickIntent(S);
   S.battle = {
     title: ev?.title || 'Bataille', emoji: ev?.emoji || '⚔️', kind: sp.kind, foeName: sp.foe || (naval ? 'la flotte ennemie' : 'les troupes ennemies'),
-    you: { hp: 100, max: 100, power: youP2 }, foe: { hp: 100, max: 100, power: foeP },
-    round: 1, maxRounds: 5, intent, hint: hintFor(S, intent), used: {}, last: null, log: [], fruitUsed: false,
+    you: { hp: 100, max: 100, power: youP2 }, foe: { hp: foeMax, max: foeMax, power: foeP },
+    round: 1, maxRounds: tier >= 3 ? 6 : 5, intent, hint: hintFor(S, intent), used: {}, last: null, log: [], fruitUsed: false,
   };
   return S.battle;
 }
