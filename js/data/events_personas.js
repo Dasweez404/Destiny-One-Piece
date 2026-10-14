@@ -48,6 +48,51 @@ const KINDS = {
   ],
 };
 
+// Personnages principaux et secondaires déjà dans la base : scènes inventées, personnage fidèle à lui-même
+const MAJOR = [
+  ['garp', 'mentor', 'Un vieil homme en manteau de la Marine, un paquet de biscuits sous le bras, t\'aborde comme si de rien n\'était : « Hé, toi ! Tu as l\'air d\'un jeune qui a du potentiel ! Viens, je t\'offre un entraînement. »'],
+  ['sengoku', 'mentor', 'Un homme à la barbe fournie, un manteau de Justice sur les épaules, observe la mer d\'un air las. Il te toise : « Je n\'ai plus d\'illusions, mais j\'ai encore un conseil. À qui veut bien l\'entendre. »'],
+  ['akainu', 'marine', 'Un homme au regard de braise, un manteau « Justice absolue » flottant sur ses épaules, traverse la foule sans la voir. Il s\'arrête devant toi : « Je ne tolère pas l\'incertitude. Dis-moi qui tu es. »'],
+  ['kizaru', 'marine', 'Un homme élancé aux lunettes teintées, un petit sourire aux lèvres, avance en traînant les pieds : « Oooh~ qu\'est-ce que c\'est que ça ? Un pirate ? Ou un Marine ? Les deux ? »'],
+  ['aokiji', 'mentor', 'Un homme endormi sur un hamac improvisé, un masque de sommeil sur le front, se redresse paresseusement : « Hm ? Un jeune ? Dis-moi, qu\'est-ce que tu cherches vraiment ? »'],
+  ['fujitora', 'noble', 'Un homme aveugle, une canne-sabre à la main, avance avec un calme absolu : « Je me fie à ce que j\'entends, étranger. Dis-moi ce que tu veux dire. »'],
+  ['mihawk', 'duelist', 'Un homme aux yeux de rapace, un grand sabre noir dans le dos, te contemple sans bouger. Une voix grave : « Tu cherches un adversaire à ta hauteur. Je ne suis pas sûr que tu le trouves ici. »'],
+  ['shanks', 'mentor', 'Un homme à la cicatrice sur l\'œil, un bras en moins, lève sa chope d\'un geste fraternel : « Viens boire ! Les grands rêves se partagent mieux avec un verre. »'],
+  ['barbeblanche', 'mentor', 'Un vieil homme gigantesque, moustache en croissant, assis dans un fauteuil roulant au milieu d\'une tempête de rires, te regarde avec bienveillance : « Viens, mon fils. Ici, on est une famille. »'],
+  ['marco', 'healer', 'Un homme blond à l\'air nonchalant, un tatouage de Barbe Blanche sur la poitrine, se gratte la nuque : « Hé, tu as l\'air blessé. Je peux jeter un œil, si tu veux. »'],
+  ['bigmom', 'noble', 'Une femme énorme aux cheveux roses éclate d\'un rire tonitruant : « Bwahaha ! Un invité ! Tu as des douceurs à m\'offrir ? Ou tu veux que je t\'invite à mon thé ? »'],
+  ['katakuri', 'duelist', 'Un homme grand, une écharpe cachant sa bouche, mange silencieusement un beignet. Il lève un regard calme sur toi : « Je ne suis pas là pour t\'embêter. Mais je ne refuse jamais un bon combat. »'],
+  ['kaido', 'rogue', 'Un colosse aux cornes, une massue sur l\'épaule, une cruche à la main, te dévisage de ses yeux de dragon : « Hé, toi. Tu veux mourir glorieusement ? Je cherche un bon combat. »'],
+  ['dragon', 'mentor', 'Un homme à capuche, tatouage sur le visage, te regarde sans un mot, puis parle d\'une voix calme : « Le monde attend un changement. Toi, tu as déjà commencé à le chercher. »'],
+  ['sabo', 'merchant', 'Un jeune homme élégant, haut-de-forme et tuyau en main, sourit : « Les révolutionnaires cherchent toujours des gens de confiance. Si tu as des informations, je suis preneur. »'],
+  ['koala', 'merchant', 'Une jeune femme au sourire franc, un badge de la Révolution sur le col, t\'aborde : « Un passage sûr pour les opprimés, ça te dit quelque chose ? Je suis prête à négocier. »'],
+  ['ace', 'duelist', 'Un jeune homme à la peau tachetée de taches de rousseur, chapeau orange, t\'adresse un sourire en coin : « Hé, toi ! Un combat amical ? Je ne me retiens pas. »'],
+  ['law', 'merchant', 'Un homme au chapeau tacheté, un grand sabre sur l\'épaule, soupire : « J\'ai des informations, et j\'ai besoin de quelque chose en échange. Ça t\'intéresse ? »'],
+  ['kidd', 'duelist', 'Un homme aux cheveux rouges, bras mécanique en ferraille, te heurte du regard : « Toi, là ! Tu veux un combat ? Allez, montre-moi ce que tu as ! »'],
+  ['vivi', 'noble', 'Une jeune princesse aux cheveux bleus, vêtue simplement, t\'accueille chaleureusement : « Merci d\'être venu. Mon pays a besoin de gens courageux, comme toi. »'],
+  ['rayleigh', 'mentor', 'Un vieil homme aux lunettes, une cigarette aux lèvres, lit un journal : « Tu me rappelles quelqu\'un. Un vieux compagnon. Dis-moi, qu\'est-ce qui te pousse en mer ? »'],
+  ['crocus', 'healer', 'Un vieux médecin à la crête improbable, les mains calleuses, t\'examine d\'un œil critique : « Tu as l\'air fatigué. Un bon repas, un bon sommeil, et un bon conseil. Je ne facture pas les trois. »'],
+  ['kureha', 'healer', 'Une vieille femme à la cigarette, le regard perçant, ricane : « Tu vois cette fiole ? C\'est un remède. Ou un poison. Selon mon humeur. »'],
+  ['iceburg', 'merchant', 'Un homme élégant, un museau de souris sur l\'épaule, discute avec ses ouvriers : « Un navire, ça se choie. Je peux te proposer quelque chose de bien. »'],
+  ['zeff', 'healer', 'Un cuisinier à la jambe de bois, une moustache en bataille, sert un plat fumant : « Mange. On discute après. Un affamé n\'écoute pas. »'],
+  ['cricket', 'merchant', 'Un homme à la barbe fournie, une armure de fortune, un sourire de trésor : « Hé ! Des visiteurs ! Je cherche de l\'or depuis dix ans, tu veux m\'aider ? »'],
+  ['hancock', 'noble', 'Une femme d\'une beauté éblouissante, escortée de guerrières, te toise de haut : « Les hommes sont des vermines. Mais je suis de bonne humeur. Que veux-tu ? »'],
+  ['kuma', 'rogue', 'Un homme massif, un livre à la main, une patte d\'ours tatouée dans la paume, te regarde sans expression : « Je n\'ai pas de rancune. Mais j\'obéis. »'],
+  ['moria', 'rogue', 'Un géant souriant, un grand chapeau noir sur la tête, joue avec des ombres : « Kishishishi ! Une ombre de plus, c\'est toujours une bonne affaire. »'],
+  ['enel', 'duelist', 'Un homme torse nu, des tambours dans le dos, flotte au-dessus d\'un nuage orageux : « Je suis Dieu ici. Prouve-moi le contraire. »'],
+  ['vegapunk', 'merchant', 'Un petit homme en blouse blanche, le crâne énorme, te serre la main avec enthousiasme : « Quel esprit curieux ! J\'ai justement besoin d\'un cobaye volontaire. »'],
+  ['caesar', 'rogue', 'Un savant à la mâchoire carrée, un sourire de mauvais présage : « Shurororo ! Tu as des gènes intéressants. Un petit prélèvement, peut-être ? »'],
+  ['smoker', 'marine', 'Un homme à la veste blanche, deux cigares aux lèvres, un jitte à la main, te regarde dans la fumée : « Pirate. Je te connais. »'],
+  ['tashigi', 'marine', 'Une jeune femme aux lunettes, un sabre à la ceinture, rougit en te demandant : « Pardon, c\'est un beau sabre ! Où l\'avez-vous eu ? »'],
+  ['koby', 'marine', 'Un jeune Marine, un casque trop grand sur la tête, te salue avec trop d\'enthousiasme : « Je suis Koby ! Un jour, je serai amiral. Tu peux m\'aider ? »'],
+  ['hina', 'marine', 'Une femme aux cheveux roses, une cigarette aux lèvres, se tourne vers toi : « Hina est inquiète. Hina n\'aime pas les pirates. Surtout les mal rasés. »'],
+  ['tsuru', 'mentor', 'Une vieille dame aux cheveux blancs, un livre sous le bras, t\'invite à la suivre : « Assieds-toi, jeune. J\'ai beaucoup à te dire sur la Justice. »'],
+  ['lucci', 'rogue', 'Un homme en costume, un pigeon sur l\'épaule, t\'adresse un sourire glacial : « Nous n\'aimons pas les surprises. Mais je suis curieux de te voir au travail. »'],
+  ['yamato', 'duelist', 'Une jeune guerrière à la corne de dragon, une massue à la main, te sourit : « Je veux voir le monde ! Un combat d\'abord, tu veux ? »'],
+  ['pedro', 'mentor', 'Un mink félin aux moustaches fières, une épée sur le dos, te prévient : « Les Minks ne reculent pas. Mais ils savent écouter. »'],
+];
+for (const [id, kind, hook] of MAJOR) if (CHARACTERS[id] && KINDS[kind]) MORE_PERSONAS.push({ id, kind, hook });
+
 const tierOfPower = p => (p <= 12 ? 0 : p <= 30 ? 1 : 2);
 export const PERSONA_EVENTS = [];
 for (const p of MORE_PERSONAS) {

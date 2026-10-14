@@ -117,13 +117,14 @@ const follow = isl => {
   const id = 'isl_' + isl.id;
   const good = S => [0, 1, 2].some(i => S.hasFlag(`${id}_c${i}g`));
   return {
-    id: id + '_2', pri: 9, emoji: isl.emoji || '📍', title: `Des nouvelles de ${isl.name}`,
-    w: { test: S => S.arc(id, 1, 2) },
+    id: id + '_2', emoji: isl.emoji || '📍', title: ['Des nouvelles de ', 'Retour sur ', 'Les échos de ', 'Une lettre de '][hash(isl.id) % 4] + isl.name,
+    w: { weight: 5, test: S => S.arc(id, 1, 3) && S.turn - (S.islFollowT ?? -9) >= 4 },
+    cd: 'islFollowT',
     x: S => good(S)
       ? `Quelques jours après ton passage à ${isl.name}, un messager te rattrape : ton coup de main a fait parler de toi, et quelqu\'un souhaite te remercier à sa façon.`
       : `Quelques jours après ton passage à ${isl.name}, une rumeur te rattrape : tes mésaventures là-bas ont fait rire (ou grincer des dents) les mauvaises personnes.`,
     ch: [
-      { t: 'Répondre à l\'appel', s: 'charisme', d: 1,
+      { t: ['Répondre à l\'appel', 'Envoyer un message en retour', 'Lire la lettre attentivement', 'Prendre des nouvelles'][hash(isl.id) % 4], s: 'charisme', d: 1,
         ok: { x: S => good(S) ? 'On t\'accueille en héros. Un petit cadeau t\'attend, et une promesse de revoir ton navire à bon port.' : 'Tu rattrapes la situation avec tact : personne ne t\'en veut.', e: { berrys: S => S.tierPrime() / 3, rep: 3, arc: A(id, 2) } },
         ko: { x: 'Le message est arrivé trop tard. L\'occasion est passée.', e: { arc: A(id, 2) } } },
       { t: 'Ignorer', r: { x: 'Tu hausses les épaules. Les rumeurs finissent toujours par se tasser.', e: { arc: A(id, 2) } } },

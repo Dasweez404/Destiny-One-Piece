@@ -380,11 +380,13 @@ export function pickEvent(S, ctx, secondary = false) {
   if (ctx === 'island' && !secondary && ISLANDS[S.loc].noNav) return null;
   const pool = c.filter(e => !(e.pri >= 8));
   // rencontre canon
-  const chars = charsAt(S.loc, S.era).filter(ch => !S.seen['meet_' + ch.id]);
+  // les Chapeaux de paille se croisent rarement, et plutôt en bande (événements dédiés) : on les écarte des rencontres individuelles
+  const okStraw = S.turn - (S.shT ?? -9) >= 8 && rnd(S) < 0.25;
+  const chars = charsAt(S.loc, S.era).filter(ch => !S.seen['meet_' + ch.id] && (groupOfChar(ch.id, S.era) !== 'chapeau' || okStraw));
   if (ctx === 'island' && chars.length && chance(S, secondary ? 0.7 : 0.5)) return { gen: makeEncounter(S, pick(S, chars)) };
   // en mer aussi, on croise des figures canon qui voguent dans les parages
   if (ctx === 'sea' && chance(S, 0.3)) {
-    const roam = Object.values(CHARACTERS).filter(ch => !S.seen['meet_' + ch.id] && ch.isl?.[S.era]?.some(id => ISLANDS[id]?.sea === ISLANDS[S.loc].sea) && ch.power <= [18, 45, 80, 200][tierOf(S) - 1] * 1.3);
+    const roam = Object.values(CHARACTERS).filter(ch => !S.seen['meet_' + ch.id] && ch.isl?.[S.era]?.some(id => ISLANDS[id]?.sea === ISLANDS[S.loc].sea) && ch.power <= [18, 45, 80, 200][tierOf(S) - 1] * 1.3 && groupOfChar(ch.id, S.era) !== 'chapeau');
     if (roam.length) return { gen: makeEncounter(S, pick(S, roam)) };
   }
   if (!pool.length) return null;
@@ -398,6 +400,7 @@ export function pickEvent(S, ctx, secondary = false) {
 }
 
 export function makeEncounter(S, ch) {
+  if (groupOfChar(ch.id, S.era) === 'chapeau') S.shT = S.turn;
   const camp = campOf(S);
   const friendly = (ch.align === 'marine' || ch.align === 'gov') === (camp === 'gardien');
   const dcComb = ch.power * 1.05 + 4;

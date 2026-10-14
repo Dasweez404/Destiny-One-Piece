@@ -35,8 +35,8 @@ const M = [
 ];
 
 const mk = (m, era) => ({
-  id: `sh_${m.id}_${era}`, once: true, emoji: m.emoji, title: `${m.name}`,
-  w: { era, weight: 6, minTier: m.tier, test: S => !S.hasFlag('sh_met_' + m.id) },
+  id: `sh_${m.id}_${era}`, once: true, cd: 'shT', emoji: m.emoji, title: `${m.name}`,
+  w: { era, weight: 2, minTier: m.tier, test: S => !S.hasFlag('sh_met_' + m.id) && S.turn - (S.shT ?? -9) >= 7 },
   x: era === 'post' && m.post_txt ? m.post_txt : m[era === 'post' ? 'post' : 'pre'] === true ? m.pre : (era === 'post' && typeof m.post === 'string' ? m.post : m.pre),
   ch: [
     { t: m.a.t, ...(m.a.s ? { s: m.a.s, d: m.a.d, ok: { x: m.a.ok, e: { ...m.a.e, flag: 'sh_met_' + m.id } }, ko: { x: m.a.ko || m.a.ok, e: { flag: 'sh_met_' + m.id, rel: m.a.e?.rel } } } : { c: m.a.c, r: { x: m.a.r.x, e: { ...m.a.r.e, flag: 'sh_met_' + m.id } } }) },
@@ -48,10 +48,10 @@ export const SH_EVENTS = [];
 for (const m of M) for (const era of ['pre', 'post']) { if (m.id === 'jinbe' && era === 'pre') continue; SH_EVENTS.push(mk(m, era)); }
 
 // L'équipage au complet : repas d'alliance, bataille côte à côte, ou duel avec le capitaine
-const met = S => ['luffy', 'zoro', 'nami', 'usopp', 'sanji', 'chopper', 'robin', 'franky', 'brook', 'jinbe'].filter(id => S.hasFlag('sh_met_' + id)).length;
+const met = S => ['luffy', 'zoro', 'nami', 'usopp', 'sanji', 'chopper', 'robin', 'franky', 'brook', 'jinbe'].filter(id => S.hasFlag('sh_met_' + id)).length + 3 * ['trio', 'trio2', 'trio3'].filter(b => S.hasFlag('sh_band_' + b)).length;
 SH_EVENTS.push({
-  id: 'sh_crew', once: true, emoji: '🏴‍☠️', title: 'L\'équipage au chapeau de paille',
-  w: { weight: 14, minTier: 2, test: S => met(S) >= 3 },
+  id: 'sh_crew', once: true, cd: 'shT', emoji: '🏴‍☠️', title: 'L\'équipage au chapeau de paille',
+  w: { weight: 14, minTier: 2, test: S => met(S) >= 3 && S.turn - (S.shT ?? -9) >= 5 },
   x: 'Un navire à la figure de proue de lion jaune surgit de la brume. À son bord, des visages que tu as déjà croisés : ils te reconnaissent. « Hé ! C\'est le gars de l\'autre fois ! » crie Luffy. Quelqu\'un hurle qu\'un navire de guerre approche derrière toi. L\'équipage te propose d\'unir vos voiles.',
   ch: [
     { t: 'Combattre à leurs côtés', r: { x: 'Vos deux navires se placent en ligne. Luffy hurle : « Allons-y, nakama ! »', e: { battle: { evId: 'sh_crew_battle', ci: 0, kind: 'naval', d: 3, foe: 'la flotte de la Marine', ally: 0.4 }, frel: { chapeau: 3 } } } },
@@ -68,3 +68,29 @@ SH_EVENTS.push({
     ok: { x: 'Votre double ligne brise la flotte ennemie. Les Chapeaux de paille hurlent de joie, et ton nom est cité dans leurs récits.', e: { glory: 8, berrys: S => S.tierPrime(), frel: { chapeau: 3, marine: -2 }, rel: { luffy: 1 }, hl: 'a combattu aux côtés des Chapeaux de paille' } },
     ko: { x: 'La bataille est perdue, mais l\'équipage te sauve in extremis.', e: { shipHp: -30, frel: { chapeau: 2 } } } }],
 });
+
+// Rencontres « en bande » : les Chapeaux de paille se croisent généralement à plusieurs
+const band = (id, ids, o) => ({
+  id: `sh_band_${id}`, once: true, cd: 'shT', emoji: o.emoji, title: o.title,
+  w: { weight: 9, minTier: o.tier, test: S => S.turn - (S.shT ?? -9) >= 7 && !S.hasFlag('sh_band_' + id) },
+  x: o.x,
+  ch: [
+    { t: o.a.t, ...(o.a.s ? { s: o.a.s, d: o.a.d, ok: { x: o.a.ok, e: { ...o.a.e, flag: 'sh_band_' + id, rel: Object.fromEntries(ids.map(i => [i, 1])), frel: { chapeau: 2 } } }, ko: { x: o.a.ko, e: { flag: 'sh_band_' + id, morale: -3 } } } : { r: { x: o.a.r, e: { ...o.a.e, flag: 'sh_band_' + id, rel: Object.fromEntries(ids.map(i => [i, 1])), frel: { chapeau: 2 } } } }) },
+    { t: o.b.t, s: o.b.s, d: o.b.d, ok: { x: o.b.ok, e: { ...o.b.e, flag: 'sh_band_' + id } }, ko: { x: o.b.ko, e: { flag: 'sh_band_' + id, hp: -20 } } },
+    { t: 'Les saluer et repartir', r: { x: 'Un signe de la main, un chapeau de paille qui s\'agite au loin. Ils sont déjà passés à autre chose.', e: { flag: 'sh_band_' + id } } },
+  ],
+});
+SH_EVENTS.push(
+  band('trio', ['luffy', 'zoro', 'sanji'], { emoji: '👒', title: 'Luffy, Zoro et Sanji', tier: 1,
+    x: 'Trois silhouettes se disputent sur le quai : un garçon à chapeau de paille réclame de la viande, un sabreur aux cheveux verts proteste qu\'on ne le laisse pas dormir, et un cuisinier blond leur reproche de salir sa cuisine. Une scène de ménage classique, chez ces gens-là. Le garçon te repère : « Hé ! Toi ! Tu veux bouffer avec nous ? »',
+    a: { t: 'Dîner avec eux', r: 'Le cuisinier sert un festin improvisé. Le sabreur s\'endort sur la table, le garçon dévore tout, et tu repars avec un ventre plein et des amis.', e: { hp: 999, morale: 20, loyalty: 6 } },
+    b: { t: 'Relever un défi à trois', s: 'combat', d: 6, ok: 'Tu leur tiens tête un instant, à leur surprise. « Pas mal ! » hurle le garçon, tandis que le sabreur grogne un respect bourru.', ko: 'Un seul coup de pied, un seul geste de sabre, et tu te retrouves sur le dos. Ils s\'excusent, vaguement.', e: { glory: 6, stats: { force: 1 } } } }),
+  band('trio2', ['nami', 'usopp', 'chopper'], { emoji: '🧭', title: 'Nami, Usopp et Chopper', tier: 1,
+    x: 'Une navigatrice, un tireur au long nez et un petit renne à chapeau rose négocient avec un marchand. La navigatrice a l\'œil sur ta bourse. Le tireur raconte l\'histoire de sa vie à quiconque l\'écoute. Le renne soigne un chat errant. « Tu as besoin de quelque chose ? » demande-t-elle, avec un sourire dangereusement avenant.',
+    a: { t: 'Acheter une carte et des remèdes', s: 'charisme', d: 2, ok: 'Elle te fait un prix d\'ami. Le tireur ajoute un conseil pas totalement faux. Le renne te glisse un onguent. Tu repars bien équipé.', ko: 'Elle te fait payer au prix fort. Ils sont adorables, mais ils ne sont pas des enfants de chœur.', e: { stats: { navigation: 1 }, hp: 40, morale: 8 } },
+    b: { t: 'Les aider avec le marchand', s: 'intel', d: 3, ok: 'Tu démasques les arnaques du marchand. Ils te remercient chaleureusement, et la navigatrice te rembourse en cartes.', ko: 'Le marchand te dépasse en ruse. Ils s\'en sortent sans toi.', e: { berrys: S => S.tierPrime() / 3, rep: 3 } } }),
+  band('trio3', ['robin', 'franky', 'brook'], { emoji: '🎻', title: 'Robin, Franky et Brook', tier: 2,
+    x: 'Sur un petit navire, une archéologue lit en silence, un cyborg répare le mât en chantant, et un squelette en haut-de-forme joue du violon. La musique se mêle au bruit des marteaux. « Un invité ! » s\'exclame le squelette. « Et sans culotte, je ne peux pas dire s\'il est charmant ! »',
+    a: { t: 'Écouter leur concert improvisé', r: 'La mélodie, le rythme des marteaux, la voix du squelette : un instant parfait. Ton équipage se joint à eux pour un refrain.', e: { morale: 25, loyalty: 8 } },
+    b: { t: 'Leur demander de l\'aide pour ton navire et tes cartes', s: 'intel', d: 3, ok: 'Le cyborg refait ta coque, l\'archéologue t\'explique un détail de navigation sur une carte ancienne.', ko: 'Ils sont trop occupés pour toi.', e: { shipHp: 80, stats: { intel: 1 }, ship: { mod: 'random' } } } }),
+);

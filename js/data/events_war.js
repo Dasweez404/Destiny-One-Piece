@@ -318,8 +318,8 @@ NAVAL_EVENTS.push(
 const FOES = { marine: 'pirates', gov: 'revo', revo: 'gov', pirates: 'marine', chapeau: 'marine', shanks: 'teach', wb: 'marine', bigmom: 'kaido', kaido: 'bigmom', teach: 'shanks', corsaires: 'revo', crossguild: 'marine', kuja: 'marine', minks: 'kaido', geants: 'pirates', wano: 'kaido', ryugu: 'pirates', germa: 'revo', galleyla: 'gov', ciel: 'pirates', vegapunk: 'gov', roger: 'marine' };
 for (const [g, foe] of Object.entries(FOES)) {
   WAR_EVENTS.push({
-    id: 'wa_' + g, once: true, emoji: '📯', title: 'L\'appel d\'un allié',
-    w: { weight: 10, test: S => S.grel(g) >= 6 && S.lvl >= 1 && hasShipPower(S) },
+    id: 'wa_' + g, once: true, cd: 'waT', emoji: '📯', title: ['L\'appel d\'un allié', 'Un allié en difficulté', 'Renforts demandés', 'Une alliance éprouvée'][g.length % 4],
+    w: { weight: 7, test: S => S.grel(g) >= 6 && S.lvl >= 1 && hasShipPower(S) && S.turn - (S.waT ?? -9) >= 8 },
     x: S => `Un messager de ${g === 'marine' ? 'la Marine' : 'tes alliés'} accoste en urgence : leur camp est attaqué par ${foe === 'marine' ? 'la Marine' : foe === 'gov' ? 'le Gouvernement' : foe === 'revo' ? 'les révolutionnaires' : foe === 'pirates' ? 'une coalition pirate' : 'un rival'} et ils ont besoin de bras. « Tu nous dois bien ça, ami. »`,
     ch: [
       { t: 'Prendre la tête de la bataille navale', s: 'naval', d: 2,
