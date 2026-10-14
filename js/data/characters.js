@@ -1,4 +1,5 @@
 import { EXTRA_CHARACTERS } from './generated.js';
+import { MORE_CHARACTERS } from './characters_more.js';
 // Personnages canon que l'on peut croiser. isl = où on peut les rencontrer selon l'époque.
 // power ≈ indice de combat (cf. échelle de niveau). align : côté naturel du personnage.
 
@@ -110,5 +111,6 @@ export const CHARACTERS = Object.fromEntries([
 ].map(c => [c.id, c]));
 
 for (const [id, c] of Object.entries(EXTRA_CHARACTERS)) if (!CHARACTERS[id]) CHARACTERS[id] = c;
+for (const [id, c] of Object.entries(MORE_CHARACTERS)) if (!CHARACTERS[id]) CHARACTERS[id] = c;
 
 export const charsAt = (islandId, era) => Object.values(CHARACTERS).filter(c => c.isl[era]?.includes(islandId));

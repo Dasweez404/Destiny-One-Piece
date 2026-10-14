@@ -15,13 +15,14 @@ import { SUBMISSION_EVENTS } from './data/events_submission.js';
 import { ORIG_EVENTS, ORIG_ARCS } from './data/events_originals.js';
 import { LORE_EVENTS, LORE_ARCS } from './data/events_lore.js';
 import { CANON_CREW_EVENTS } from './data/events_canon_crews.js';
+import { PERSONA_EVENTS } from './data/events_personas.js';
 import { ISL_GEN_EVENTS } from './data/events_isl_gen.js';
 import { NAVAL_EVENTS, WAR_EVENTS, WAR_ARCS } from './data/events_war.js';
 import { CREW_FIRST, CREW_EPI, CREW_TRAITS, LEGENDS, STORY_FRUITS, CANON_CAREERS, BADGES, DAILY_GOALS, randomHeroName } from './data/meta.js';
 
 Object.assign(FRUITS, Object.fromEntries(Object.entries(STORY_FRUITS).map(([id, f]) => [id, { ...f, id }])));
 
-export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS, ...GROUP_EVENTS, ...SH_EVENTS, ...ISL_GEN_EVENTS, ...SUBMISSION_EVENTS, ...ORIG_EVENTS, ...LORE_EVENTS, ...CANON_CREW_EVENTS];
+export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS, ...GROUP_EVENTS, ...SH_EVENTS, ...ISL_GEN_EVENTS, ...SUBMISSION_EVENTS, ...ORIG_EVENTS, ...LORE_EVENTS, ...CANON_CREW_EVENTS, ...PERSONA_EVENTS];
 // les événements de bataille proposent un « Livrer bataille » tactique construit sur leur jet naval ou de combat le plus marquant
 const BATTLE_EV = /^(l_[a-z]+_[23]|of_sea_|of_recur_|s_warship|s_pirate_ship|gv_first_|n_merchant|n_patrol|n_duel_captains|n_broadside|n_blockade|n_fleet_yonko|n_hunters|n_ghost|n_harbor|w_own[23]|war_j\d_(sea|land)|wa_|gv_fleet_)/;
 for (const ev of ALL_EVENTS) {
