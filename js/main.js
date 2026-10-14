@@ -307,7 +307,7 @@ function vGame(S) {
   return vHud(S) + `<main class="game">${S.phase !== 'voyage' ? vLoc(S) : ''}${body}</main>`;
 }
 
-const STAT_LABEL = s => (s === 'haki_obs' ? '👁️ Haki d\'observation' : s === 'haki_arm' ? '🛡️ Haki d\'armement' : s === 'haki_roi' ? '👑 Haki des Rois' : s === 'fruit' ? '🍇 Pouvoir du fruit' : s === 'combat' ? '⚔️ Combat' : s === 'naval' ? '⚓ Combat naval' : STATS[s] ? `${STATS[s].emoji} ${STATS[s].name}` : '🎲 Chance');
+const STAT_LABEL = s => (s === 'pacte' ? '⛓️ Pacte d\'Imu' : s === 'haki_obs' ? '👁️ Haki d\'observation' : s === 'haki_arm' ? '🛡️ Haki d\'armement' : s === 'haki_roi' ? '👑 Haki des Rois' : s === 'fruit' ? '🍇 Pouvoir du fruit' : s === 'combat' ? '⚔️ Combat' : s === 'naval' ? '⚓ Combat naval' : STATS[s] ? `${STATS[s].emoji} ${STATS[s].name}` : '🎲 Chance');
 
 // ───────────── bataille tactique ─────────────
 function vBattle(S) {
@@ -538,7 +538,7 @@ function vEnd(S) {
         <div><small>Objectif</small><b>${esc(E.progressLabel)} (${S.progress}/9)</b></div>
         <div><small>Voyage</small><b>${S.visited.length} îles · ${Math.floor(h.age)} ans</b></div>
         <div><small>Fruit</small><b>${h.fruit ? esc(FRUITS[h.fruit.id].name) + (h.fruit.awakened ? ' ✨' : '') : 'Aucun'}</b></div>
-        <div><small>Haki</small><b>${['obs', 'arm', 'roi'].filter(k => h.haki[k]).map(k => ({ obs: '👁️', arm: '🛡️', roi: '👑' }[k]) + h.haki[k]).join(' ') || 'Aucun'}</b></div>
+        <div><small>${h.pacte ? 'Pacte' : 'Haki'}</small><b>${h.pacte ? `${G.PACTE[h.pacte].short} ${esc(G.PACTE[h.pacte].name)}` : ['obs', 'arm', 'roi'].filter(k => h.haki[k]).map(k => ({ obs: '👁️', arm: '🛡️', roi: '👑' }[k]) + h.haki[k]).join(' ') || 'Aucun'}</b></div>
         <div><small>${FACTIONS[h.faction].crewLabel}</small><b>${S.crew.length} membre${S.crew.length > 1 ? 's' : ''}${S.fleet.length ? ` + ${S.fleet.length} en flotte` : ''}</b></div>
         <div><small>Camp</small><b>${esc(CAMPS[camp].name)}</b></div>
       </div>
@@ -624,7 +624,7 @@ function tProfil(S) {
     <div><small>🌟 Réputation</small><b>${S.rep}</b></div>
     <div><small>🍇 Fruit</small><b>${f ? `${esc(f.name)}${h.fruit.awakened ? ' ✨ éveillé' : ''}${f.id === 'smile' ? (h.fruit.smileOk ? ' (réussi)' : ' (raté 😂)') : ''}` : 'Aucun'}</b>${f ? `<em>${esc(f.desc)}</em>` : ''}</div>
     <div><small>🗡️ Arme</small><b>${w ? `${esc(w.name)} ${'★'.repeat(w.tier)}` : 'Aucune'}</b>${w ? `<em>${WEAPON_TYPES[w.type]}</em>` : ''}</div>
-    <div><small>🌀 Haki</small><b>👁️ ${h.haki.obs} · 🛡️ ${h.haki.arm} · 👑 ${h.haki.roi || (h.roiPotential ? '?' : '0')}</b></div>
+    ${h.pacte ? `<div><small>⛓️ Pacte d'Imu</small><b>${esc(G.PACTE[h.pacte].name)}</b></div><p class="hint">${esc(G.PACTE[h.pacte].desc)}</p>` : `<div><small>🌀 Haki</small><b>👁️ ${h.haki.obs} · 🛡️ ${h.haki.arm} · 👑 ${h.haki.roi || (h.roiPotential ? '?' : '0')}</b></div>`}
     <div><small>🏝️ Territoires</small><b>${S.territory}</b></div>
   </div>
   <h4>🗺️ ${esc(CAMPS[camp].goal)}</h4>

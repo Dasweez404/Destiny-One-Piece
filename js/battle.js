@@ -44,10 +44,11 @@ export function initBattle(S) {
 export function battleActs(S) {
   const B = S.battle, h = S.hero, out = [];
   for (const [id, t] of Object.entries(TACTICS)) out.push({ id, emoji: t.emoji, label: t.name, sub: t.tip, kind: 'tac', enabled: true });
-  const hk = h.haki;
-  if (hk.roi > 0) out.push({ id: 'roi', emoji: '👑', label: 'Haki des Rois', sub: 'L\'ennemi vacille : il ne riposte pas', kind: 'sp', enabled: !B.used.roi });
-  if (hk.arm > 0) out.push({ id: 'arm', emoji: '🛡️', label: 'Haki de l\'armement', sub: 'Coup renforcé, à coup sûr', kind: 'sp', enabled: !B.used.arm });
-  if (hk.obs > 0) out.push({ id: 'obs', emoji: '👁️', label: 'Haki de l\'observation', sub: 'Tu lis son jeu : contre parfait', kind: 'sp', enabled: !B.used.obs });
+  const hk = h.haki, sealed = h.faction === 'chevalier' || (h.pacte || 0) > 0;
+  if ((h.pacte || 0) >= 2) out.push({ id: 'pacte', emoji: '⛓️', label: h.pacte >= 3 ? 'Pacte des abysses' : 'Pacte des Profondeurs', sub: 'Force surhumaine (coup renforcé)', kind: 'sp', enabled: !B.used.pacte });
+  if (!sealed && hk.roi > 0) out.push({ id: 'roi', emoji: '👑', label: 'Haki des Rois', sub: 'L\'ennemi vacille : il ne riposte pas', kind: 'sp', enabled: !B.used.roi });
+  if (!sealed && hk.arm > 0) out.push({ id: 'arm', emoji: '🛡️', label: 'Haki de l\'armement', sub: 'Coup renforcé, à coup sûr', kind: 'sp', enabled: !B.used.arm });
+  if (!sealed && hk.obs > 0) out.push({ id: 'obs', emoji: '👁️', label: 'Haki de l\'observation', sub: 'Tu lis son jeu : contre parfait', kind: 'sp', enabled: !B.used.obs });
   const f = fruitOf(S);
   if (f && f.id !== 'smile') out.push({ id: 'fruit', emoji: '🍇', label: f.name, sub: 'Attaque dévastatrice (coûte des PV)', kind: 'sp', enabled: !B.used.fruit });
   if (S.fleet.length > 0 || allyGroups(S).length > 0) out.push({ id: 'allies', emoji: '🤝', label: 'Appeler tes alliés', sub: 'Renforts : soins et salve', kind: 'sp', enabled: !B.used.allies });
@@ -70,7 +71,7 @@ export function battleAct(S, act) {
   const naval = B.kind === 'naval';
   let deal = 0, take = 0, text = '', outcome = 'tie';
   const I = B.intent;
-  const spec = { roi: ['La pression du Haki des Rois fige l\'ennemi : il ne peut pas riposter !', 1.0, 0], arm: ['Ton Haki de l\'armement noircit ton coup : il frappe de plein fouet !', 1.35, 0.15], obs: ['Ton Haki de l\'observation te souffle chaque geste : contre parfait !', 1.15, 0.05], fruit: ['Tu déchaînes le pouvoir de ton fruit !', 1.7, 0.5], allies: ['Tes alliés surgissent : salve de renfort et blessés relevés !', 0.8, 0.3] };
+  const spec = { roi: ['La pression du Haki des Rois fige l\'ennemi : il ne peut pas riposter !', 1.0, 0], arm: ['Ton Haki de l\'armement noircit ton coup : il frappe de plein fouet !', 1.35, 0.15], obs: ['Ton Haki de l\'observation te souffle chaque geste : contre parfait !', 1.15, 0.05], pacte: ['Ta marque brûle : une force surhumaine qui n\'est pas la tienne déferle !', 1.6, 0.1], fruit: ['Tu déchaînes le pouvoir de ton fruit !', 1.7, 0.5], allies: ['Tes alliés surgissent : salve de renfort et blessés relevés !', 0.8, 0.3] };
   if (spec[act]) {
     if (B.used[act]) return null;
     B.used[act] = true;

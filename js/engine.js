@@ -123,6 +123,13 @@ export function priceMultOld(S) {
 export const price = (S, base) => Math.round(base * priceMult(S));
 // la Marine traverse le Calm Belt et plonge sans coating (navires enrobés de série)
 export const canDive = S => S.ship.coated || S.hero.faction === 'marine';
+// Pacte d'Imu (Chevaliers Divins, Lames Divines, Cinq Doyens) : il remplace le Haki, que ces élus ne développent pas.
+export const PACTE = [
+  { name: 'Aucun pacte', short: '—', desc: '' },
+  { name: 'Pacte des hauts-fonds', short: '🌊', desc: 'Marque des Lames Divines : aucune capacité spéciale, mais tu ne peux plus désobéir à un ordre direct d\'Imu quand il est proche.' },
+  { name: 'Pacte des Profondeurs', short: '⛓️', desc: 'Marque de ceux qui ont rejoint officiellement les Chevaliers Divins : force surhumaine, télépathie avec Imu, mais un lien indissoluble avec lui.' },
+  { name: 'Pacte des abysses', short: '🕳️', desc: 'Dernière étape, réservée à une poignée d\'élus : une puissance supérieure encore, au prix de ton espérance de vie.' },
+];
 // ───────────── chez soi : avantages liés à la race et à la faction ─────────────
 export function homeBonuses(S, loc = S.loc) {
   const out = [], r = S.hero.race || 'humain';
@@ -168,6 +175,7 @@ export function combatRating(S) {
   if (S.flags.doctrine_absolue) r += 2;
   if (S.flags.imu_servant) r += 3;
   r += homeN(S) * 2.5;
+  r += [0, 0, 6, 11][h.pacte || 0];
   r *= 0.9 + S.morale / 500;
   return Math.round(r * 10) / 10;
 }
@@ -202,6 +210,7 @@ export function statRating(S, stat) {
   const race = raceOf(S);
   if (race.mod) r += race.mod(S, stat, { th: ISLANDS[S.loc]?.th?.k }) * 1.6;
   r += homeN(S) * 1.6;
+  if ((h.pacte || 0) >= 2 && ['intel', 'charisme', 'volonte'].includes(stat)) r += 2;   // télépathie : l'esprit relié à Imu
   return r;
 }
 
@@ -337,6 +346,7 @@ export function newGame(o) {
   S.progress = { east: 0, north: 0, west: 0, south: 0, paradise: 1, calm: 1, redline: 2, nw: 3, laughtale: 8 }[ISLANDS[o.island].sea];
   if (startTier >= 2) S.hero.stats.navigation += 1;
   if (race.obs) S.hero.haki.obs = race.obs;
+  S.hero.pacte = S.hero.faction === 'chevalier' ? 1 : 0;   // Pacte des hauts-fonds : le marquage des Lames Divines
   addGrel(S, groupOfFaction(fac, null, S.era), 4);
   // hostilités de départ
   const START_REL = { pirate: { marine: -2, gov: -1 }, chasseur: { pirates: -2 }, revo: { gov: -4, marine: -2 }, marine: { pirates: -3, revo: -2 }, gouv: { revo: -4, pirates: -2 }, chevalier: { revo: -4, pirates: -2 } }[fac] || {};
@@ -464,9 +474,11 @@ function powerChoice(S, ev) {
   const b = base.map(c => ({ c, p: (() => { try { return checkChance(S, c); } catch { return 1; } })() })).sort((x, y) => x.p - y.p)[0].c;   // la plus difficile
   const stat = b.s, fighting = ['combat', 'naval', 'force', 'vitesse'].includes(stat);
   const opts = [];
-  if (h.haki.obs > 0 && ['combat', 'naval', 'vitesse', 'intel', 'force'].includes(stat)) opts.push({ k: 'haki_obs', icon: '👁️', name: 'Haki de l\'observation', p: 0.48 + h.haki.obs * 0.08, pre: 'Ton Haki de l\'observation te souffle chaque mouvement avant qu\'il n\'arrive. ' });
-  if (h.haki.arm > 0 && fighting) opts.push({ k: 'haki_arm', icon: '🛡️', name: 'Haki de l\'armement', p: 0.5 + h.haki.arm * 0.08, pre: 'Ton Haki de l\'armement noircit tes poings et ton arme. ' });
-  if (h.haki.roi > 0 && ['charisme', 'volonte', 'combat', 'naval'].includes(stat)) opts.push({ k: 'haki_roi', icon: '👑', name: 'Haki des Rois', p: 0.44 + h.haki.roi * 0.1, pre: 'Ton Haki des Rois déferle : les plus faibles s\'effondrent, les autres reculent. ' });
+  const sealed = h.faction === 'chevalier' || (h.pacte || 0) > 0;
+  if ((h.pacte || 0) >= 2 && ['combat', 'naval', 'force', 'vitesse', 'charisme', 'volonte'].includes(stat)) opts.push({ k: 'pacte', icon: '⛓️', name: PACTE[h.pacte].name, p: 0.5 + 0.1 * h.pacte, pre: 'Ta marque brûle sous ta peau : une force qui n\'est pas la tienne se met en mouvement. ' });
+  if (!sealed && h.haki.obs > 0 && ['combat', 'naval', 'vitesse', 'intel', 'force'].includes(stat)) opts.push({ k: 'haki_obs', icon: '👁️', name: 'Haki de l\'observation', p: 0.48 + h.haki.obs * 0.08, pre: 'Ton Haki de l\'observation te souffle chaque mouvement avant qu\'il n\'arrive. ' });
+  if (!sealed && h.haki.arm > 0 && fighting) opts.push({ k: 'haki_arm', icon: '🛡️', name: 'Haki de l\'armement', p: 0.5 + h.haki.arm * 0.08, pre: 'Ton Haki de l\'armement noircit tes poings et ton arme. ' });
+  if (!sealed && h.haki.roi > 0 && ['charisme', 'volonte', 'combat', 'naval'].includes(stat)) opts.push({ k: 'haki_roi', icon: '👑', name: 'Haki des Rois', p: 0.44 + h.haki.roi * 0.1, pre: 'Ton Haki des Rois déferle : les plus faibles s\'effondrent, les autres reculent. ' });
   const f = fruitOf(S);
   if (f && f.id !== 'smile' && ['combat', 'naval', 'force', 'vitesse'].includes(stat)) {
     const aw = h.fruit.awakened ? 0.08 : 0;
@@ -561,7 +573,7 @@ export function applyEff(S, e = {}, chips = [], mult = null) {
   if (E.berrysMul !== undefined) { h.berrys = Math.round(h.berrys * E.berrysMul); chips.push({ t: E.berrysMul > 1 ? 'Fortune doublée !' : 'Fortune perdue !', k: E.berrysMul > 1 ? 'money' : 'bad' }); }
   if (E.morale) { S.morale = clamp(S.morale + E.morale, 0, 100); chips.push({ t: `Moral ${E.morale > 0 ? '+' : ''}${E.morale}`, k: E.morale > 0 ? 'good' : 'bad' }); }
   if (E.stats) for (let [k, v] of Object.entries(E.stats)) { if (v > 0 && S.length === 'rapide' && v >= 2) v = Math.ceil(v * 1.25); h.stats[k] = clamp(h.stats[k] + v, 1, Math.max(h.stats[k], 22)); chips.push({ t: `${STATS[k].emoji} ${STATS[k].name} ${v > 0 ? '+' : ''}${v}`, k: v > 0 ? 'stat' : 'bad' }); }
-  if (E.haki) for (const [k, v] of Object.entries(E.haki)) {
+  if (E.haki && !(h.faction === 'chevalier' || (h.pacte || 0) > 0)) for (const [k, v] of Object.entries(E.haki)) {
     if (k === 'roi') {
       if (v === 'reveal') { if (h.roiPotential && h.haki.roi === 0) { h.haki.roi = 1; chips.push({ t: '👑 Haki des Rois éveillé !', k: 'epic' }); S.hl.push('a éveillé le Haki des Rois'); } continue; }
       if (!h.roiPotential) { if (h.haki.roi === 0) continue; }
@@ -645,6 +657,7 @@ export function applyEff(S, e = {}, chips = [], mult = null) {
   if (E.giveFruit && S.inventory.fruits.length && S.crew.length) giveFruit(S, 0, S.tmp?.c1 ?? 0, chips);
   if (E.age) { h.age += E.age; chips.push({ t: `+${E.age} an${E.age > 1 ? 's' : ''}`, k: 'info' }); }
   if (E.yonko) { setYonko(S, E.yonko, chips); }
+  if (E.pacte !== undefined) { const before = h.pacte || 0; h.pacte = clamp(E.pacte, 0, 3); if (h.pacte > before) { chips.push({ t: `⛓️ ${PACTE[h.pacte].name}`, k: 'epic' }); S.hl.push(`a reçu le ${PACTE[h.pacte].name}`); } }
   if (E.faction && E.faction !== h.faction) changeFaction(S, E.faction, chips);
   if (E.pone && !S.pone.includes(E.pone)) {
     S.pone.push(E.pone);
@@ -686,6 +699,7 @@ function setYonko(S, id, chips) {
 export function changeFaction(S, fac, chips = []) {
   const h = S.hero, old = h.faction;
   if (old === fac) return;
+  if ((h.pacte || 0) >= 2 && fac !== 'chevalier') { chips.push({ t: '⛓️ Le Pacte te lie à Imu : impossible de partir', k: 'bad' }); return; }
   if (FACTIONS[fac].era && FACTIONS[fac].era !== S.era) return;
   const oldCamp = FACTIONS[old].camp;
   h.faction = fac;
@@ -1217,7 +1231,7 @@ export function doAction(S, id, arg) {
       if (n) applyEff(S, { stats: { [stat]: n } }, chips);
       else chips.push({ t: 'Aucun progrès cette fois', k: 'info' });
       text = svc.has('dojo') ? 'Le dojo local te pousse dans tes retranchements.' : 'Tu t\'entraînes sur le pont, jour et nuit.';
-      if (tier >= 2 && chance(S, 0.05 + S.hero.stats.volonte * 0.004)) {
+      if (tier >= 2 && !(S.hero.faction === 'chevalier' || S.hero.pacte) && chance(S, 0.05 + S.hero.stats.volonte * 0.004)) {
         const k = S.hero.haki.obs <= S.hero.haki.arm ? 'obs' : 'arm';
         if (S.hero.haki[k] < 3) { applyEff(S, { haki: { [k]: 1 } }, chips); text += ' Soudain, tu sens quelque chose de nouveau... le Haki !'; }
       }
@@ -1236,7 +1250,7 @@ export function doAction(S, id, arg) {
       for (let k = 0; k < tries; k++) if (chance(S, clamp((17 - S.hero.stats[stat] - n) / 10, 0.15, 0.9))) n++;
       if (n) applyEff(S, { stats: { [stat]: n } }, chips);
       text += svc.has('dojo') ? ' Le dojo local te pousse dans tes retranchements.' : ' Entre deux bouchées, tu t\'entraînes.';
-      if (tier >= 2 && chance(S, 0.05 + S.hero.stats.volonte * 0.004)) {
+      if (tier >= 2 && !(S.hero.faction === 'chevalier' || S.hero.pacte) && chance(S, 0.05 + S.hero.stats.volonte * 0.004)) {
         const k = S.hero.haki.obs <= S.hero.haki.arm ? 'obs' : 'arm';
         if (S.hero.haki[k] < 3) { applyEff(S, { haki: { [k]: 1 } }, chips); text += ' Soudain, tu sens quelque chose de nouveau... le Haki !'; }
       }
@@ -1419,14 +1433,14 @@ const require_PROGRESS = camp => PROGRESS[camp];
 export function shareText(S) {
   const h = S.hero, E = S.ending;
   const f = h.fruit ? FRUITS[h.fruit.id].name : 'Aucun fruit';
-  const haki = ['obs', 'arm', 'roi'].filter(k => h.haki[k]).map(k => ({ obs: '👁️', arm: '🛡️', roi: '👑' }[k])).join('') || '—';
+  const haki = h.pacte ? PACTE[h.pacte].short : ['obs', 'arm', 'roi'].filter(k => h.haki[k]).map(k => ({ obs: '👁️', arm: '🛡️', roi: '👑' }[k])).join('') || '—';
   const hls = [...new Set(S.hl)].slice(-3);
   const lines = [
     `🏴‍☠️ DESTINY ONE PIECE${S.daily ? ' · Défi du ' + S.daily.date : ''}${S.legend ? ' · Histoire : ' + LEGENDS.find(l => l.id === S.legend).name : ''}`,
     `${h.emoji} ${h.name} (${raceOf(S).name}) — ${FACTIONS[h.faction].emoji} ${E.rank}`,
     `${E.level.emoji} Niveau ${E.level.name} · 💰 ${h.bounty ? fmtPrime(h.bounty) : 'Pas de prime'}`,
     `🗺️ ${E.progressLabel} (${S.progress}/9) · 🏝️ ${S.visited.length} îles · 👥 ${S.crew.length}`,
-    `🍇 ${f} · Haki ${haki}`,
+    `🍇 ${f} · ${h.pacte ? 'Pacte' : 'Haki'} ${haki}`,
     `⚰️ ${E.epitaph}`,
     ...hls.map(x => `• ${x}`),
     `🪞 Carrière à la ${E.like.n}`,

@@ -187,7 +187,7 @@ stage('l_caprice', 3, { emoji: '😤', title: 'Le caprice d\'un Dragon', w: {},
   ch: [
     { t: 'Accepter encore', r: { x: 'Tu t\'enfonces dans ta fonction. Les Dragons n\'oublient pas ceux qui obéissent.', e: { arc: A('l_caprice', 3), merit: 8, morale: -12 } } },
     { t: 'Lui faire comprendre le coût', s: 'intel', d: 6, ok: { x: 'Tu glisses que le Gouvernement s\'inquiète de la facture. Il boude, puis renonce.', e: { arc: A('l_caprice', 3), merit: 6, rep: 6, glory: 4 } }, ko: { x: 'Il te fait fouetter pour l\'insolence.', e: { arc: A('l_caprice', 3), hp: -40, merit: -6 } } },
-    { t: 'Renoncer à ton rang', r: { x: 'Tu jettes ton insigne devant lui. Il hurle. Tu pars, libre, et traqué.', e: { arc: A('l_caprice', 3), faction: 'revo', glory: 8, frel: { gov: -5 }, hl: 'a renoncé à son rang de Dragon Céleste' } } },
+    { t: 'Renoncer à ton rang', req: S => (S.hero.pacte || 0) < 2, rq: 'Le Pacte te lie à Imu', r: { x: 'Tu jettes ton insigne devant lui. Il hurle. Tu pars, libre, et traqué.', e: { arc: A('l_caprice', 3), faction: 'revo', glory: 8, frel: { gov: -5 }, hl: 'a renoncé à son rang de Dragon Céleste' } } },
   ] });
 
 stage('l_lignee', 1, { emoji: '🕯️', title: 'La lignée', w: { fac: ['chevalier'] },
@@ -207,5 +207,47 @@ stage('l_lignee', 3, { emoji: '⚖️', title: 'La lignée', w: {}, test: S => !
   ch: [
     { t: 'Assumer seul la responsabilité', r: { x: 'Tu endosses la faute. On te punit, sans te briser, par respect pour ton nom.', e: { arc: A('l_lignee', 3), flag2: 'lig_over', hp: -30, merit: -10, rep: 10, hl: 'a protégé un secret à Mary Geoise' } } },
     { t: 'Accuser un autre', r: { x: 'Un serviteur paie pour toi. Tu t\'en sors, pas indemne.', e: { arc: A('l_lignee', 3), flag2: 'lig_over', merit: 6, morale: -12 } } },
-    { t: 'Fuir Mary Geoise avec le jeune Dragon', r: { x: 'Vous quittez la Terre Sainte à bord d\'un navire de nuit. C\'est la fin de ta carrière de Dragon Céleste, et le début d\'autre chose.', e: { arc: A('l_lignee', 3), flag2: 'lig_over', faction: 'revo', glory: 10, frel: { gov: -5, revo: 4 }, hl: 'a fui Mary Geoise avec un Dragon Céleste' } } },
+    { t: 'Fuir Mary Geoise avec le jeune Dragon', req: S => (S.hero.pacte || 0) < 2, rq: 'Le Pacte te lie à Imu', r: { x: 'Vous quittez la Terre Sainte à bord d\'un navire de nuit. C\'est la fin de ta carrière de Dragon Céleste, et le début d\'autre chose.', e: { arc: A('l_lignee', 3), flag2: 'lig_over', faction: 'revo', glory: 10, frel: { gov: -5, revo: 4 }, hl: 'a fui Mary Geoise avec un Dragon Céleste' } } },
   ] });
+
+// ═══ LE PACTE D'IMU (Chevaliers Divins) : il remplace le Haki ═══
+LORE_ARCS.kn_pacte = { name: 'Le Pacte d\'Imu', stages: 3 };
+LORE_EVENTS.push(
+  { id: 'kn_pacte_1', pri: 9, once: true, emoji: '🌑', title: 'La convocation (1/3)',
+    w: { fac: ['chevalier'], test: S => S.arc('kn_pacte', 0) && (S.hero.pacte || 0) < 2 },
+    x: 'Un Doyen te remet un pli noir. « Tu as été remarqué. Le moment est venu de rejoindre officiellement les Chevaliers Divins. Tu seras conduit devant le Trône Vide. » Tu portes déjà la marque des hauts-fonds, un cercle orné de tibias croisés, gravé au fer rouge. Ce soir, on va t\'en offrir une autre.',
+    ch: [
+      { t: 'Accepter la convocation', r: { x: 'Tu suis le Doyen. Les couloirs du palais deviennent plus froids à chaque porte.', e: { arc: { id: 'kn_pacte', stage: 1 }, merit: 3 } } },
+      { t: 'Demander du temps', s: 'charisme', d: 5, ok: { x: 'Le Doyen sourit froidement : « Soit. Mais l\'attente a un prix. » Tu gagnes quelques jours, et une dette.', e: { arc: { id: 'kn_pacte', stage: 1 }, morale: 4 } }, ko: { x: 'Un silence glacial. « On ne demande pas du temps à Dieu. »', e: { arc: { id: 'kn_pacte', stage: 1 }, merit: -6 } } },
+    ] },
+  { id: 'kn_pacte_2', pri: 10, emoji: '⛓️', title: 'Le Trône Vide (2/3)',
+    w: { fac: ['chevalier'], test: S => S.arc('kn_pacte', 1, 1) },
+    x: 'Dans une salle sans fenêtre, un trône vide, et pourtant une présence. Une voix, qui n\'est pas dans l\'air mais dans ta tête, te souhaite la bienvenue. On te fait agenouiller. Un symbole nouveau, le même cercle avec deux lignes en forme de cornes, brûle ton torse. De la fumée, une douleur qui ne ressemble à rien.',
+    ch: [
+      { t: 'Endurer la marque en silence', s: 'volonte', d: 5, ok: { x: 'Tu tiens bon. Quand la douleur s\'éteint, tu sens ton corps différent : plus fort, plus lourd, plus lié.', e: { arc: { id: 'kn_pacte', stage: 2 }, pacte: 2, stats: { force: 2 }, glory: 4 } }, ko: { x: 'Tu cries, tu tombes, et la marque finit de brûler sans toi. Le pacte est conclu, mais tu n\'es pas fier.', e: { arc: { id: 'kn_pacte', stage: 2 }, pacte: 2, hp: -30, morale: -10 } } },
+      { t: 'Te laisser porter par la voix', r: { x: 'Tu cesses de résister. La voix s\'installe, familière, presque rassurante. Quand tu te relèves, tu entends déjà ce qu\'elle attend de toi.', e: { arc: { id: 'kn_pacte', stage: 2 }, pacte: 2, stats: { intel: 1, force: 1 }, morale: -5 } } },
+      { t: 'Refuser la seconde marque', s: 'volonte', d: 9, ok: { x: 'Tu parviens à rester debout. La voix cesse. Les Doyens te fixent, immobiles. Le Pacte ne sera pas conclu, pour l\'instant.', e: { arc: { id: 'kn_pacte', stage: 3 }, flag2: 'pacte_refused', hl: 'a refusé le Pacte des Profondeurs', merit: -12 } }, ko: { x: 'Ta volonté fléchit. Le Pacte est imposé de force.', e: { arc: { id: 'kn_pacte', stage: 2 }, pacte: 2, hp: -45, merit: -8 } } },
+    ] },
+  { id: 'kn_pacte_3', pri: 10, emoji: '📡', title: 'La voix dans l\'esprit (3/3)',
+    w: { fac: ['chevalier'], test: S => S.arc('kn_pacte', 2, 2) && (S.hero.pacte || 0) >= 2 },
+    x: 'Une nuit, la voix s\'invite dans ta tête : une consigne, une surveillance, une exigence. Tu comprends que le Pacte relie ton esprit à celui d\'Imu, où que tu sois. Tu entends aussi, plus loin, des murmures : d\'autres porteurs de la marque.',
+    ch: [
+      { t: 'Obéir sans résister', r: { x: 'La consigne est simple. Tu l\'exécutes. L\'obéissance devient un réflexe, presque un confort.', e: { arc: { id: 'kn_pacte', stage: 3 }, merit: 8, morale: -6 } } },
+      { t: 'Tester les limites du lien', s: 'volonte', d: 6, ok: { x: 'Tu parviens à maintenir un coin de ton esprit fermé. La voix ne s\'en aperçoit pas. Tu as appris quelque chose d\'essentiel.', e: { arc: { id: 'kn_pacte', stage: 3 }, stats: { volonte: 2 }, flag: 'pacte_secret' } }, ko: { x: 'La voix te rappelle durement à l\'ordre. Une douleur fulgurante te plie en deux.', e: { arc: { id: 'kn_pacte', stage: 3 }, hp: -30, merit: -6 } } },
+    ] },
+  { id: 'kn_pacte_abysse', emoji: '🕳️', title: 'Le Pacte des abysses',
+    w: { fac: ['chevalier'], weight: 9, once: true, test: S => (S.hero.pacte || 0) === 2 && S.merit >= 40 && S.lvl >= 5 },
+    x: 'La voix te convoque à nouveau, et cette fois, elle prend la parole en personne. « Tu as servi. Tu as obéi. Je t\'offre le dernier degré. » Les Doyens, derrière toi, ne bougent pas. Treize individus en tout, a dit un jour l\'un d\'eux. Tu serais l\'un des treize.',
+    ch: [
+      { t: 'Accepter le Pacte des abysses', r: { x: 'Une marque que tu n\'avais jamais vue brûle ton torse. Tu es désormais l\'un des élus d\'Imu. Ta puissance a changé de nature, et tes jours sont comptés.', e: { pacte: 3, stats: { force: 2, volonte: 2 }, age: 4, glory: 12, hl: 'a reçu le Pacte des abysses' } } },
+      { t: 'Décliner, par prudence', s: 'charisme', d: 7, ok: { x: 'Imu semble amusé. « Soit. Tu resteras à ton degré. »', e: { merit: -4 } }, ko: { x: 'Un refus ne se prononce pas ici.', e: { hp: -35, merit: -12 } } },
+    ] },
+  { id: 'imu_demons', emoji: '😈', title: 'Le Pacte des Démons',
+    w: { era: 'post', weight: 7, minTier: 3, test: S => S.progress >= 3 },
+    x: 'Sur une île du Nouveau Monde, une foule de silhouettes noires, aux cornes tordues et aux yeux vides, déchire un village. Pas des pirates, pas des soldats : des gens transformés. Un survivant te hurle : « Ils ont été changés ! L\'un d\'eux s\'est tourné vers le suivant, et celui-ci est devenu pareil ! »',
+    ch: [
+      { t: 'Combattre les transformés', s: 'combat', d: 6, ok: { x: 'Tu abats les premiers, puis leur chaîne se brise : ceux qui suivent retrouvent une lueur d\'humanité avant de s\'effondrer. Tu as vu l\'horreur du Pacte Démoniaque.', e: { glory: 8, hp: -25, rep: 6 } }, ko: { x: 'Leur force est colossale, leur douleur inépuisable. Tu t\'en sors à peine.', e: { hp: -45, shipHp: -20 } } },
+      { t: 'Évacuer les survivants', s: 'navigation', d: 4, ok: { x: 'Tu sauves des dizaines de personnes, avant que l\'île ne soit engloutie par les ombres.', e: { rep: 10, glory: 3, morale: 6 } }, ko: { x: 'Tu en sauves quelques-uns, au prix d\'une partie de ton navire.', e: { rep: 4, shipHp: -35 } } },
+      { t: 'Fuir au plus vite', r: { x: 'Tu hisses les voiles. Le souvenir de ces yeux vides te hantera longtemps.', e: { morale: -8 } } },
+    ] },
+);
