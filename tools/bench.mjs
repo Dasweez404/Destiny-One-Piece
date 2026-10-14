@@ -46,7 +46,8 @@ for (let g = 0; g < +N; g++) {
         else if (acts.includes('market') && r() < 0.5) {
           const sh = G.genShop(S);
           for (const f of sh.fruits) if (!S.hero.fruit && !S.inventory.fruits.length && S.hero.berrys > G.price(S, 0) + 1 && r() < 0.8) G.buy(S, 'fruit', f);
-          for (const w of sh.weapons) if (!S.hero.weapon || WEAPONS[w].tier > WEAPONS[S.hero.weapon].tier) G.buy(S, 'weapon', w);
+          for (const w of sh.weapons) if (!S.hero.weapon || WEAPONS[w].tier > WEAPONS[S.hero.weapon].tier || (S.crew.some(c => !c.weapon) && S.hero.berrys > G.price(S, 0) + 500000 && r() < 0.5)) G.buy(S, 'weapon', w);
+          G.autoEquipCrew(S);
           S.actionsLeft--;
         } else if (ISLANDS_SHIP(S) && r() < 0.4) {
           const nxt = Object.values(SHIP_MODELS).filter(m => m.tier === S.ship.tier + 1);

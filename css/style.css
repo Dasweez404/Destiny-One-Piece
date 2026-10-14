@@ -533,3 +533,6 @@ body.shake{animation:shk .45s}
 .tac .e{font-size:1.7rem}.tac small{opacity:.75;font-size:.72em}
 .tac:hover:not(:disabled){transform:translateY(-2px) scale(1.03);box-shadow:0 6px 14px rgba(60,35,10,.25)}.tac:active:not(:disabled){transform:scale(.95)}
 .tac.special{border-color:#d4a017;background:linear-gradient(180deg,#fff7da,#ffe9a8)}.tac:disabled{opacity:.4}
+
+.choice.sel,.dest.sel{border-color:#d4a017;background:#fff0bd;box-shadow:0 0 0 3px rgba(212,160,23,.35)}
+.confirm{display:block;font-style:normal;font-weight:700;font-size:.78em;color:#8a5a00;margin-top:2px}

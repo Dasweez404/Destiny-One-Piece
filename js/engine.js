@@ -14,13 +14,14 @@ import { SH_EVENTS } from './data/events_strawhats.js';
 import { SUBMISSION_EVENTS } from './data/events_submission.js';
 import { ORIG_EVENTS, ORIG_ARCS } from './data/events_originals.js';
 import { LORE_EVENTS, LORE_ARCS } from './data/events_lore.js';
+import { CANON_CREW_EVENTS } from './data/events_canon_crews.js';
 import { ISL_GEN_EVENTS } from './data/events_isl_gen.js';
 import { NAVAL_EVENTS, WAR_EVENTS, WAR_ARCS } from './data/events_war.js';
 import { CREW_FIRST, CREW_EPI, CREW_TRAITS, LEGENDS, STORY_FRUITS, CANON_CAREERS, BADGES, DAILY_GOALS, randomHeroName } from './data/meta.js';
 
 Object.assign(FRUITS, Object.fromEntries(Object.entries(STORY_FRUITS).map(([id, f]) => [id, { ...f, id }])));
 
-export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS, ...GROUP_EVENTS, ...SH_EVENTS, ...ISL_GEN_EVENTS, ...SUBMISSION_EVENTS, ...ORIG_EVENTS, ...LORE_EVENTS];
+export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS, ...GROUP_EVENTS, ...SH_EVENTS, ...ISL_GEN_EVENTS, ...SUBMISSION_EVENTS, ...ORIG_EVENTS, ...LORE_EVENTS, ...CANON_CREW_EVENTS];
 // les événements de bataille proposent un « Livrer bataille » tactique construit sur leur jet naval ou de combat le plus marquant
 const BATTLE_EV = /^(l_[a-z]+_[23]|of_sea_|of_recur_|s_warship|s_pirate_ship|gv_first_|n_merchant|n_patrol|n_duel_captains|n_broadside|n_blockade|n_fleet_yonko|n_hunters|n_ghost|n_harbor|w_own[23]|war_j\d_(sea|land)|wa_|gv_fleet_)/;
 for (const ev of ALL_EVENTS) {
@@ -136,7 +137,7 @@ export function combatRating(S) {
   if (f) r += f.id === 'smile' ? (h.fruit.smileOk ? 4 : 0) : fruitPower(f, h.fruit.awakened);
   r += h.haki.obs * 2 + h.haki.arm * 3 + h.haki.roi * 3;
   if (h.weapon) r += weaponPower(WEAPONS[h.weapon]);
-  const top = [...S.crew].map(c => c.power).sort((a, b) => b - a).slice(0, 3);
+  const top = [...S.crew].map(c => crewPower(c)).sort((a, b) => b - a).slice(0, 3);
   r += top.reduce((a, b) => a + b, 0) / 4;
   const friends = Object.values(GROUPS).reduce((a, g) => a + (grel(S, g.id) >= 6 ? 3 : grel(S, g.id) >= 3 ? 1 : 0), 0);
   r += Math.min(9, friends);
@@ -163,7 +164,7 @@ export function navalRating(S) {
   let r = S.ship.tier * 2.6 + shipBonus(S, 'combat') * 1.5 + shipBonus(S, 'nav') * 0.5 + h.stats.navigation * 0.9 + levelIdxOf(S) * 0.5;
   r += (S.ship.hp / shipMaxHp(S) - 0.6) * 4;
   const deck = S.crew.filter(c => ['navigateur', 'timonier', 'sniper', 'charpentier'].includes(c.role));
-  if (deck.length) r += Math.min(4, Math.max(...deck.map(c => c.power)) / 4);
+  if (deck.length) r += Math.min(4, Math.max(...deck.map(c => crewPower(c))) / 4);
   r += Math.min(8, S.fleet.reduce((a, f) => a + f.power, 0) / 2.2) + Math.min(4, allyGroups(S).length * 1.3);
   return Math.round(r * 10) / 10;
 }
@@ -172,7 +173,7 @@ export function statRating(S, stat) {
   const h = S.hero;
   let r = h.stats[stat] * 1.6 + levelIdxOf(S) * 0.6; // l'expérience aide en tout
   const helpers = S.crew.filter(c => ROLE_FOR_STAT[stat]?.includes(c.role));
-  if (helpers.length) r += Math.min(5, Math.max(...helpers.map(c => c.power)) / 3);
+  if (helpers.length) r += Math.min(5, Math.max(...helpers.map(c => crewPower(c))) / 3);
   if (stat === 'vitesse') r += h.haki.obs * 2;
   if (stat === 'charisme') r += h.haki.roi * 4 + Math.min(5, Math.max(0, S.rep) / 20);
   if (stat === 'volonte') r += h.haki.roi * 2;
@@ -373,7 +374,12 @@ export function pickEvent(S, ctx, secondary = false) {
   const pool = c.filter(e => !(e.pri >= 8));
   // rencontre canon
   const chars = charsAt(S.loc, S.era).filter(ch => !S.seen['meet_' + ch.id]);
-  if (ctx === 'island' && chars.length && chance(S, secondary ? 0.55 : 0.35)) return { gen: makeEncounter(S, pick(S, chars)) };
+  if (ctx === 'island' && chars.length && chance(S, secondary ? 0.7 : 0.5)) return { gen: makeEncounter(S, pick(S, chars)) };
+  // en mer aussi, on croise des figures canon qui voguent dans les parages
+  if (ctx === 'sea' && chance(S, 0.3)) {
+    const roam = Object.values(CHARACTERS).filter(ch => !S.seen['meet_' + ch.id] && ch.isl?.[S.era]?.some(id => ISLANDS[id]?.sea === ISLANDS[S.loc].sea) && ch.power <= [18, 45, 80, 200][tierOf(S) - 1] * 1.3);
+    if (roam.length) return { gen: makeEncounter(S, pick(S, roam)) };
+  }
   if (!pool.length) return null;
   // en exploration et en mer : souvent une trouvaille (fruit du démon, navire, équipement)
   if ((secondary || ctx === 'sea') && chance(S, 0.3)) {
@@ -674,7 +680,10 @@ export function randomFruit(S, tier) {
   const pool = Object.values(FRUITS).filter(f => f.id !== 'smile' && !owned.has(f.id) && (!tier || f.tier <= tier));
   if (!pool.length) return 'smile';
   const t = tier || tierOf(S) + 1;
-  return wpick(S, pool, f => (f.tier <= t ? 3 : 0.6) / (1 + Math.abs(f.tier - t)) * (f.canon ? 0.8 : 1))?.id;
+  S.fruitSeen ||= {};
+  const id = wpick(S, pool, f => (f.tier <= t ? 3 : 0.6) / (1 + Math.abs(f.tier - t)) * (f.canon ? 1 : 0.08) / (1 + 2 * (S.fruitSeen[f.id] || 0)))?.id;
+  if (id) S.fruitSeen[id] = (S.fruitSeen[id] || 0) + 1;
+  return id;
 }
 export function randomWeapon(S, tier) {
   const pool = Object.values(WEAPONS).filter(w => w.tier <= Math.max(1, tier) && w.tier >= Math.max(1, tier - 1));
@@ -727,6 +736,31 @@ export function sellFruit(S, idx, chips = []) {
   return chips;
 }
 
+// Les membres d'équipage peuvent s'armer aussi : leur puissance effective compte dans le combat et les jets.
+export const crewPower = c => (c.power || 0) + (c.weapon && WEAPONS[c.weapon] ? Math.round(weaponPower(WEAPONS[c.weapon]) * 0.7) : 0);
+export function equipCrewWeapon(S, wIdx, cIdx) {
+  const id = S.inventory.weapons[wIdx], c = S.crew[cIdx];
+  if (!id || !c) return false;
+  S.inventory.weapons.splice(wIdx, 1);
+  if (c.weapon) S.inventory.weapons.push(c.weapon);
+  c.weapon = id;
+  return true;
+}
+export function unequipCrewWeapon(S, cIdx) {
+  const c = S.crew[cIdx]; if (!c?.weapon) return false;
+  S.inventory.weapons.push(c.weapon); c.weapon = null; return true;
+}
+// équipe automatiquement les armes de rechange aux membres les plus forts (pour les joueurs pressés et les simulations)
+export function autoEquipCrew(S) {
+  let n = 0;
+  while (S.inventory.weapons.length) {
+    const order = S.inventory.weapons.map((id, i) => [i, weaponPower(WEAPONS[id])]).sort((a, b) => b[1] - a[1]);
+    const tgt = [...S.crew.keys()].sort((a, b) => crewPower(S.crew[b]) - crewPower(S.crew[a])).find(i => !S.crew[i].weapon);
+    if (tgt === undefined) break;
+    equipCrewWeapon(S, order[0][0], tgt); n++;
+  }
+  return n;
+}
 export function equipWeapon(S, idx) {
   const id = S.inventory.weapons[idx];
   if (!id) return;

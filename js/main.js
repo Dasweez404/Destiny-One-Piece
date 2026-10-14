@@ -58,7 +58,7 @@ function render() {
   app.innerHTML = html + (U.modal ? vModal() : '');
   // transitions : l'écran entre en scène seulement quand il change vraiment
   { const key = [U.screen, S?.phase, S?.cur?.id ?? S?.cur?.gen?.id, U.sub?.kind, S?.turn, U.modal].join(':'), changed = key !== U.lastKey; U.lastKey = key;
-    app.classList.toggle('enter', changed);
+    app.classList.toggle('enter', changed); if (changed) { U.lastRender = Date.now(); U.selChoice = null; U.selDest = null; }
     if (changed) document.querySelectorAll('.choice,.act,.dest,.fxc,.item').forEach((el, i) => el.style.setProperty('--i', Math.min(i, 9))); }
   if (U.screen === 'game' && S) hudFeedback(S); else U.prevHud = null;
   if (U.screen === 'game' && S?.phase === 'result' && S.result && U.sfxFor !== S.result) { U.sfxFor = S.result; if (S.result.ok === true) { sfx.win(); } else if (S.result.ok === false) { sfx.lose(); vignette('bad'); } }
@@ -339,9 +339,9 @@ function vEvent(S) {
     <h3><span class="e">${ev.emoji || '❗'}</span> ${esc(ev.title)}</h3>
     <p class="story">${esc(text)}</p>
     <div class="choices">${chs.map((c, n) => `
-      <button class="choice ${c.locked ? 'locked' : ''}" data-act="choose" data-arg="${c.i}" ${c.locked ? 'disabled' : ''}>
+      <button class="choice ${c.locked ? 'locked' : ''} ${U.selChoice === c.i ? 'sel' : ''}" data-act="choose" data-arg="${c.i}" ${c.locked ? 'disabled' : ''}>
         <span class="num">${n + 1}</span>
-        <span class="lbl">${esc(c.label)}</span>
+        <span class="lbl">${esc(c.label)}${U.selChoice === c.i ? ' <em class="confirm">👆 Touche encore pour valider</em>' : ''}</span>
         <span class="meta">
           ${c.stat ? `<i class="tag">${STAT_LABEL(c.stat)}</i>` : ''}
           ${!c.stat && c.risk ? `<i class="tag">🎲 Chance</i>` : ''}
@@ -462,7 +462,7 @@ function vNav(S) {
   const card = o => {
     const isl = ISLANDS[o.id], sea = SEAS[isl.sea];
     const pone = isl.pone && !S.pone.includes(isl.pone);
-    return `<button class="dest ${o.big ? 'big' : ''} ${o.locked ? 'locked' : ''} ${o.danger || o.early ? 'danger' : ''}" data-act="sail" data-arg="${o.id}" ${o.locked ? 'disabled' : ''} style="--sea:#${sea.water.toString(16).padStart(6, '0')}">
+    return `<button class="dest ${U.selDest === o.id ? 'sel' : ''} ${o.big ? 'big' : ''} ${o.locked ? 'locked' : ''} ${o.danger || o.early ? 'danger' : ''}" data-act="sail" data-arg="${o.id}" ${o.locked ? 'disabled' : ''} style="--sea:#${sea.water.toString(16).padStart(6, '0')}">
         ${o.route ? `<span class="rtag">${o.route}</span>` : ''}
         <span class="de" data-thumb="${o.id}">${THUMBS[o.id] ? `<img src="${THUMBS[o.id]}" alt="">` : sea.emoji}</span>
         <span class="dt"><b>${esc(o.label)}</b><small>${esc(o.sub || isl.sub)}</small>
@@ -639,7 +639,7 @@ function tNiveau(S) {
 function tEquipage(S) {
   return `${vShipCard(S)}
   <h4>${FACTIONS[S.hero.faction].crewLabel} (${S.crew.length}/10)</h4>
-  ${S.crew.length ? S.crew.map(c => `<div class="crewcard"><div class="ce">${c.emoji}</div><div class="ci"><b>${esc(c.name)}${c.isCaptain ? ' 🏴‍☠️ (capitaine)' : ''}</b><small>${ROLES[c.role].name} · Puissance ${c.power} · Loyauté ${c.loyalty}${c.fruit ? ` · 🍇 ${esc(FRUITS[c.fruit].name)}` : ''}</small><em>${esc(c.trait)}</em></div></div>`).join('') : '<p class="hint">Personne pour l\'instant. La taverne, les naufragés et les rencontres sont tes meilleurs viviers.</p>'}
+  ${S.crew.length ? S.crew.map(c => `<div class="crewcard"><div class="ce">${c.emoji}</div><div class="ci"><b>${esc(c.name)}${c.isCaptain ? ' 🏴‍☠️ (capitaine)' : ''}</b><small>${ROLES[c.role].name} · Puissance ${G.crewPower(c)}${c.weapon ? ` (⚔️ ${esc(WEAPONS[c.weapon].name)})` : ''} · Loyauté ${c.loyalty}${c.fruit ? ` · 🍇 ${esc(FRUITS[c.fruit].name)}` : ''}</small><em>${esc(c.trait)}</em>${c.weapon ? `<button class="btn sm ghost" data-act="unequipcrew" data-arg="${S.crew.indexOf(c)}">Retirer l'arme</button>` : ''}</div></div>`).join('') : '<p class="hint">Personne pour l\'instant. La taverne, les naufragés et les rencontres sont tes meilleurs viviers.</p>'}
   ${S.fleet.length ? `<h4>⛵ Flotte (${S.fleet.length})</h4><ul class="hl">${S.fleet.map(f => `<li>${esc(f.name)} · puissance ${f.power}</li>`).join('')}</ul>` : ''}`;
 }
 
@@ -653,7 +653,7 @@ function tCale(S) {
     <button class="btn sm ghost" data-act="sellfruit" data-arg="${i}">Vendre ${G.fmtPrime(fruitPrice(f) * 0.6)}</button></div></div>`; }).join('') : '<p class="hint">Aucun fruit dans la cale.</p>'}
   <h4>⚔️ Armes</h4>
   ${S.hero.weapon ? `<p>Équipée : <b>${esc(WEAPONS[S.hero.weapon].name)}</b> ${'★'.repeat(WEAPONS[S.hero.weapon].tier)}</p>` : ''}
-  ${inv.weapons.length ? inv.weapons.map((id, i) => { const w = WEAPONS[id]; return `<div class="item"><div><b>${esc(w.name)}</b> <small>${WEAPON_TYPES[w.type]} · ${'★'.repeat(w.tier)}</small></div><div class="row gap"><button class="btn sm" data-act="equip" data-arg="${i}">Équiper</button><button class="btn sm ghost" data-act="sellweapon" data-arg="${i}">Vendre</button></div></div>`; }).join('') : '<p class="hint">Aucune arme de rechange.</p>'}
+  ${inv.weapons.length ? inv.weapons.map((id, i) => { const w = WEAPONS[id]; return `<div class="item"><div><b>${esc(w.name)}</b> <small>${WEAPON_TYPES[w.type]} · ${'★'.repeat(w.tier)}</small></div><div class="row gap"><button class="btn sm" data-act="equip" data-arg="${i}">Équiper</button>${S.crew.length ? `<select class="inp sm" id="wcrew${i}">${S.crew.map((c, j) => `<option value="${j}">${esc(c.name)}${c.weapon ? ' (armé)' : ''}</option>`).join('')}</select><button class="btn sm" data-act="equipcrew" data-arg="${i}">À l'équipage</button>` : ''}<button class="btn sm ghost" data-act="sellweapon" data-arg="${i}">Vendre</button></div></div>`; }).join('') : '<p class="hint">Aucune arme de rechange.</p>'}
   <h4>📦 Objets</h4>
   ${inv.items.length ? `<ul class="hl">${[...new Set(inv.items)].map(id => `<li>${ITEMS[id].emoji} <b>${esc(ITEMS[id].name)}</b>${inv.items.filter(x => x === id).length > 1 ? ' ×' + inv.items.filter(x => x === id).length : ''} — ${esc(ITEMS[id].desc)}</li>`).join('')}</ul>` : '<p class="hint">Rien.</p>'}`;
 }
@@ -904,6 +904,11 @@ function act(name, el) {
     case 'retireYes': U.modal = null; G.finish(S, 'retire'); onEnd(); break;
     case 'choose': {
       if (!S || S.phase !== 'event') return;
+      const fresh = Date.now() - (U.lastRender || 0) < 500, scrolled = Date.now() - (U.lastScroll || 0) < 250;
+      if (fresh || scrolled) return;
+      // deux touches : la première sélectionne, la seconde valide (évite les faux clics)
+      if (U.selChoice !== +arg) { U.selChoice = +arg; break; }
+      U.selChoice = null;
       G.resolveChoice(S, +arg);
       save(); break;
     }
@@ -959,11 +964,20 @@ function act(name, el) {
     }
     case 'subclose': U.sub = null; break;
     case 'leave': U.sub = null; G.leaveIsland(S); if (S.phase === 'end') onEnd(); save(); window.scrollTo(0, 0); break;
-    case 'sail': if (G.chooseDestination(S, arg)) { save(); } break;
+    case 'sail': {
+      const fresh = Date.now() - (U.lastRender || 0) < 500, scrolled = Date.now() - (U.lastScroll || 0) < 250;
+      if (fresh || scrolled) return;
+      if (U.selDest !== arg) { U.selDest = arg; break; }
+      U.selDest = null;
+      if (G.chooseDestination(S, arg)) { save(); }
+      break;
+    }
     case 'eat': { const chips = G.eatFruit(S, +arg); toast(chips.map(c => c.t).join(' · ')); save(); break; }
     case 'give': { const sel = document.getElementById('give' + arg); const chips = G.giveFruit(S, +arg, +(sel?.value || 0)); toast(chips.map(c => c.t).join(' · ')); save(); break; }
     case 'sellfruit': { const chips = G.sellFruit(S, +arg); toast(chips.map(c => c.t).join(' · ')); save(); break; }
     case 'equip': G.equipWeapon(S, +arg); save(); break;
+    case 'equipcrew': { const sel = document.getElementById('wcrew' + arg); if (G.equipCrewWeapon(S, +arg, +(sel?.value || 0))) toast('Arme confiée à ' + S.crew[+(sel?.value || 0)].name); save(); break; }
+    case 'unequipcrew': G.unequipCrewWeapon(S, +arg); save(); break;
     case 'sellweapon': { const chips = G.sellWeapon(S, +arg); toast(chips.map(c => c.t).join(' · ')); save(); break; }
     case 'copy': return copy(G.shareText(S));
     case 'copytxt': return copy(store.get('pantheon', [])[+arg]?.share || '');
@@ -1019,6 +1033,11 @@ function startStoryGame(id, length) {
 }
 
 // ───────────── écouteurs ─────────────
+// anti-clic accidentel : pas de validation juste après un défilement ou un changement d'écran
+window.addEventListener('scroll', () => { U.lastScroll = Date.now(); }, { passive: true });
+let touchY = null;
+document.addEventListener('touchstart', e => { touchY = e.touches[0]?.clientY ?? null; }, { passive: true });
+document.addEventListener('touchmove', e => { if (touchY !== null && Math.abs((e.touches[0]?.clientY ?? touchY) - touchY) > 8) U.lastScroll = Date.now(); }, { passive: true });
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act]');
   if (!t) return;

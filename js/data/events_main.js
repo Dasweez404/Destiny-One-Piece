@@ -857,7 +857,7 @@ export const SEA_EVENTS = [
   },
   {
     id: 's_pirate_ship', emoji: '🏴‍☠️', title: 'Navire pirate',
-    w: { ctx: 'sea', weight: 4 },
+    w: { ctx: 'sea', weight: 2 },
     x: S => S.camp === 'gardien' ? 'Un navire pirate en vue. Leur drapeau est connu. Ils fuient en te voyant.' : 'Un navire pirate en vue. Ils hissent le drapeau noir et chargent les canons.',
     ch: [
       { t: 'Combattre', s: 'combat', d: 0,
