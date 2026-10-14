@@ -11,13 +11,14 @@ import { ALT_EVENTS, PUFFING_EVENTS } from './data/events_alt.js';
 import { ARC_EVENTS, ARCS } from './data/events_arcs.js';
 import { GROUP_EVENTS } from './data/events_groups.js';
 import { SH_EVENTS } from './data/events_strawhats.js';
+import { SUBMISSION_EVENTS } from './data/events_submission.js';
 import { ISL_GEN_EVENTS } from './data/events_isl_gen.js';
 import { NAVAL_EVENTS, WAR_EVENTS, WAR_ARCS } from './data/events_war.js';
 import { CREW_FIRST, CREW_EPI, CREW_TRAITS, LEGENDS, STORY_FRUITS, CANON_CAREERS, BADGES, DAILY_GOALS, randomHeroName } from './data/meta.js';
 
 Object.assign(FRUITS, Object.fromEntries(Object.entries(STORY_FRUITS).map(([id, f]) => [id, { ...f, id }])));
 
-export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS, ...GROUP_EVENTS, ...SH_EVENTS, ...ISL_GEN_EVENTS];
+export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS, ...GROUP_EVENTS, ...SH_EVENTS, ...ISL_GEN_EVENTS, ...SUBMISSION_EVENTS];
 // les événements de bataille proposent un « Livrer bataille » tactique construit sur leur jet naval ou de combat le plus marquant
 const BATTLE_EV = /^(s_warship|s_pirate_ship|gv_first_|n_merchant|n_patrol|n_duel_captains|n_broadside|n_blockade|n_fleet_yonko|n_hunters|n_ghost|n_harbor|w_own[23]|war_j\d_(sea|land)|wa_|gv_fleet_)/;
 for (const ev of ALL_EVENTS) {
@@ -857,6 +858,7 @@ export function resolveChoice(S, i) {
     else { if (combo >= 2) chips.push({ t: '💨 Combo brisé', k: 'bad' }); S.combo = 0; }
   }
   S.seen[ev.id] = (S.seen[ev.id] || 0) + 1;
+  if (ev.cd) S[ev.cd] = S.turn;
   if (ev.oncePerTurn) (S.turnSeen ||= {})[ev.id] = S.turn;
   if (ev.id.startsWith('pone_') && ok === false && !c.r) (S.poneTry ||= {})[S.loc] = S.turn;
   log(S, `${ev.emoji || '•'} ${ev.title} — ${val(c.t, V)} → ${c.r ? 'fait' : ok ? 'réussi' : 'échec'}.`, ok ? 'ok' : 'ko');
