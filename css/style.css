@@ -536,3 +536,5 @@ body.shake{animation:shk .45s}
 
 .choice.sel,.dest.sel{border-color:#d4a017;background:#fff0bd;box-shadow:0 0 0 3px rgba(212,160,23,.35)}
 .confirm{display:block;font-style:normal;font-weight:700;font-size:.78em;color:#8a5a00;margin-top:2px}
+
+.homepill{display:inline-block;background:#fff0bd;color:#6b4a08;border:1px solid #d4a017;border-radius:999px;font-size:.72em;font-weight:700;padding:1px 9px;margin-right:6px}

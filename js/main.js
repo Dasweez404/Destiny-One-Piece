@@ -4,11 +4,11 @@ import { banner, vignette } from './fx.js';
 import * as G from './engine.js';
 import * as B from './battle.js';
 import { SEAS, ISLANDS, START_SEAS, START_ISLANDS } from './data/islands.js';
-import { FACTIONS, LEVELS, PROGRESS, ERAS, YONKO, CAMPS } from './data/factions.js';
+import { FACTIONS, FACTION_HOME, LEVELS, PROGRESS, ERAS, YONKO, CAMPS } from './data/factions.js';
 import { FRUITS, FRUIT_TYPES, WEAPONS, WEAPON_TYPES, SHIPS, ROLES, STATS, ITEMS, fruitPrice, weaponPrice, SHIP_MODELS, SHIP_MODS, FIGUREHEADS, SAIL_COLORS } from './data/items.js';
 import { CHARACTERS } from './data/characters.js';
 import { LEGENDS, BADGES, DAILY_GOALS, randomHeroName } from './data/meta.js';
-import { RACES, racePoints } from './data/races.js';
+import { RACES, racePoints, RACE_HOME } from './data/races.js';
 import { GROUPS, groupOfChar, standingOf } from './data/groups.js';
 import { drawPoster, posterBlob } from './share.js';
 
@@ -209,7 +209,7 @@ function vCreate() {
     <section class="card">
       <h3>🧬 Race</h3>
       <div class="grid2">${Object.values(RACES).map(r => `<button class="pick ${f.race === r.id ? 'on' : ''}" data-act="f" data-k="race" data-arg="${r.id}" ${lock || (f.faction === 'chevalier' && r.id !== 'humain') ? 'disabled' : ''}><span class="e">${r.emoji}</span><b>${r.name}</b><small>${esc(r.desc)}</small></button>`).join('')}</div>
-      ${(() => { const r = RACES[f.race]; const st = Object.entries(r.stats).map(([k, v]) => `${v > 0 ? '+' : ''}${v} ${STATS[k].name}`).join(', '); return `<div class="racebox"><p><b>${r.emoji} ${r.name}</b>${st ? ` · ${st}` : ''}${r.hp ? ` · ${r.hp > 0 ? '+' : ''}${r.hp} PV` : ''}${r.combat ? ` · +${r.combat} combat` : ''}</p><ul class="pc">${r.pros.map(x => `<li class="pro">✅ ${esc(x)}</li>`).join('')}${r.cons.map(x => `<li class="con">⚠️ ${esc(x)}</li>`).join('')}</ul></div>`; })()}
+      ${(() => { const r = RACES[f.race]; const st = Object.entries(r.stats).map(([k, v]) => `${v > 0 ? '+' : ''}${v} ${STATS[k].name}`).join(', '); return `<div class="racebox"><p><b>${r.emoji} ${r.name}</b>${st ? ` · ${st}` : ''}${r.hp ? ` · ${r.hp > 0 ? '+' : ''}${r.hp} PV` : ''}${r.combat ? ` · +${r.combat} combat` : ''}${(RACE_HOME[r.id] || []).length ? ` · 🏠 ${RACE_HOME[r.id].map(i => esc(ISLANDS[i]?.name || i)).join(', ')}` : ''}</p><ul class="pc">${r.pros.map(x => `<li class="pro">✅ ${esc(x)}</li>`).join('')}${r.cons.map(x => `<li class="con">⚠️ ${esc(x)}</li>`).join('')}</ul></div>`; })()}
       ${f.faction === 'chevalier' ? '<p class="hint">Les Dragons Célestes sont tous humains.</p>' : ''}
     </section>
     <section class="card">
@@ -286,7 +286,7 @@ function vLoc(S) {
   const isl = ISLANDS[S.loc], sea = SEAS[isl.sea];
   return `<div class="loc" style="--sea:#${sea.water.toString(16).padStart(6, '0')}">
     <span class="locthumb" data-thumb="${S.loc}">${THUMBS[S.loc] ? `<img src="${THUMBS[S.loc]}" alt="">` : sea.emoji}</span>
-    <div class="locmain"><span class="sea">${sea.emoji} ${esc(sea.name)}${G.groupsHere(S).map(g => { const st = standingOf(G.grel(S, g.id)); return ` <i class="gtag ${st.k}" title="${esc(g.name)} : ${st.name}">${g.emoji} ${st.emoji}</i>`; }).join('')}</span><h2>${esc(isl.name)}</h2><small>${esc(isl.sub)} · ${'★'.repeat(isl.pop)}${'☆'.repeat(3 - isl.pop)}</small></div>
+    <div class="locmain">${G.homeBonuses(S).length ? `<span class="homepill" title="Léger avantage aux jets et au combat, prix réduits, accueil qui soigne">🏠 ${esc(G.homeBonuses(S).map(b => b.label).join(' · '))}</span>` : ''}<span class="sea">${sea.emoji} ${esc(sea.name)}${G.groupsHere(S).map(g => { const st = standingOf(G.grel(S, g.id)); return ` <i class="gtag ${st.k}" title="${esc(g.name)} : ${st.name}">${g.emoji} ${st.emoji}</i>`; }).join('')}</span><h2>${esc(isl.name)}</h2><small>${esc(isl.sub)} · ${'★'.repeat(isl.pop)}${'☆'.repeat(3 - isl.pop)}</small></div>
     <div class="age">${Math.floor(S.hero.age)} ans<br><small>${esc(S.ship.name)} ${G.shipModel(S).emoji}</small></div>
   </div>`;
 }
@@ -609,6 +609,7 @@ function tProfil(S) {
     <div><h3>${esc(h.name)}</h3><p>${FACTIONS[h.faction].emoji} ${esc(FACTIONS[h.faction].name)} · ${esc(G.rankName(S))}${yon ? ` · ${yon.emoji} ${esc(yon.name)}` : ''}</p>
     <p>${RACES[h.race || 'humain'].emoji} ${RACES[h.race || 'humain'].name} · ${ROLES[h.role].emoji} ${ROLES[h.role].name}${h.isCaptain && h.faction === 'pirate' && h.role !== 'capitaine' ? ' · 🏴‍☠️ capitaine' : ''} · ${Math.floor(h.age)} ans · né(e) à ${esc(ISLANDS[h.origin].name)}</p>
     <p>${esc(ERAS[S.era].name)} · ${G.LENGTHS[S.length].name}</p></div></div>
+  ${(() => { const homes = [...(RACE_HOME[h.race || 'humain'] || []), ...(FACTION_HOME[h.faction] || [])]; return `<p class="hint">🏠 <b>Chez toi</b> (léger avantage aux jets et au combat, prix réduits, accueil qui soigne) : ${homes.length ? [...new Set(homes)].map(i => esc(ISLANDS[i]?.name || i)).join(', ') : (h.race || 'humain') === 'humain' ? 'les humains sont accueillis partout : −3 % sur les prix.' : 'aucune île particulière.'}</p>`; })()}
   <div class="statlist">${STAT_KEYS.map(k => `<div class="statrow"><span>${STATS[k].emoji} ${STATS[k].name}</span><b>${h.stats[k]}</b><span class="bar"><i style="width:${Math.min(100, h.stats[k] / 22 * 100)}%"></i></span></div>`).join('')}</div>
   <div class="kv">
     <div><small>❤️ Vie</small><b>${Math.max(0, h.hp)}/${h.hpMax}${S.flags.wounded ? ' 🤕 blessé grave' : ''}</b></div>

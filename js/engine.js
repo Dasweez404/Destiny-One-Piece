@@ -1,11 +1,11 @@
 // Moteur : état, hasard déterministe, jets, effets, navigation, fins de partie.
 import { SEAS, ISLANDS, BLUES, islandsOf, ROUTES, routeKeyOf } from './data/islands.js';
-import { FACTIONS, LEVELS, levelOf, YONKO, PROGRESS } from './data/factions.js';
+import { FACTIONS, FACTION_HOME, LEVELS, levelOf, YONKO, PROGRESS } from './data/factions.js';
 import { FRUITS, WEAPONS, SHIPS, ROLES, STATS, ITEMS, fruitPower, weaponPower, fruitPrice, weaponPrice, SHIP_MODELS, SHIP_MODS, DEFAULT_MODEL, FIGUREHEADS, SAIL_COLORS } from './data/items.js';
 import { CHARACTERS, charsAt } from './data/characters.js';
 import { ISLAND_EVENTS } from './data/events_islands.js';
 import { PONE_EVENTS, FINAL_EVENTS, PRISON_EVENTS, FACTION_EVENTS, CREW_EVENTS, GENERIC_EVENTS, SEA_EVENTS, RACE_EVENTS, LOOT_EVENTS, GARDIEN_EVENTS } from './data/events_main.js';
-import { RACES, raceOf } from './data/races.js';
+import { RACE_HOME, RACES, raceOf } from './data/races.js';
 import { GROUPS, groupOfChar, groupOfFaction, groupOfYonko, standingOf } from './data/groups.js';
 import { ALT_EVENTS, PUFFING_EVENTS } from './data/events_alt.js';
 import { ARC_EVENTS, ARCS } from './data/events_arcs.js';
@@ -109,6 +109,13 @@ export const allyGroups = S => Object.values(GROUPS).filter(g => grel(S, g.id) >
 // prix : réduction chez les amis, majoration chez les hostiles
 export function priceMult(S) {
   const f = friendHere(S), h = hostileHere(S);
+  const home = homeN(S) ? 0.9 ** homeN(S) : (S.hero.race || 'humain') === 'humain' ? 0.97 : 1;
+  if (f) return Math.max(0.6, (grel(S, f.id) >= 6 ? 0.7 : 0.85) * home);
+  if (h) return 1.3 * home;
+  return home;
+}
+export function priceMultOld(S) {
+  const f = friendHere(S), h = hostileHere(S);
   if (f) return grel(S, f.id) >= 6 ? 0.7 : 0.85;
   if (h) return 1.3;
   return 1;
@@ -116,6 +123,15 @@ export function priceMult(S) {
 export const price = (S, base) => Math.round(base * priceMult(S));
 // la Marine traverse le Calm Belt et plonge sans coating (navires enrobés de série)
 export const canDive = S => S.ship.coated || S.hero.faction === 'marine';
+// ───────────── chez soi : avantages liés à la race et à la faction ─────────────
+export function homeBonuses(S, loc = S.loc) {
+  const out = [], r = S.hero.race || 'humain';
+  if ((RACE_HOME[r] || []).includes(loc)) out.push({ k: 'race', label: `Terre des ${raceOf(S).name}` });
+  if ((FACTION_HOME[S.hero.faction] || []).includes(loc)) out.push({ k: 'faction', label: `Chez ${FACTIONS[S.hero.faction].name}` });
+  if (S.hero.faction === 'vassal' && S.hero.yonko) { const g = groupOfYonko(S.hero.yonko, S.era); if (g && GROUPS[g]?.terr[S.era]?.includes(loc)) out.push({ k: 'yonko', label: 'Sous la protection de ton Empereur' }); }
+  return out;
+}
+export const homeN = S => Math.min(2, homeBonuses(S).length);
 export const shipSail = S => SAIL_COLORS[S.ship.sail] || FACTIONS[S.hero.faction].sail;
 export const modPrice = (S, id) => price(S, SHIP_MODS[id].price * 0.75 * (1 + (tierOf(S) - 1) * 0.5));
 export function modelPrice(S, id) {
@@ -151,6 +167,7 @@ export function combatRating(S) {
   if (S.flags.rokushiki) r += 2;
   if (S.flags.doctrine_absolue) r += 2;
   if (S.flags.imu_servant) r += 3;
+  r += homeN(S) * 2.5;
   r *= 0.9 + S.morale / 500;
   return Math.round(r * 10) / 10;
 }
@@ -184,6 +201,7 @@ export function statRating(S, stat) {
   if (stat === 'vitesse') r += shipBonus(S, 'stealth') * 1.2;
   const race = raceOf(S);
   if (race.mod) r += race.mod(S, stat, { th: ISLANDS[S.loc]?.th?.k }) * 1.6;
+  r += homeN(S) * 1.6;
   return r;
 }
 
@@ -1097,6 +1115,7 @@ export function arrive(S, id) {
   S.hero.hp = Math.min(S.hero.hpMax, S.hero.hp + 10 + (doc ? 10 : 0));
   if (S.flags.wounded && (doc || S.hero.hp >= S.hero.hpMax * 0.6)) { delete S.flags.wounded; log(S, doc ? 'Le médecin de bord a soigné tes blessures graves.' : 'Tes blessures graves ont cicatrisé.', 'info'); }
   if (S.crew.some(c => c.role === 'charpentier')) S.ship.hp = Math.min(shipMaxHp(S), S.ship.hp + 15);
+  { const hb = homeBonuses(S); if (hb.length) { const n = Math.min(2, hb.length); S.hero.hp = Math.min(S.hero.hpMax, S.hero.hp + 12 * n); S.morale = clamp(S.morale + 6 * n, 0, 100); log(S, `🏠 ${hb.map(b => b.label).join(' · ')} : l'accueil te fait du bien (PV et moral).`, 'info'); } }
   // effets du navire à chaque escale
   if (shipBonus(S, 'heal')) S.hero.hp = Math.min(S.hero.hpMax, S.hero.hp + shipBonus(S, 'heal'));
   if (shipBonus(S, 'morale')) S.morale = clamp(S.morale + shipBonus(S, 'morale'), 0, 100);

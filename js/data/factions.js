@@ -132,3 +132,13 @@ export const ERAS = {
   pre: { id: 'pre', name: 'Grande Ère de la Piraterie', sub: 'Avant Marineford', desc: 'Barbe Blanche, Kaido, Big Mom et Shanks règnent. Les Corsaires existent. Luffy vient de partir de Fuchsia.' },
   post: { id: 'post', name: 'La Nouvelle Ère', sub: 'Après Wano', desc: 'Luffy et Baggy sont Empereurs. Les Corsaires sont abolis, la Cross Guild met des primes sur les Marines.' },
 };
+
+// Chez soi : les îles où chaque faction a ses appuis (léger avantage aux jets, soins, prix)
+export const FACTION_HOME = {
+  marine: ['marineford', 'marinehq', 'shells', 'loguetown'],
+  gouv: ['enies', 'impeldown', 'marygeoise'],
+  chevalier: ['marygeoise'],
+  chasseur: ['sabaody', 'whisky', 'jaya'],
+  revo: ['baltigo', 'momoiro'],
+  corsaire: ['alabasta', 'dressrosa', 'kuraigana', 'thriller'],
+};
