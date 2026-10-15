@@ -58,7 +58,7 @@ function render() {
   app.innerHTML = html + (U.modal ? vModal() : '');
   // transitions : l'écran entre en scène seulement quand il change vraiment
   { const key = [U.screen, S?.phase, S?.cur?.id ?? S?.cur?.gen?.id, U.sub?.kind, S?.turn, U.modal].join(':'), changed = key !== U.lastKey; U.lastKey = key;
-    app.classList.toggle('enter', changed); if (changed) { U.lastRender = Date.now(); U.selChoice = null; U.selDest = null; }
+    app.classList.toggle('enter', changed); 
     if (changed) document.querySelectorAll('.choice,.act,.dest,.fxc,.item').forEach((el, i) => el.style.setProperty('--i', Math.min(i, 9))); }
   if (U.screen === 'game' && S) hudFeedback(S); else U.prevHud = null;
   if (U.screen === 'game' && S?.phase === 'result' && S.result && U.sfxFor !== S.result) { U.sfxFor = S.result; if (S.result.ok === true) { sfx.win(); } else if (S.result.ok === false) { sfx.lose(); vignette('bad'); } }
@@ -332,7 +332,7 @@ function vBattle(S) {
   </section>`;
 }
 
-const TUTO = () => store.get('tuto', false) ? '' : `<div class="tuto"><b>👋 Comment jouer</b><ol><li>Lis la situation, puis touche un choix : il se <b>surligne</b>.</li><li>Touche-le <b>encore</b> pour valider (ça évite les erreurs).</li><li>Les <b>jauges</b> en haut montrent ta vie, ton argent et ton moral. ⭐ = l'option conseillée.</li></ol><button class="btn sm gold" data-act="tutoOk">J'ai compris</button></div>`;
+const TUTO = () => store.get('tuto', false) ? '' : `<div class="tuto"><b>👋 Comment jouer</b><ol><li>Lis la situation, puis touche un choix.</li><li>Après chaque choix, l'écran est verrouillé une demi-seconde : pas de faux clic.</li><li>Les <b>jauges</b> en haut montrent ta vie, ton argent et ton moral. ⭐ = l'option conseillée.</li></ol><button class="btn sm gold" data-act="tutoOk">J'ai compris</button></div>`;
 function vEvent(S) {
   const ev = G.curEvent(S);
   const V = G.view(S);
@@ -343,9 +343,9 @@ function vEvent(S) {
     <h3><span class="e">${ev.emoji || '❗'}</span> ${esc(ev.title)}</h3>
     <p class="story">${esc(text)}</p>
     <div class="choices">${chs.map((c, n) => `
-      <button class="choice ${c.locked ? 'locked' : ''} ${U.selChoice === c.i ? 'sel' : ''} ${c.risk ? 'rk-' + c.risk.k : ''}" data-act="choose" data-arg="${c.i}" ${c.locked ? 'disabled' : ''}>
+      <button class="choice ${c.locked ? 'locked' : ''} ${c.risk ? 'rk-' + c.risk.k : ''}" data-act="choose" data-arg="${c.i}" ${c.locked ? 'disabled' : ''}>
         <span class="num">${n + 1}</span>
-        <span class="lbl">${esc(c.label)}${U.selChoice === c.i ? ' <em class="confirm">👆 Touche encore pour valider</em>' : ''}</span>
+        <span class="lbl">${esc(c.label)}</span>
         <span class="meta">
           ${c.stat ? `<i class="tag">${STAT_LABEL(c.stat)}</i>` : ''}
           ${!c.stat && c.risk ? `<i class="tag">🎲 Chance</i>` : ''}
@@ -466,7 +466,7 @@ function vNav(S) {
   const card = o => {
     const isl = ISLANDS[o.id], sea = SEAS[isl.sea];
     const pone = isl.pone && !S.pone.includes(isl.pone);
-    return `<button class="dest ${U.selDest === o.id ? 'sel' : ''} ${o.big ? 'big' : ''} ${o.locked ? 'locked' : ''} ${o.danger || o.early ? 'danger' : ''}" data-act="sail" data-arg="${o.id}" ${o.locked ? 'disabled' : ''} style="--sea:#${sea.water.toString(16).padStart(6, '0')}">
+    return `<button class="dest ${o.big ? 'big' : ''} ${o.locked ? 'locked' : ''} ${o.danger || o.early ? 'danger' : ''}" data-act="sail" data-arg="${o.id}" ${o.locked ? 'disabled' : ''} style="--sea:#${sea.water.toString(16).padStart(6, '0')}">
         ${o.route ? `<span class="rtag">${o.route}</span>` : ''}
         <span class="de" data-thumb="${o.id}">${THUMBS[o.id] ? `<img src="${THUMBS[o.id]}" alt="">` : sea.emoji}</span>
         <span class="dt"><b>${esc(o.label)}</b><small>${esc(o.sub || isl.sub)}</small>
@@ -920,11 +920,7 @@ function act(name, el) {
     case 'retireYes': U.modal = null; G.finish(S, 'retire'); onEnd(); break;
     case 'choose': {
       if (!S || S.phase !== 'event') return;
-      const fresh = Date.now() - (U.lastRender || 0) < 500, scrolled = Date.now() - (U.lastScroll || 0) < 250;
-      if (fresh || scrolled) return;
-      // deux touches : la première sélectionne, la seconde valide (évite les faux clics)
-      if (U.selChoice !== +arg) { U.selChoice = +arg; break; }
-      U.selChoice = null;
+      if (Date.now() - (U.lastScroll || 0) < 250) return;
       G.resolveChoice(S, +arg);
       save(); break;
     }
@@ -981,10 +977,7 @@ function act(name, el) {
     case 'subclose': U.sub = null; break;
     case 'leave': U.sub = null; G.leaveIsland(S); if (S.phase === 'end') onEnd(); save(); window.scrollTo(0, 0); break;
     case 'sail': {
-      const fresh = Date.now() - (U.lastRender || 0) < 500, scrolled = Date.now() - (U.lastScroll || 0) < 250;
-      if (fresh || scrolled) return;
-      if (U.selDest !== arg) { U.selDest = arg; break; }
-      U.selDest = null;
+      if (Date.now() - (U.lastScroll || 0) < 250) return;
       if (G.chooseDestination(S, arg)) { save(); }
       break;
     }
@@ -1054,6 +1047,8 @@ window.addEventListener('scroll', () => { U.lastScroll = Date.now(); }, { passiv
 let touchY = null;
 document.addEventListener('touchstart', e => { touchY = e.touches[0]?.clientY ?? null; }, { passive: true });
 document.addEventListener('touchmove', e => { if (touchY !== null && Math.abs((e.touches[0]?.clientY ?? touchY) - touchY) > 8) U.lastScroll = Date.now(); }, { passive: true });
+// demi-seconde de blocage après chaque choix : aucun faux clic ne peut enchaîner deux décisions
+const COOLDOWN_ACTS = new Set(['choose', 'sail', 'continue', 'btac', 'action', 'leave', 'service', 'job', 'subfinish']);
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act]');
   if (!t) return;
@@ -1061,7 +1056,9 @@ document.addEventListener('click', e => {
   if (t.dataset.act === 'toggleAnim') return act('toggleAnim', t);
   if (t.dataset.act === 'copyduel') return copy(U.S.duelCode);
   if (t.disabled) return;
-  act(t.dataset.act, t);
+  const a = t.dataset.act;
+  if (COOLDOWN_ACTS.has(a)) { if (Date.now() < (U.lockUntil || 0)) return; U.lockUntil = Date.now() + 500; }
+  act(a, t);
 });
 document.addEventListener('change', e => {
   const t = e.target;
@@ -1086,8 +1083,8 @@ document.addEventListener('keydown', e => {
   if (S.phase === 'event' && n >= 1 && n <= 9) {
     const chs = G.choicesOf(S, G.curEvent(S));
     const c = chs[n - 1];
-    if (c && !c.locked) { G.resolveChoice(S, c.i); save(); render(); }
-  } else if ((e.key === 'Enter' || e.key === ' ') && S.phase === 'result') { e.preventDefault(); act('continue', e.target); }
+    if (c && !c.locked && Date.now() >= (U.lockUntil || 0)) { U.lockUntil = Date.now() + 500; G.resolveChoice(S, c.i); save(); render(); }
+  } else if ((e.key === 'Enter' || e.key === ' ') && S.phase === 'result') { e.preventDefault(); if (Date.now() >= (U.lockUntil || 0)) { U.lockUntil = Date.now() + 500; act('continue', e.target); } }
 });
 
 // démarrage
