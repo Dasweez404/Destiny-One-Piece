@@ -149,7 +149,7 @@ export function modelPrice(S, id) {
 function setShip(S, model, chips) {
   const m = SHIP_MODELS[model];
   S.ship.tier = m.tier; S.ship.model = model;
-  S.ship.coated = !!m.bonus.coated;
+  S.ship.coated = !!m.bonus.coated || !!S.ship.coated;   // le coating suit le navire quand on change de modèle (sauf naufrage)
   S.ship.hp = shipMaxHp(S);
   chips.push({ t: `${m.emoji} Nouveau navire : ${m.name}`, k: 'epic' });
   log(S, `Nouveau navire : ${m.name}.`, 'big');
@@ -1006,7 +1006,7 @@ export function navOptions(S) {
 // Route linéaire : on avance toujours vers l'avant, avec un choix entre deux îles.
 function routeAhead(S) {
   const key = routeKeyOf(ISLANDS[S.loc].sea);
-  const route = (ROUTES[key] || []).filter(id => { const i = ISLANDS[id]; return (!i.era || i.era === S.era) && !(S.length === 'rapide' && i.generated && i.pop < 3) && !(i.generated && i.pop < 2 && (id.length + id.charCodeAt(id.length - 1)) % 3 !== 0); });
+  const route = (ROUTES[key] || []).filter(id => { const i = ISLANDS[id]; return (!i.era || i.era === S.era) && !(S.length === 'rapide' && i.generated && i.pop < 3 && !BLUES.includes(i.sea)) && !(i.generated && !BLUES.includes(i.sea) && i.pop < 2 && (id.length + id.charCodeAt(id.length - 1)) % 3 !== 0); });
   const camp = campOf(S);
   // position sur la route : seules les arrivées choisies font avancer (pas les renvois forcés) ; ce qui est derrière toi est derrière toi
   const cur = S.routePos?.[key] ?? -1;
@@ -1053,6 +1053,7 @@ function computeNav(S) {
       forkOpts();
       // le Cipher Pol et les Chevaliers Divins montent à la Red Line quand ils veulent : c'est chez eux
       if (['gouv', 'chevalier'].includes(S.hero.faction) && nv('marygeoise') && ((S.seaVisits.paradise || 0) + (S.seaVisits.calm || 0) >= L.paraMin || !ahead.length)) enter(ISLANDS.marygeoise, { big: true, label: 'Monter à Marie Geoise', sub: 'La Red Line est chez toi' });
+      if (canDive(S) && nv('fishman') && nv('sabaody') && ((S.seaVisits.paradise || 0) + (S.seaVisits.calm || 0) >= L.paraMin || !ahead.length)) enter(ISLANDS.fishman, { big: true, label: 'Plonger vers l\'Île des Hommes-Poissons', sub: 'Navire enrobé : tu peux passer sous la Red Line sans Sabaody' });
       if (nv('sabaody') && ((S.seaVisits.paradise || 0) + (S.seaVisits.calm || 0) >= L.paraMin || !ahead.length)) enter(ISLANDS.sabaody, { big: true, sub: 'Dernière étape avant la Red Line' });
       else if (!nv('sabaody')) {
         if (canDive(S)) enter(ISLANDS.fishman, { big: true, label: 'Plonger vers l\'Île des Hommes-Poissons', sub: 'Vers le Nouveau Monde' });

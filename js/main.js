@@ -332,7 +332,7 @@ function vBattle(S) {
   </section>`;
 }
 
-const TUTO = () => store.get('tuto', false) ? '' : `<div class="tuto"><b>👋 Comment jouer</b><ol><li>Lis la situation, puis touche un choix.</li><li>Après chaque choix, l'écran est verrouillé une demi-seconde : pas de faux clic.</li><li>Les <b>jauges</b> en haut montrent ta vie, ton argent et ton moral. ⭐ = l'option conseillée.</li></ol><button class="btn sm gold" data-act="tutoOk">J'ai compris</button></div>`;
+const TUTO = () => store.get('tuto', false) ? '' : `<div class="tuto"><b>👋 Comment jouer</b><ol><li>Lis la situation, puis touche un choix.</li><li>Après chaque choix, les boutons sont verrouillés environ une seconde : pas de faux clic.</li><li>Les <b>jauges</b> en haut montrent ta vie, ton argent et ton moral. ⭐ = l'option conseillée.</li></ol><button class="btn sm gold" data-act="tutoOk">J'ai compris</button></div>`;
 function vEvent(S) {
   const ev = G.curEvent(S);
   const V = G.view(S);
@@ -1048,6 +1048,7 @@ let touchY = null;
 document.addEventListener('touchstart', e => { touchY = e.touches[0]?.clientY ?? null; }, { passive: true });
 document.addEventListener('touchmove', e => { if (touchY !== null && Math.abs((e.touches[0]?.clientY ?? touchY) - touchY) > 8) U.lastScroll = Date.now(); }, { passive: true });
 // demi-seconde de blocage après chaque choix : aucun faux clic ne peut enchaîner deux décisions
+const COOLDOWN_MS = 900;
 const COOLDOWN_ACTS = new Set(['choose', 'sail', 'continue', 'btac', 'action', 'leave', 'service', 'job', 'subfinish']);
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act]');
@@ -1057,7 +1058,7 @@ document.addEventListener('click', e => {
   if (t.dataset.act === 'copyduel') return copy(U.S.duelCode);
   if (t.disabled) return;
   const a = t.dataset.act;
-  if (COOLDOWN_ACTS.has(a)) { if (Date.now() < (U.lockUntil || 0)) return; U.lockUntil = Date.now() + 500; }
+  if (COOLDOWN_ACTS.has(a)) { if (Date.now() < (U.lockUntil || 0)) return; U.lockUntil = Date.now() + COOLDOWN_MS; }
   act(a, t);
 });
 document.addEventListener('change', e => {
@@ -1083,8 +1084,8 @@ document.addEventListener('keydown', e => {
   if (S.phase === 'event' && n >= 1 && n <= 9) {
     const chs = G.choicesOf(S, G.curEvent(S));
     const c = chs[n - 1];
-    if (c && !c.locked && Date.now() >= (U.lockUntil || 0)) { U.lockUntil = Date.now() + 500; G.resolveChoice(S, c.i); save(); render(); }
-  } else if ((e.key === 'Enter' || e.key === ' ') && S.phase === 'result') { e.preventDefault(); if (Date.now() >= (U.lockUntil || 0)) { U.lockUntil = Date.now() + 500; act('continue', e.target); } }
+    if (c && !c.locked && Date.now() >= (U.lockUntil || 0)) { U.lockUntil = Date.now() + COOLDOWN_MS; G.resolveChoice(S, c.i); save(); render(); }
+  } else if ((e.key === 'Enter' || e.key === ' ') && S.phase === 'result') { e.preventDefault(); if (Date.now() >= (U.lockUntil || 0)) { U.lockUntil = Date.now() + COOLDOWN_MS; act('continue', e.target); } }
 });
 
 // démarrage
