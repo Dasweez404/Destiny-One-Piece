@@ -1,0 +1,19 @@
+name: Équilibre
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '17 5 * * 1'
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validation des données
+        run: node tools/validate-data.mjs
+      - name: Simulation d'équilibre
+        run: node tools/check-balance.mjs 150

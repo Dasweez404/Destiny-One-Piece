@@ -331,6 +331,7 @@ function vBattle(S) {
       <div class="side foe"><span>${b.kind === 'naval' ? '🏴' : '👹'} ${esc(b.foeName.replace(/^./, c => c.toUpperCase()))}</span><i class="hb"><i style="width:${pct(b.foe)}%"></i></i><small>${Math.max(0, b.foe.hp)} / ${b.foe.max}</small></div>
     </div>
     <p class="intent">${sure ? '👁️' : '🔭'} ${sure ? 'Tu lis leur jeu : ils' : 'Il semble que l\'ennemi'} ${hintTxt}${sure ? '.' : '… (pas sûr)'}</p>
+    <div class="bmeta"><span class="mom" title="Trois manches gagnées d'affilée : prochaine attaque ×1,35">🔥 Élan ${[1, 2, 3].map(i => `<i class="${(b.momentum || 0) >= i ? 'on' : ''}"></i>`).join('')}${(b.momentum || 0) >= 3 ? ' <b>PRÊT !</b>' : ''}</span>${b.heavy ? '<span class="heavy">⚠️ Coup lourd annoncé : pare-le à coup sûr !</span>' : ''}</div>
     ${lastTxt}
     <div class="tacs">${tac.map(a => `<button class="tac" data-act="btac" data-arg="${a.id}"><span class="e">${a.emoji}</span><b>${a.label}</b><small>${a.sub}</small></button>`).join('')}</div>
     ${sp.length ? `<h4>✨ Coups spéciaux (une fois par bataille)</h4><div class="tacs sp">${sp.map(a => `<button class="tac special" data-act="btac" data-arg="${a.id}" ${a.enabled ? '' : 'disabled'}><span class="e">${a.emoji}</span><b>${a.label}</b><small>${a.sub}</small></button>`).join('')}</div>` : ''}
@@ -560,6 +561,7 @@ function vEnd(S) {
       </div>
       <div class="row gap wrap">
         <button class="btn" data-act="journal">📜 Journal de bord</button>
+    <button class="btn" data-act="mapopen">🗺️ Carte du monde</button>
         <button class="btn gold grow" data-act="replay">🔁 Rejouer</button>
         <button class="btn ghost" data-act="home">🏠 Accueil</button>
       </div>
@@ -587,6 +589,7 @@ function vModal() {
     <h3>☰ Menu</h3>
     <button class="btn" data-act="exam">🔍 Examiner</button>
     <button class="btn" data-act="journal">📜 Journal de bord</button>
+    <button class="btn" data-act="mapopen">🗺️ Carte du monde</button>
     <label class="opt"><input type="checkbox" data-act="toggleAnim" ${U.anim ? 'checked' : ''}> Animation 3D</label>
     ${vViewPick()}
     <button class="btn" data-act="retire">🍻 Prendre sa retraite (finir la carrière)</button>
@@ -597,7 +600,7 @@ function vModal() {
     <div class="row gap"><button class="btn gold" data-act="retireYes">Oui, raccrocher</button><button class="btn ghost" data-act="closemodal">Non</button></div></div></div>`;
   const S = U.S;
   if (!S) return '';
-  const tabs = [['profil', '🧍 Profil'], ['niveau', '📈 Niveau'], ['equipage', '⛵ Navire & équipage'], ['cale', '🎒 Cale'], ['relations', '🤝 Puissances'], ['journal', '📜 Journal']];
+  const tabs = [['profil', '🧍 Profil'], ['niveau', '📈 Niveau'], ['equipage', '⛵ Navire & équipage'], ['cale', '🎒 Cale'], ['relations', '🤝 Puissances'], ['carte', '🗺️ Carte'], ['journal', '📜 Journal']];
   let body = '';
   if (U.tab === 'profil') body = tProfil(S);
   if (U.tab === 'niveau') body = tNiveau(S);
@@ -605,6 +608,7 @@ function vModal() {
   if (U.tab === 'cale') body = tCale(S);
   if (U.tab === 'relations') body = tRelations(S);
   if (U.tab === 'journal') body = tJournal(S);
+  if (U.tab === 'carte') body = tMap(S);
   return `<div class="modal" data-act="closemodal"><div class="sheet">
     <div class="tabs">${tabs.map(([id, l]) => `<button class="${U.tab === id ? 'on' : ''}" data-act="tab" data-arg="${id}">${l}</button>`).join('')}<button class="x" data-act="closemodal">✕</button></div>
     <div class="tabbody">${body}</div></div></div>`;
@@ -683,8 +687,32 @@ function tRelations(S) {
   ${loose.length ? `<h4>Autres rencontres</h4>${loose.map(charRow).join('')}` : ''}`;
 }
 
+const LOG_ICON = { big: '⭐', ko: '💥', ok: '✅', crew: '👥', nav: '⚓', start: '🧭' };
 function tJournal(S) {
-  return `<ol class="journal">${[...S.log].reverse().map(l => `<li class="${l.kind}"><small>${l.t}</small> ${esc(l.text)}</li>`).join('')}</ol>`;
+  const only = U.jfilter === 'big';
+  const rows = [...S.log].reverse().filter(l => !only || l.kind === 'big' || l.kind === 'ko' || l.kind === 'ok' || l.kind === 'crew');
+  let lastT = null;
+  const items = rows.map(l => { const head = l.t !== lastT ? `<li class="jhead">Escale ${l.t}</li>` : ''; lastT = l.t; return `${head}<li class="${l.kind}"><span>${/^\p{Extended_Pictographic}/u.test(l.text) ? '' : (LOG_ICON[l.kind] || '·')}</span>${esc(l.text)}</li>`; }).join('');
+  return `<div class="row gap"><button class="chip ${only ? '' : 'on'}" data-act="jfilter" data-arg="all">Tout</button><button class="chip ${only ? 'on' : ''}" data-act="jfilter" data-arg="big">Faits marquants</button></div><ol class="journal">${items}</ol>`;
+}
+// carte schématique du monde : les îles visitées dessinent ta route
+const MAP_POS = { north: [.22, .24], east: [.78, .24], west: [.22, .78], south: [.78, .78], paradise: [.66, .5], calm: [.66, .5], redline: [.5, .5], nw: [.3, .5], laughtale: [.09, .5] };
+function tMap(S) {
+  const W = 360, H = 300, hash = id => { let x = 0; for (const c of id) x = (x * 31 + c.charCodeAt(0)) >>> 0; return x; };
+  const pos = id => { const sea = ISLANDS[id].sea, [bx, by] = MAP_POS[sea] || [.5, .5], h = hash(id); const spread = sea === 'laughtale' ? 0 : 30, clampN = (v, a, b) => Math.max(a, Math.min(b, v)); return [clampN(bx * W + ((h % 1000) / 1000 - .5) * 2 * spread * (sea === 'redline' ? .1 : 1.4), 14, W - 14), clampN(by * H + (((h >> 10) % 1000) / 1000 - .5) * 2 * spread * (['paradise', 'nw', 'calm'].includes(sea) ? .4 : .9), 14, H - 14)]; };
+  const pts = S.visited.map(id => ({ id, p: pos(id) }));
+  const path = pts.map(x => x.p.map(n => n.toFixed(0)).join(',')).join(' ');
+  const labels = Object.entries({ north: 'North Blue', east: 'East Blue', west: 'West Blue', south: 'South Blue', nw: 'Nouveau Monde', paradise: 'Paradise', redline: 'Red Line', laughtale: 'Laugh Tale' }).map(([k, n]) => { const [x, y] = MAP_POS[k]; const dy = ['north', 'east'].includes(k) ? -38 : ['west', 'south'].includes(k) ? 46 : k === 'redline' ? -70 : 34; return `<text x="${x * W}" y="${y * H + dy}" class="mlab">${n}</text>`; }).join('');
+  const cur = pos(S.loc);
+  return `<svg class="worldmap" viewBox="0 0 ${W} ${H}" role="img" aria-label="Carte de ta route">
+    <rect width="${W}" height="${H}" rx="14" class="msea"/>
+    <rect x="${W / 2 - 7}" y="6" width="14" height="${H - 12}" rx="5" class="mred"/>
+    <rect x="8" y="${H / 2 - 22}" width="${W - 16}" height="44" rx="14" class="mgl"/>
+    ${labels}
+    <polyline points="${path}" class="mpath"/>
+    ${pts.map(x => `<circle cx="${x.p[0].toFixed(0)}" cy="${x.p[1].toFixed(0)}" r="4" class="mdot"><title>${esc(ISLANDS[x.id].name)}</title></circle>`).join('')}
+    <circle cx="${cur[0].toFixed(0)}" cy="${cur[1].toFixed(0)}" r="7" class="mnow"/>
+  </svg><p class="hint center">🗺️ ${S.visited.length} îles visitées · tu es à <b>${esc(ISLANDS[S.loc].name)}</b> (${esc(SEAS[ISLANDS[S.loc].sea].name)})</p>`;
 }
 
 // ───────────── Panthéon, badges, défi, duel, histoire ─────────────
@@ -941,6 +969,8 @@ function act(name, el) {
     case 'tutoOk': store.set('tuto', true); break;
     case 'menu': U.modal = 'menu'; break;
     case 'toggleSfx': setMuted(!isMuted()); if (!isMuted()) sfx.coin(); break;
+    case 'mapopen': U.modal = 'exam'; U.tab = 'carte'; break;
+    case 'jfilter': U.jfilter = arg; break;
     case 'journal': U.modal = 'exam'; U.tab = 'journal'; break;
     case 'tab': U.tab = arg; break;
     case 'closemodal': U.modal = null; break;

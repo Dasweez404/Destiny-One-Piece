@@ -36,7 +36,7 @@ export function initBattle(S) {
   S.battle = {
     title: ev?.title || 'Bataille', emoji: ev?.emoji || '⚔️', kind: sp.kind, foeName: sp.foe || (naval ? 'la flotte ennemie' : 'les troupes ennemies'),
     you: { hp: 100, max: 100, power: youP2 }, foe: { hp: foeMax, max: foeMax, power: foeP },
-    round: 1, maxRounds: tier >= 3 ? 6 : 5, intent, hint: hintFor(S, intent), used: {}, last: null, log: [], fruitUsed: false,
+    round: 1, maxRounds: tier >= 3 ? 6 : 5, intent, hint: hintFor(S, intent), momentum: 0, heavy: false, used: {}, last: null, log: [], fruitUsed: false,
   };
   return S.battle;
 }
@@ -84,15 +84,24 @@ export function battleAct(S, act) {
     else if (TACTICS[I].beats === act) { deal = 0.15; take = 1.0; outcome = 'lose'; text = pickT(S, LOSE[naval ? 'naval' : 'land']); }
     else { deal = 0.55; take = 0.55; text = pickT(S, TIE); }
   }
+  // élan : trois manches gagnées d'affilée chargent une attaque bonus ; coup lourd : l'ennemi frappe fort, mais une parade bien lue se retourne contre lui
+  let elan = false, counter = false, smashed = false;
+  if (outcome !== 'special') {
+    if (B.momentum >= 3 && deal > 0.5) { elan = true; deal *= 1.35; B.momentum = 0; text = '🔥 Élan ! ' + text; }
+    else if (outcome === 'win') B.momentum = Math.min(3, B.momentum + 1);
+    else if (outcome === 'lose') B.momentum = 0;
+    if (B.heavy && outcome === 'lose') { take *= 1.6; smashed = true; text += ' Le coup lourd s\'abat de toute sa force !'; }
+    if (B.heavy && outcome === 'win') { deal *= 1.35; counter = true; text += ' Tu retournes son coup lourd contre lui !'; }
+  }
   const rt = clamp(B.you.power / B.foe.power, 0.6, 1.6), rf = clamp(B.foe.power / B.you.power, 0.6, 1.6);
   const dFoe = Math.round(28 * deal * rt * (0.85 + 0.3 * rnd(S)));
   const dYou = Math.round(28 * take * rf * (0.85 + 0.3 * rnd(S)));
   B.foe.hp = Math.max(0, B.foe.hp - dFoe); B.you.hp = Math.max(0, B.you.hp - dYou);
-  B.last = { act, intent: I, outcome, text, dFoe, dYou, round: B.round, id: (B.last?.id ?? 0) + 1 };
+  B.last = { act, intent: I, outcome, text, dFoe, dYou, round: B.round, elan, counter, smashed, momentum: B.momentum, id: (B.last?.id ?? 0) + 1 };
   B.log.push(`Manche ${B.round} : ${text} (ennemi −${dFoe}${dYou ? ` · toi −${dYou}` : ''})`);
   B.round++;
   if (B.foe.hp <= 0 || B.you.hp <= 0 || B.round > B.maxRounds) return endBattle(S);
-  B.intent = pickIntent(S); B.hint = hintFor(S, B.intent);
+  B.intent = pickIntent(S); B.hint = hintFor(S, B.intent); B.heavy = B.round >= 2 && rnd(S) < 0.28;
   return B.last;
 }
 
