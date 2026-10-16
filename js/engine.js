@@ -18,15 +18,16 @@ import { LORE_EVENTS, LORE_ARCS } from './data/events_lore.js';
 import { CANON_CREW_EVENTS, RIVALS } from './data/events_canon_crews.js';
 import { PERSONA_EVENTS } from './data/events_personas.js';
 import { SEASON_EVENTS } from './data/events_seasons.js';
+import { LIFE_EVENTS } from './data/events_life.js';
 import { ISL_GEN_EVENTS } from './data/events_isl_gen.js';
 import { NAVAL_EVENTS, WAR_EVENTS, WAR_ARCS } from './data/events_war.js';
 import { CREW_FIRST, CREW_EPI, CREW_TRAITS, LEGENDS, STORY_FRUITS, CANON_CAREERS, BADGES, DAILY_GOALS, randomHeroName } from './data/meta.js';
 
 Object.assign(FRUITS, Object.fromEntries(Object.entries(STORY_FRUITS).map(([id, f]) => [id, { ...f, id }])));
 
-export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS, ...GROUP_EVENTS, ...SH_EVENTS, ...ISL_GEN_EVENTS, ...SUBMISSION_EVENTS, ...ORIG_EVENTS, ...LORE_EVENTS, ...CANON_CREW_EVENTS, ...PERSONA_EVENTS, ...SEASON_EVENTS];
+export const ALL_EVENTS = [...ISLAND_EVENTS, ...PONE_EVENTS, ...FINAL_EVENTS, ...PRISON_EVENTS, ...FACTION_EVENTS, ...CREW_EVENTS, ...GENERIC_EVENTS, ...SEA_EVENTS, ...RACE_EVENTS, ...LOOT_EVENTS, ...GARDIEN_EVENTS, ...ALT_EVENTS, ...PUFFING_EVENTS, ...ARC_EVENTS, ...NAVAL_EVENTS, ...WAR_EVENTS, ...GROUP_EVENTS, ...SH_EVENTS, ...ISL_GEN_EVENTS, ...SUBMISSION_EVENTS, ...ORIG_EVENTS, ...LORE_EVENTS, ...CANON_CREW_EVENTS, ...PERSONA_EVENTS, ...SEASON_EVENTS, ...LIFE_EVENTS];
 // les événements de bataille proposent un « Livrer bataille » tactique construit sur leur jet naval ou de combat le plus marquant
-const BATTLE_EV = /^(l_[a-z]+_[23]|of_sea_|of_recur_|s_warship|s_pirate_ship|gv_first_|n_merchant|n_patrol|n_duel_captains|n_broadside|n_blockade|n_fleet_yonko|n_hunters|n_ghost|n_harbor|w_own[23]|war_j\d_(sea|land)|wa_|gv_fleet_)/;
+const BATTLE_EV = /^(l_[a-z]+_[23]|of_sea_|of_recur_|s_warship|s_pirate_ship|gv_first_|n_merchant|n_patrol|n_duel_captains|n_broadside|n_blockade|n_fleet_yonko|n_hunters|lf_hunt_|n_ghost|n_harbor|w_own[23]|war_j\d_(sea|land)|wa_|gv_fleet_)/;
 for (const ev of ALL_EVENTS) {
   if (/^n_/.test(ev.id) && ev.w?.weight) ev.w.weight = Math.round(ev.w.weight * 1.6);
   if (!BATTLE_EV.test(ev.id) || !ev.ch) continue;
@@ -229,7 +230,7 @@ export function checkChance(S, ch) {
   if (stat === 'combat') { rating = combatRating(S); dc = ch.D ?? COMBAT_DC[tier] + d * 1.5; }
   else { rating = statRating(S, stat); dc = ch.D ?? STAT_DC[tier] + d; }
   const spread = stat === 'combat' ? 16 : 12;
-  const md = ((S.mods || []).includes('lucky') ? 0.04 : 0) - ((S.mods || []).includes('storm') ? 0.05 : 0);
+  const md = (stat === 'navigation' || stat === 'naval' ? weatherDelta(S) : 0) + ((S.mods || []).includes('lucky') ? 0.04 : 0) - ((S.mods || []).includes('storm') ? 0.05 : 0);
   return Math.max(0.08, Math.min(0.95, 0.6 + (rating - dc) / spread + md));
 }
 export const riskLabel = p => (p >= 0.8 ? { t: 'Sûr', k: 'safe' } : p >= 0.6 ? { t: 'Jouable', k: 'ok' } : p >= 0.4 ? { t: 'Risqué', k: 'risk' } : p >= 0.2 ? { t: 'Dangereux', k: 'danger' } : { t: 'Suicidaire', k: 'suicide' });
@@ -636,6 +637,15 @@ export function applyEff(S, e = {}, chips = [], mult = null) {
     const c = genCrew(S, opt);
     if (S.crew.length < max) { S.crew.push(c); chips.push({ t: `${c.emoji} Recrue : ${c.name}`, k: 'epic' }); log(S, `${c.name} (${ROLES[c.role].name}) rejoint ${FACTIONS[h.faction].crewLabel.toLowerCase()}.`, 'crew'); }
     else { S.fleet.push({ name: `Équipage de ${c.name}`, power: Math.ceil(c.power / 3) }); chips.push({ t: `⛵ Flotte : équipage de ${c.name}`, k: 'epic' }); }
+  }
+  if (E.crewGrow && S.crew.length) {
+    const c = S.crew[S.tmp?.c1 ?? 0] || S.crew[0];
+    c.power += E.crewGrow; c.loyalty = clamp(c.loyalty + 12, 0, 100);
+    chips.push({ t: `💪 ${c.name} progresse (+${E.crewGrow})`, k: 'good' });
+  }
+  if (E.payBounty && h.bounty > 0) {
+    const cut = Math.min(h.bounty, E.payBounty); h.bounty -= cut;
+    chips.push({ t: `📜 Prime −${fmtPrime(cut)}`, k: 'good' });
   }
   if (E.crewLoss && S.crew.length) {
     let idx;
@@ -1119,12 +1129,32 @@ export function afterVoyage(S) {
   arrive(S, S.next);
 }
 
+export const WEATHER = {
+  clair: { emoji: '☀️', name: 'Beau temps', hint: 'Mer clémente : navigation +3 %' },
+  brume: { emoji: '🌫️', name: 'Brume épaisse', hint: 'On y voit mal : navigation −4 %' },
+  tempete: { emoji: '⛈️', name: 'Tempête', hint: 'La mer est démontée : navigation −8 %' },
+  calme: { emoji: '😶‍🌫️', name: 'Calme plat', hint: 'Plus un souffle, le moral baisse' },
+};
+const weatherDelta = S => ({ clair: 0.03, brume: -0.04, tempete: -0.08, calme: 0 }[S.weather] || 0);
+function rollWeather(S, sea) {
+  const t = SEAS[sea].tier, tp = sea === 'calm' ? 0 : 0.08 + 0.04 * t;
+  const r = rnd(S);
+  const w = r < tp ? 'tempete' : r < tp + 0.14 ? 'brume' : r < tp + 0.24 ? 'calme' : 'clair';
+  S.weather = w;
+  if (w === 'tempete') {
+    const dmg = Math.round((8 + 3 * t) * (S.crew.some(c => c.role === 'navigateur') || S.hero.role === 'navigateur' ? 0.5 : 1));
+    S.ship.hp = Math.max(1, S.ship.hp - dmg);
+    log(S, `⛈️ Tempête en approchant de l'île : le navire encaisse −${dmg} PV.`, 'ko');
+  } else if (w === 'calme') { S.morale = clamp(S.morale - 4, 0, 100); log(S, '😶‍🌫️ Calme plat : le moral de l\'équipage s\'effrite.', 'info'); }
+}
+
 export function arrive(S, id) {
   const isl = ISLANDS[id];
   const L = LENGTHS[S.length];
   const prevSea = ISLANDS[S.loc].sea;
   S.loc = id;
   S.next = null;
+  rollWeather(S, isl.sea);
   { const key = routeKeyOf(isl.sea), idx = (ROUTES[key] || []).filter(x => !ISLANDS[x].era || ISLANDS[x].era === S.era).indexOf(id);
     if (idx >= 0 && !S.arrivedForced) (S.routePos ||= {})[key] = Math.max(S.routePos?.[key] ?? -1, idx);
     S.arrivedForced = false; }

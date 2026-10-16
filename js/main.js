@@ -280,6 +280,7 @@ function vHud(S) {
       <span class="chips">
         <span class="chip" title="Berrys">💰 ${G.fmtPrime(h.berrys)}</span>
         <span class="chip" title="Moral de l'équipage">${S.morale >= 60 ? '😄' : S.morale >= 30 ? '😐' : '😞'} ${S.morale}</span>
+        ${S.weather && G.WEATHER[S.weather] ? `<span class="chip" title="${esc(G.WEATHER[S.weather].hint)}">${G.WEATHER[S.weather].emoji}</span>` : ''}
         ${h.bounty ? `<span class="chip" title="Prime">📜 ${G.fmtPrime(h.bounty)}</span>` : ''}
         <span class="chip ${S.turn >= S.maxTurns - 4 ? 'late' : ''}" title="Escales / limite">⏳ ${S.turn}/${S.maxTurns}</span>
       </span>
