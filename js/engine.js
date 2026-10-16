@@ -1,4 +1,5 @@
 // Moteur : état, hasard déterministe, jets, effets, navigation, fins de partie.
+import { MOD, MAX_MODS, modMult } from './data/mods.js';
 import { SEAS, ISLANDS, BLUES, islandsOf, ROUTES, routeKeyOf } from './data/islands.js';
 import { FACTIONS, FACTION_HOME, LEVELS, levelOf, YONKO, PROGRESS } from './data/factions.js';
 import { FRUITS, WEAPONS, SHIPS, ROLES, STATS, ITEMS, fruitPower, weaponPower, fruitPrice, weaponPrice, SHIP_MODELS, SHIP_MODS, DEFAULT_MODEL, FIGUREHEADS, SAIL_COLORS } from './data/items.js';
@@ -228,7 +229,8 @@ export function checkChance(S, ch) {
   if (stat === 'combat') { rating = combatRating(S); dc = ch.D ?? COMBAT_DC[tier] + d * 1.5; }
   else { rating = statRating(S, stat); dc = ch.D ?? STAT_DC[tier] + d; }
   const spread = stat === 'combat' ? 16 : 12;
-  return Math.max(0.08, Math.min(0.95, 0.6 + (rating - dc) / spread));
+  const md = ((S.mods || []).includes('lucky') ? 0.04 : 0) - ((S.mods || []).includes('storm') ? 0.05 : 0);
+  return Math.max(0.08, Math.min(0.95, 0.6 + (rating - dc) / spread + md));
 }
 export const riskLabel = p => (p >= 0.8 ? { t: 'Sûr', k: 'safe' } : p >= 0.6 ? { t: 'Jouable', k: 'ok' } : p >= 0.4 ? { t: 'Risqué', k: 'risk' } : p >= 0.2 ? { t: 'Dangereux', k: 'danger' } : { t: 'Suicidaire', k: 'suicide' });
 
@@ -336,10 +338,13 @@ export function newGame(o) {
     turn: 0, maxTurns: L.maxTurns, actionsLeft: 0, phase: 'event', cur: null, next: null, forcedNext: null,
     deathSaves: 0, factionsVisited: [fac], tmp: {}, ending: null,
   };
+  S.mods = (o.mods || []).filter(m => MOD[m]).slice(0, MAX_MODS);
+  if (S.mods.includes('hull')) S.ship.tier = Math.min(5, S.ship.tier + 1);
   S.ship.model = DEFAULT_MODEL[S.ship.tier];
   S.ship.hp = shipMaxHp(S);
   S.maxFoe = o.legend ? 22 : 0;
   S.hero.hpMax = hpMaxOf(S); S.hero.hp = S.hero.hpMax;
+  applyStartMods(S);
   S.hero.roiPotential = o.roi ?? chance(S, Math.min(0.5, (stats.charisme + stats.volonte) / 50));
   if (fac === 'pirate' && o.role !== 'capitaine') S.crew.push(genCrew(S, { role: 'capitaine', tier: 1, isCaptain: true }));
   if (o.fruit) { S.hero.fruit = { id: o.fruit, awakened: false }; }
@@ -358,9 +363,22 @@ export function newGame(o) {
   return S;
 }
 
+function applyStartMods(S) {
+  const m = S.mods, h = S.hero;
+  if (!m.length) return;
+  if (m.includes('purse')) h.berrys += 3_000_000;
+  if (m.includes('broke')) h.berrys = 0;
+  if (m.includes('hunted')) { h.bounty = Math.max(h.bounty, 30_000_000); addGrel(S, 'marine', -2); }
+  if (m.includes('rush')) S.maxTurns = Math.max(10, S.maxTurns - 3);
+  if (m.includes('blade')) { const id = randomWeapon(S, 2); if (id && WEAPONS[id]) { if (!h.weapon || WEAPONS[id].tier > WEAPONS[h.weapon].tier) { if (h.weapon) S.inventory.weapons.push(h.weapon); h.weapon = id; } else S.inventory.weapons.push(id); } }
+  if (m.includes('mate')) S.crew.push(genCrew(S, { tier: 1 }));
+  if (m.includes('fruit') && !h.fruit) { const id = randomFruit(S, 1); if (id && FRUITS[id]) S.inventory.fruits.push(id); }
+  S.hl.push('a pris la mer avec : ' + m.map(id => MOD[id].name).join(', '));
+}
 export function hpMaxOf(S) {
   const f = fruitOf(S);
-  return Math.max(40, 100 + S.hero.stats.volonte * 4 + (f && f.type.startsWith('zoan') ? 25 : 0) + (raceOf(S).hp || 0));
+  const m = S.mods || [];
+  return Math.max(40, 100 + (m.includes('hardy') ? 15 : 0) - (m.includes('fragile') ? 25 : 0) + S.hero.stats.volonte * 4 + (f && f.type.startsWith('zoan') ? 25 : 0) + (raceOf(S).hp || 0));
 }
 
 export const log = (S, text, kind = 'info') => S.log.push({ t: S.turn, text, kind });
@@ -1404,7 +1422,7 @@ export function finish(S, kind, cause) {
   const cands = CANON_CAREERS.map(c => ({ c, d: Math.abs(c.p - S.progress) * 1.5 + Math.abs(c.l - S.levelIdx) + (c.camp !== camp ? 4 : 0) + ((c.f === 'revo') !== (h.faction === 'revo') ? 2.5 : 0) }));
   cands.sort((a, b) => a.d - b.d);
   const like = cands[Math.floor(rnd(S) * Math.min(2, cands.length))].c;
-  const mult = { death: 0.6, prison: 0.7, rangee: 0.8, retire: 0.9 }[kind] ?? 1;
+  const mult = ({ death: 0.6, prison: 0.7, rangee: 0.8, retire: 0.9 }[kind] ?? 1) * modMult(S.mods);
   const score = Math.round(mult * (S.progress * 1000 + Math.log10(h.bounty + 1) * 40 + S.levelIdx * 120 + rankIdxOf(S) * 40 + S.crew.length * 15 + S.pone.length * 100 + (kind === 'death' || kind === 'prison' ? 0 : 200)));
   // contexte : pourquoi et où la partie s'est arrêtée
   const L = S.lastRes, loc = ISLANDS[S.loc], cl = campOf(S);

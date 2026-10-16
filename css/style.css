@@ -544,8 +544,8 @@ body.shake{animation:shk .45s}
 .hud-stats .hp{display:flex;align-items:center;gap:6px;font-size:.95em}
 .hud-stats .hp .bar{flex:1;max-width:none;height:10px;border-radius:6px;background:rgba(255,255,255,.18)}
 .hud-stats .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{background:rgba(255,255,255,.14);border-radius:999px;padding:2px 10px;font-size:.84em;white-space:nowrap}
-.chip.late{background:rgba(232,85,61,.55);animation:pulse 1.4s infinite}
+.hud-stats .chip{background:rgba(255,255,255,.14);border-radius:999px;padding:2px 10px;font-size:.84em;white-space:nowrap}
+.hud-stats .chip.late{background:rgba(232,85,61,.55);animation:pulse 1.4s infinite}
 .tuto{background:#fff8e1;border:2px solid #d4a017;border-radius:12px;padding:10px 14px;margin:0 0 10px;font-size:.92em}
 .tuto ol{margin:.4rem 0 .6rem 1.1rem;padding:0}.tuto li{margin:2px 0}
 .choice{min-height:56px}
@@ -559,7 +559,7 @@ body.shake{animation:shk .45s}
 .card.result > .btn.big.gold{box-shadow:0 6px 18px rgba(0,0,0,.35)}
 @media (min-width:760px){.acts{grid-template-columns:repeat(2,1fr) !important}}
 
-.chip{color:#fff7e0}.act .t{display:flex;flex-direction:column;gap:2px;text-align:left}
+.hud-stats .chip{color:#fff7e0}.act .t{display:flex;flex-direction:column;gap:2px;text-align:left}
 
 /* ═══ UX : délai de sécurité visible, focus clavier, tactile ═══ */
 html.cooling::after{content:"";position:fixed;left:0;top:0;height:3px;width:100%;background:linear-gradient(90deg,#f4c542,#e8943d);transform-origin:left;z-index:9999;pointer-events:none;animation:coolbar .9s linear forwards}
@@ -570,3 +570,8 @@ button,.choice,.act,.tac,.dest,.btn{touch-action:manipulation;-webkit-user-selec
 .btn,.choice,.act,.tac{min-height:44px}
 .card{scroll-margin-top:96px}
 @media (prefers-reduced-motion:reduce){html.cooling::after{animation:none;transform:none;opacity:.6}}
+
+/* boutique et modificateurs */
+.shopitem{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.shopitem .pe{font-size:1.8rem}.shopitem>div{flex:1}.shopitem small{display:block;opacity:.8}
+.shopitem .owned{font-weight:700;color:#2e7d32}

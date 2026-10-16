@@ -10,6 +10,7 @@ import { CHARACTERS } from './data/characters.js';
 import { LEGENDS, BADGES, DAILY_GOALS, randomHeroName } from './data/meta.js';
 import { RACES, racePoints, RACE_HOME } from './data/races.js';
 import { GROUPS, groupOfChar, standingOf } from './data/groups.js';
+import { MODS, MOD, MAX_MODS, pearlsFor } from './data/mods.js';
 import { drawPoster, posterBlob } from './share.js';
 
 const app = document.getElementById('app');
@@ -51,6 +52,7 @@ function render() {
   else if (U.screen === 'game' && S) html = vGame(S);
   else if (U.screen === 'pantheon') html = vPantheon();
   else if (U.screen === 'badges') html = vBadges();
+  else if (U.screen === 'shop') html = vShop();
   else if (U.screen === 'daily') html = vDaily();
   else if (U.screen === 'duel') html = vDuel();
   else if (U.screen === 'story') html = vStory();
@@ -141,6 +143,7 @@ function vHome() {
       <div class="menu-row">
         <button class="btn" data-act="go" data-arg="pantheon">🏛️ Panthéon</button>
         <button class="btn" data-act="go" data-arg="badges">🎖️ Quêtes</button>
+        <button class="btn" data-act="go" data-arg="shop">🐚 Boutique <small>${store.get('pearls', 0)}</small></button>
         <button class="btn" data-act="go" data-arg="rules">❓ Règles</button>
       </div>
       <label class="opt"><input type="checkbox" data-act="toggleSfx" ${isMuted() ? '' : 'checked'}> Sons</label>
@@ -247,6 +250,7 @@ function vCreate() {
         <span class="bar"><i style="width:${f.stats[k] * 10}%"></i></span></div>`).join('')}
       <p class="hint">Bonus automatiques : rôle (+2) et faction (+1/+1).</p>
     </section>
+    ${vMods(f)}
     ${vRecap(f)}
     ${f.mode === 'duel' && !f.locked ? `<p class="hint center">Une fois lancé, un code de duel apparaîtra : envoie-le à tes amis pour qu'ils partent du même profil.</p>` : ''}
     <button class="btn big gold" data-act="launch">⛵ Prendre la mer</button>
@@ -544,6 +548,7 @@ function vEnd(S) {
       </div>
       ${S.hl.length ? `<h4>✨ Moments forts</h4><ul class="hl">${[...new Set(S.hl)].slice(-8).map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
       ${newBadges.length ? `<h4>🎖️ Nouvelles quêtes accomplies</h4><div class="badges">${newBadges.map(id => { const b = BADGES.find(b => b.id === id); return `<div class="badge on"><span>${b.emoji}</span><b>${esc(b.name)}</b></div>`; }).join('')}</div>` : ''}
+      ${U.pearls ? `<p class="hint center">🐚 <b>+${U.pearls} perles</b> gagnées${S.mods?.some(m => MOD[m]?.mult) ? ' (modificateurs inclus dans le score)' : ''} — à dépenser à la Boutique.</p>` : ''}
       <h4>📣 Partager</h4>
       <textarea class="share" readonly rows="9">${esc(G.shareText(S))}</textarea>
       <div class="row gap wrap">
@@ -688,6 +693,24 @@ function vPantheon() {
     ${P.length ? P.map((p, i) => `<details class="card pan"><summary><span class="g">${p.grade}</span><span class="pe">${p.emoji}</span><div><b>${esc(p.name)}</b><small>${esc(p.faction)} · ${esc(p.rank)} · ${esc(p.level)} · ${p.bounty ? G.fmtPrime(p.bounty) : '—'}</small><em>${esc(p.epitaph)}</em></div><span class="sc">#${i + 1}<small>${p.score}</small></span></summary>
       <textarea class="share" readonly rows="8">${esc(p.share)}</textarea><button class="btn sm" data-act="copytxt" data-arg="${i}">📋 Copier</button></details>`).join('') : '<div class="card"><p>Ton Panthéon est vide. Va écrire ta légende !</p></div>'}
   </div>`;
+}
+
+const ownedMods = () => store.get('mods', []);
+function vMods(f) {
+  if (f.mode !== 'career' || f.locked) return '';
+  const own = ownedMods(), sel = f.mods || [];
+  const list = MODS.filter(m => m.kind === 'defi' || own.includes(m.id));
+  const mult = sel.reduce((a, id) => a * (MOD[id]?.mult || 1), 1);
+  return `<section class="card"><h3>🎲 Modificateurs <small>(optionnel · ${sel.length}/${MAX_MODS})</small></h3>
+    <div class="chips">${list.map(m => `<button class="chip ${sel.includes(m.id) ? 'on' : ''}" data-act="mod" data-arg="${m.id}" title="${esc(m.desc)}">${m.emoji} ${m.name}${m.kind === 'defi' ? ' ⚠️' : ''}</button>`).join('')}</div>
+    <p class="hint">${sel.length ? sel.map(id => `${MOD[id].emoji} ${esc(MOD[id].desc)}`).join(' · ') : 'Les défis ⚠️ durcissent la partie et gonflent ton score. Les bonus s\'achètent à la 🐚 Boutique.'}${mult > 1 ? ` <b>Score ×${mult.toFixed(2)}</b>` : ''}</p></section>`;
+}
+function vShop() {
+  const pearls = store.get('pearls', 0), own = ownedMods();
+  return `${backBar('🐚 Boutique du Panthéon')}<div class="page"><p class="hint center">Tes perles : <b>🐚 ${pearls}</b> — gagnées en fin de partie, avec les quêtes et les défis réussis.</p>
+    ${MODS.filter(m => m.kind === 'bonus').map(m => `<div class="card shopitem"><span class="pe">${m.emoji}</span><div><b>${m.name}</b><small>${esc(m.desc)}</small></div>
+      ${own.includes(m.id) ? '<span class="owned">✅ Acquis</span>' : `<button class="btn sm gold" data-act="buymod" data-arg="${m.id}" ${pearls < m.cost ? 'disabled' : ''}>🐚 ${m.cost}</button>`}</div>`).join('')}
+    <p class="hint center">Les bonus se choisissent ensuite à la création d'une carrière (3 modificateurs max).</p></div>`;
 }
 
 function vBadges() {
@@ -856,6 +879,8 @@ function onEnd() {
   U.newBadges = E.badges.filter(b => !got.has(b));
   E.badges.forEach(b => got.add(b));
   store.set('badges', [...got]);
+  U.pearls = S.daily ? 0 : pearlsFor(E.score, U.newBadges.length, !!S.challengeOk);
+  if (U.pearls) store.set('pearls', store.get('pearls', 0) + U.pearls);
   if (S.daily && !store.get('daily.' + S.daily.date, null) && !S.daily.replay) store.set('daily.' + S.daily.date, { ok: S.challengeOk, epitaph: E.epitaph, grade: E.grade, share: G.shareText(S) });
   if (S.legend && S.challengeOk) { const L = store.get('legends', {}); L[S.legend] = true; store.set('legends', L); }
 }
@@ -871,6 +896,8 @@ function act(name, el) {
   switch (name) {
     case 'home': save(); U.screen = 'home'; U.modal = null; U.sub = null; break;
     case 'go': U.screen = arg; break;
+    case 'mod': { const f = U.form; f.mods = f.mods || []; const i = f.mods.indexOf(arg); if (i >= 0) f.mods.splice(i, 1); else if (f.mods.length < MAX_MODS) f.mods.push(arg); else toast(`${MAX_MODS} modificateurs maximum.`); break; }
+    case 'buymod': { const m = MOD[arg], own = ownedMods(), pr = store.get('pearls', 0); if (m && m.kind === 'bonus' && !own.includes(arg) && pr >= m.cost) { store.set('pearls', pr - m.cost); store.set('mods', [...own, arg]); toast(`${m.emoji} ${m.name} acquis !`); sfx.coin(); } break; }
     case 'new': U.form = defaultForm('career'); U.screen = 'create'; break;
     case 'resume': U.S = store.get('save', null); if (U.S) { U.screen = 'game'; U.sub = null; U.posterUrl = null; U.saved = false; } break;
     case 'toggleAnim': U.anim = el.checked; store.set('anim', U.anim); return;
@@ -899,7 +926,7 @@ function act(name, el) {
     case 'launch': {
       const f = U.form;
       if (!f.locked) fillRandom(f);
-      const o = { mode: f.mode, length: f.length, era: f.era, name: f.name.trim() || randomHeroName(), race: f.race, faction: f.faction, role: f.role, island: f.island, stats: { ...f.stats }, shipName: f.shipName.trim() || undefined, age: +f.age || 17 };
+      const o = { mods: f.mode === 'career' ? (f.mods || []).filter(id => MOD[id] && (MOD[id].kind === 'defi' || ownedMods().includes(id))) : [], mode: f.mode, length: f.length, era: f.era, name: f.name.trim() || randomHeroName(), race: f.race, faction: f.faction, role: f.role, island: f.island, stats: { ...f.stats }, shipName: f.shipName.trim() || undefined, age: +f.age || 17 };
       if (f.mode === 'duel') {
         o.seed = f.seed ?? Math.floor(Math.random() * 2 ** 31);
         o.duelCode = G.duelEncode({ seed: o.seed, faction: o.faction, role: o.role, island: o.island, era: o.era, length: o.length, stats: o.stats, race: o.race });
