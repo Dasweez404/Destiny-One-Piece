@@ -76,7 +76,7 @@ for (let g = 0; g < +N; g++) {
       if (nwTurn === null && S.progress >= 3) nwTurn = S.turn;
     }
     if (S.phase !== 'end') throw new Error('stuck ' + S.phase);
-    out.push({ fac, race, camp: S.endCamp, kind: S.ending.kind, prog: S.progress, lvl: S.levelIdx, bounty: S.hero.bounty, berrys: S.hero.berrys, fruits: fruitsSeen.size, ate: !!S.hero.fruit, crew: maxCrew, turn: S.turn, nwTurn, rank: S.rankIdx, combat: G.combatRating(S) });
+    out.push({ fac, race, camp: S.endCamp, kind: S.ending.kind, prog: S.progress, lvl: S.levelIdx, bounty: S.hero.bounty, berrys: S.hero.berrys, fruits: fruitsSeen.size, ate: !!S.hero.fruit, crew: maxCrew, turn: S.turn, nwTurn, rank: S.rankIdx, combat: G.combatRating(S), bat: S.log.filter(l => /bataille (gagnée|perdue)/.test(l.text)).length });
   } catch (e) { errors++; if (errors < 4) console.log('ERR', e.message); }
 }
 const pct = (a, f) => Math.round(a.filter(f).length / a.length * 100);
@@ -84,6 +84,7 @@ const med = (a, f) => { const v = a.map(f).sort((x, y) => x - y); return v[v.len
 const line = (name, a) => `${name.padEnd(13)} n=${String(a.length).padStart(3)} mort ${String(pct(a, x => x.kind === 'death')).padStart(2)}% prison ${String(pct(a, x => x.kind === 'prison')).padStart(2)}% rangée ${String(pct(a, x => x.kind === 'rangee')).padStart(2)}% OP ${String(pct(a, x => x.kind === 'onepiece')).padStart(2)}% | prog méd ${med(a, x => x.prog)} NW ${pct(a, x => x.prog >= 3)}% pone≥1 ${pct(a, x => x.prog >= 4)}% LT ${pct(a, x => x.prog >= 8)}% | niv méd ${med(a, x => x.lvl)} RDP ${pct(a, x => x.lvl >= 9)}% | combat ${med(a, x => Math.round(x.combat))} | tours ${med(a, x => x.turn)}`;
 console.log(`== ${arch} / ${len} (${out.length} parties, ${errors} erreurs)`);
 console.log(line('TOUS', out));
+console.log(`batailles par partie : ${(out.reduce((a, x) => a + x.bat, 0) / out.length).toFixed(1)}`);
 if (mode === 'full') {
   for (const c of ['chercheur', 'gardien']) console.log(line(c, out.filter(x => x.camp === c)));
   for (const f of [...new Set(out.map(x => x.fac))]) console.log(line(f, out.filter(x => x.fac === f)));
