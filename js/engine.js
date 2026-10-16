@@ -337,7 +337,7 @@ export function newGame(o) {
     merit: 0, morale: 70, rep: 0, progress: 0, pone: [],
     loc: o.island, visited: [o.island], seaVisits: { [ISLANDS[o.island].sea]: 1 }, startSea: ISLANDS[o.island].sea,
     turn: 0, maxTurns: L.maxTurns, actionsLeft: 0, phase: 'event', cur: null, next: null, forcedNext: null,
-    deathSaves: 0, factionsVisited: [fac], tmp: {}, ending: null,
+    deathSaves: 0, factionsVisited: [fac], tmp: {}, ending: null, fortune: 1,
   };
   S.mods = (o.mods || []).filter(m => MOD[m]).slice(0, MAX_MODS);
   if (S.mods.includes('hull')) S.ship.tier = Math.min(5, S.ship.tier + 1);
@@ -960,7 +960,9 @@ export function resolveChoice(S, i) {
   applyEff(S, e, chips, twist?.mult || (c.r ? null : ok ? { good: 1.35 * (1 + combo * 0.05), bad: 1 } : { good: 1, bad: 1.6 }));
   if (twist) chips.unshift({ t: twist.kind === 'sweet' ? '🎭 Imprévu favorable !' : twist.kind === 'sour' ? '🎭 Imprévu fâcheux' : '🎭 Imprévu', k: twist.kind === 'sweet' ? 'good' : 'bad' });
   if (!c.r && (c.p || stat)) {
-    if (ok) { S.combo = Math.min(5, combo + 1); if (S.combo >= 2) chips.push({ t: `🔥 Combo ×${S.combo} (+${S.combo * 5} % de gains)`, k: 'epic' }); }
+    // coup parfait : un jet très largement réussi rapporte un petit bonus
+    if (ok && !reinf && roll !== null && p < 0.95 && roll < p * 0.12) { applyEff(S, { glory: 1, morale: 4 }, chips); chips.unshift({ t: '🎯 Coup parfait !', k: 'epic' }); S.perfect = true; } else S.perfect = false;
+    if (ok) { S.combo = Math.min(5, combo + 1); if (S.combo === 3) { S.fortune = Math.min(5, (S.fortune || 0) + 1); chips.push({ t: '🍀 +1 Fortune (relance une défaite)', k: 'epic' }); } if (S.combo >= 2) chips.push({ t: `🔥 Combo ×${S.combo} (+${S.combo * 5} % de gains)`, k: 'epic' }); }
     else { if (combo >= 2) chips.push({ t: '💨 Combo brisé', k: 'bad' }); S.combo = 0; }
   }
   S.seen[ev.id] = (S.seen[ev.id] || 0) + 1;

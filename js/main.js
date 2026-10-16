@@ -280,6 +280,7 @@ function vHud(S) {
       <span class="chips">
         <span class="chip" title="Berrys">💰 ${G.fmtPrime(h.berrys)}</span>
         <span class="chip" title="Moral de l'équipage">${S.morale >= 60 ? '😄' : S.morale >= 30 ? '😐' : '😞'} ${S.morale}</span>
+        <span class="chip" title="Fortune : relance un jet raté (gagnée avec un combo ×3)">🍀 ${S.fortune || 0}</span>
         ${S.weather && G.WEATHER[S.weather] ? `<span class="chip" title="${esc(G.WEATHER[S.weather].hint)}">${G.WEATHER[S.weather].emoji}</span>` : ''}
         ${h.bounty ? `<span class="chip" title="Prime">📜 ${G.fmtPrime(h.bounty)}</span>` : ''}
         <span class="chip ${S.turn >= S.maxTurns - 4 ? 'late' : ''}" title="Escales / limite">⏳ ${S.turn}/${S.maxTurns}</span>
@@ -378,6 +379,7 @@ function vResult(S) {
     ${r.roll !== null && r.roll !== undefined ? `<div class="roll"><div class="rollbar"><div class="zone" style="width:${Math.round(r.p * 100)}%"></div><div class="mark" style="left:${Math.round(r.roll * 100)}%"></div></div><small>${r.stat && r.stat !== 'chance' ? STAT_LABEL(r.stat) + ' · ' : ''}il fallait tomber dans la zone verte</small></div>` : ''}
     <p class="story">${esc(r.text)}</p>
     ${chipsHtml(r.chips)}
+    ${S.result.ok === false && U.snap && S.fortune > 0 ? `<button class="btn big" data-act="reroll">🍀 Retenter ma chance <small>(Fortune ${S.fortune})</small></button>` : ''}
     <button class="btn big gold" data-act="continue">Continuer ➜</button>
   </section>`;
 }
@@ -979,10 +981,19 @@ function act(name, el) {
     case 'choose': {
       if (!S || S.phase !== 'event') return;
       if (Date.now() - (U.lastScroll || 0) < 250) return;
+      U.snap = (!S.daily && !S.duelCode && !S.legend) ? JSON.stringify(S) : null; U.snapI = +arg;
       G.resolveChoice(S, +arg);
       save(); break;
     }
+    case 'reroll': {
+      if (!U.snap || !S || S.phase !== 'result' || S.result?.ok !== false || !(S.fortune > 0)) return;
+      const fort = S.fortune - 1, n = JSON.parse(U.snap);
+      n.rng = (n.rng + 0x9e3779b9) >>> 0; n.fortune = fort; U.S = n; U.snap = null;
+      G.resolveChoice(n, U.snapI);
+      toast('🍀 Fortune utilisée : le sort est relancé !'); save(); render(); return;
+    }
     case 'continue':
+      U.snap = null;
       G.afterResult(S);
       if (S.phase === 'end') onEnd();
       save(); window.scrollTo(0, 0); break;
@@ -1116,7 +1127,7 @@ function lockDecisions() {
   clearTimeout(coolTimer); coolTimer = setTimeout(() => r.classList.remove('cooling'), COOLDOWN_MS);
   try { navigator.vibrate?.(12); } catch {}
 }
-const COOLDOWN_ACTS = new Set(['choose', 'sail', 'continue', 'btac', 'action', 'leave', 'service', 'job', 'subfinish']);
+const COOLDOWN_ACTS = new Set(['choose', 'reroll', 'sail', 'continue', 'btac', 'action', 'leave', 'service', 'job', 'subfinish']);
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act]');
   if (!t) return;
