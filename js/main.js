@@ -1049,6 +1049,15 @@ document.addEventListener('touchstart', e => { touchY = e.touches[0]?.clientY ??
 document.addEventListener('touchmove', e => { if (touchY !== null && Math.abs((e.touches[0]?.clientY ?? touchY) - touchY) > 8) U.lastScroll = Date.now(); }, { passive: true });
 // demi-seconde de blocage après chaque choix : aucun faux clic ne peut enchaîner deux décisions
 const COOLDOWN_MS = 900;
+let coolTimer = null;
+// verrouille les décisions un court instant ; la page l'indique (barre de recharge, boutons estompés) et vibre légèrement
+function lockDecisions() {
+  U.lockUntil = Date.now() + COOLDOWN_MS;
+  const r = document.documentElement;
+  r.classList.remove('cooling'); void r.offsetWidth; r.classList.add('cooling');
+  clearTimeout(coolTimer); coolTimer = setTimeout(() => r.classList.remove('cooling'), COOLDOWN_MS);
+  try { navigator.vibrate?.(12); } catch {}
+}
 const COOLDOWN_ACTS = new Set(['choose', 'sail', 'continue', 'btac', 'action', 'leave', 'service', 'job', 'subfinish']);
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act]');
@@ -1058,7 +1067,7 @@ document.addEventListener('click', e => {
   if (t.dataset.act === 'copyduel') return copy(U.S.duelCode);
   if (t.disabled) return;
   const a = t.dataset.act;
-  if (COOLDOWN_ACTS.has(a)) { if (Date.now() < (U.lockUntil || 0)) return; U.lockUntil = Date.now() + COOLDOWN_MS; }
+  if (COOLDOWN_ACTS.has(a)) { if (Date.now() < (U.lockUntil || 0)) return; lockDecisions(); }
   act(a, t);
 });
 document.addEventListener('change', e => {
@@ -1084,8 +1093,8 @@ document.addEventListener('keydown', e => {
   if (S.phase === 'event' && n >= 1 && n <= 9) {
     const chs = G.choicesOf(S, G.curEvent(S));
     const c = chs[n - 1];
-    if (c && !c.locked && Date.now() >= (U.lockUntil || 0)) { U.lockUntil = Date.now() + COOLDOWN_MS; G.resolveChoice(S, c.i); save(); render(); }
-  } else if ((e.key === 'Enter' || e.key === ' ') && S.phase === 'result') { e.preventDefault(); if (Date.now() >= (U.lockUntil || 0)) { U.lockUntil = Date.now() + COOLDOWN_MS; act('continue', e.target); } }
+    if (c && !c.locked && Date.now() >= (U.lockUntil || 0)) { lockDecisions(); G.resolveChoice(S, c.i); save(); render(); }
+  } else if ((e.key === 'Enter' || e.key === ' ') && S.phase === 'result') { e.preventDefault(); if (Date.now() >= (U.lockUntil || 0)) { lockDecisions(); act('continue', e.target); } }
 });
 
 // démarrage

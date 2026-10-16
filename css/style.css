@@ -560,3 +560,13 @@ body.shake{animation:shk .45s}
 @media (min-width:760px){.acts{grid-template-columns:repeat(2,1fr) !important}}
 
 .chip{color:#fff7e0}.act .t{display:flex;flex-direction:column;gap:2px;text-align:left}
+
+/* ═══ UX : délai de sécurité visible, focus clavier, tactile ═══ */
+html.cooling::after{content:"";position:fixed;left:0;top:0;height:3px;width:100%;background:linear-gradient(90deg,#f4c542,#e8943d);transform-origin:left;z-index:9999;pointer-events:none;animation:coolbar .9s linear forwards}
+@keyframes coolbar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+html.cooling .choice,html.cooling .act,html.cooling .tac,html.cooling .dest,html.cooling .btn.big{opacity:.72;filter:saturate(.8);transition:opacity .15s}
+button,.choice,.act,.tac,.dest,.btn{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+:focus-visible{outline:3px solid #f4c542;outline-offset:2px;border-radius:8px}
+.btn,.choice,.act,.tac{min-height:44px}
+.card{scroll-margin-top:96px}
+@media (prefers-reduced-motion:reduce){html.cooling::after{animation:none;transform:none;opacity:.6}}
