@@ -31,7 +31,7 @@ const BATTLE_EV = /^(l_[a-z]+_[23]|of_sea_|of_recur_|s_warship|s_pirate_ship|gv_
 // tout affrontement sérieux (jet de combat ou naval difficile) peut aussi se jouer en bataille tactique
 const BATTLE_SKIP = /^(pone_|final|fin_|prison|imp_|fatal|lf_hunt_solo)/;
 const idHash = id => { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 100; };
-const BROAD_BATTLE = ev => idHash(ev.id) < 38 && !BATTLE_SKIP.test(ev.id) && !ev.ch.some(c => c.keep) && ev.ch.some(c => (c.s === 'naval' || c.s === 'combat') && c.ok && c.ko && !c.r && !c.power && (typeof c.d !== 'number' || c.d >= 1));
+const BROAD_BATTLE = ev => idHash(ev.id) < 28 && !BATTLE_SKIP.test(ev.id) && !ev.ch.some(c => c.keep) && ev.ch.some(c => (c.s === 'naval' || c.s === 'combat') && c.ok && c.ko && !c.r && !c.power && (typeof c.d !== 'number' || c.d >= 1));
 for (const ev of ALL_EVENTS) {
   if (/^n_/.test(ev.id) && ev.w?.weight) ev.w.weight = Math.round(ev.w.weight * 1.6);
   if (!ev.ch || ev.id === 'fatal' || !(BATTLE_EV.test(ev.id) || BROAD_BATTLE(ev))) continue;

@@ -41,6 +41,21 @@ export function initBattle(S) {
   return S.battle;
 }
 
+// coups d'équipage : chaque équipier (les trois plus forts) agit une fois par bataille selon son métier
+const CREW_MOVES = {
+  bretteur: ['Charge à l\'épée', 'Il fend la ligne ennemie en première position', 'dmg'],
+  combattant: ['Offensive de choc', 'Il fonce dans le tas, poings en avant', 'dmg'],
+  sniper: ['Tir de couverture', 'Il révèle l\'intention de l\'ennemi', 'read'],
+  medecin: ['Soins en urgence', 'Il te remet sur pied (+25 PV)', 'heal'],
+  cuisinier: ['Ragoût de combat', 'Un repas chaud : PV et Élan', 'feed'],
+  navigateur: ['Manœuvre parfaite', 'Il place ton camp pile où il faut : manche gagnée', 'win'],
+  charpentier: ['Colmatage express', 'Il répare et renforce : soigne et réduit le prochain coup', 'guard'],
+  musicien: ['Chant de guerre', 'La mélodie galvanise : +2 Élan', 'mom'],
+  archeologue: ['Point faible repéré', 'Ta prochaine attaque frappe où ça fait mal (×1,5)', 'weak'],
+};
+export const crewMoves = S => [...S.crew].filter(c => !c.isCaptain).sort((a, b) => b.power - a.power).slice(0, 3);
+const moveOf = c => CREW_MOVES[c.role] || ['Coup de main', 'Il se jette dans la mêlée', 'dmg'];
+
 export function battleActs(S) {
   const B = S.battle, h = S.hero, out = [];
   for (const [id, t] of Object.entries(TACTICS)) out.push({ id, emoji: t.emoji, label: t.name, sub: t.tip, kind: 'tac', enabled: true });
@@ -52,6 +67,7 @@ export function battleActs(S) {
   const f = fruitOf(S);
   if (f && f.id !== 'smile') out.push({ id: 'fruit', emoji: '🍇', label: f.name, sub: 'Attaque dévastatrice (coûte des PV)', kind: 'sp', enabled: !B.used.fruit });
   if (S.fleet.length > 0 || allyGroups(S).length > 0) out.push({ id: 'allies', emoji: '🤝', label: 'Appeler tes alliés', sub: 'Renforts : soins et salve', kind: 'sp', enabled: !B.used.allies });
+  for (const c of crewMoves(S)) { const m = moveOf(c); out.push({ id: 'crew:' + c.id, emoji: c.emoji, label: `${c.name.split(' ')[0]} : ${m[0]}`, sub: m[1], kind: 'crew', enabled: !B.used['crew:' + c.id] }); }
   return out;
 }
 
@@ -72,7 +88,22 @@ export function battleAct(S, act) {
   let deal = 0, take = 0, text = '', outcome = 'tie';
   const I = B.intent;
   const spec = { roi: ['La pression du Haki des Rois fige l\'ennemi : il ne peut pas riposter !', 1.0, 0], arm: ['Ton Haki de l\'armement noircit ton coup : il frappe de plein fouet !', 1.35, 0.15], obs: ['Ton Haki de l\'observation te souffle chaque geste : contre parfait !', 1.15, 0.05], pacte: ['Ta marque brûle : une force surhumaine qui n\'est pas la tienne déferle !', 1.6, 0.1], fruit: ['Tu déchaînes le pouvoir de ton fruit !', 1.7, 0.5], allies: ['Tes alliés surgissent : salve de renfort et blessés relevés !', 0.8, 0.3] };
-  if (spec[act]) {
+  let crewAct = null;
+  if (act.startsWith('crew:')) {
+    crewAct = S.crew.find(c => 'crew:' + c.id === act);
+    if (!crewAct || B.used[act]) return null;
+    B.used[act] = true; (B.crewActed ||= []).push(crewAct.id);
+    const [nm, , kind] = moveOf(crewAct), pw = Math.min(0.6, crewAct.power / 40), who = crewAct.name.split(' ')[0];
+    outcome = 'special'; take = 0.1;
+    if (kind === 'dmg') { deal = 0.9 + pw; text = `${who} lance « ${nm} » : l'ennemi encaisse !`; }
+    else if (kind === 'read') { deal = 0.5 + pw; take = 0.25; B.hint = I; B.heavy = false; text = `${who} t'indique d'un geste ce que prépare l'ennemi : tu sais à quoi t'attendre.`; }
+    else if (kind === 'heal') { deal = 0.3; take = 0; B.you.hp = Math.min(B.you.max, B.you.hp + 25); text = `${who} te soigne en pleine bataille.`; }
+    else if (kind === 'feed') { deal = 0.4; take = 0.1; B.you.hp = Math.min(B.you.max, B.you.hp + 10); B.momentum = Math.min(3, B.momentum + 1); text = `${who} distribue le repas de combat : le moral remonte.`; }
+    else if (kind === 'win') { deal = 1.0 + pw / 2; take = 0.1; B.momentum = Math.min(3, B.momentum + 1); text = `${who} place ton camp au bon endroit : la manche est à toi.`; }
+    else if (kind === 'guard') { deal = 0.4; take = 0; B.you.hp = Math.min(B.you.max, B.you.hp + 15); B.guard = true; text = `${who} te couvre et colmate : le prochain coup sera amorti.`; }
+    else if (kind === 'mom') { deal = 0.4; take = 0.1; B.momentum = Math.min(3, B.momentum + 2); text = `${who} entonne un chant de guerre : tout le monde est galvanisé.`; }
+    else if (kind === 'weak') { deal = 0.5; take = 0.1; B.weak = true; text = `${who} repère la faille : ta prochaine attaque sera dévastatrice.`; }
+  } else if (spec[act]) {
     if (B.used[act]) return null;
     B.used[act] = true;
     [text, deal, take] = [spec[act][0], spec[act][1], spec[act][2]]; outcome = 'special';
@@ -86,6 +117,8 @@ export function battleAct(S, act) {
   }
   // élan : trois manches gagnées d'affilée chargent une attaque bonus ; coup lourd : l'ennemi frappe fort, mais une parade bien lue se retourne contre lui
   let elan = false, counter = false, smashed = false;
+  if (outcome !== 'special' && B.weak && deal > 0.5) { deal *= 1.5; B.weak = false; text = '🎯 Point faible ! ' + text; }
+  if (B.guard && take > 0) { take *= 0.5; B.guard = false; }
   if (outcome !== 'special') {
     if (B.momentum >= 3 && deal > 0.5) { elan = true; deal *= 1.35; B.momentum = 0; text = '🔥 Élan ! ' + text; }
     else if (outcome === 'win') B.momentum = Math.min(3, B.momentum + 1);
@@ -119,6 +152,13 @@ function endBattle(S) {
   if (shipLoss) sum('shipHp', shipLoss);
   if (win) e.glory = (typeof e.glory === 'number' ? e.glory : 0) + 1;
   const chips = [];
+  for (const id of B.crewActed || []) {
+    const c = S.crew.find(x => x.id === id); if (!c) continue;
+    c.loyalty = Math.min(100, c.loyalty + 5);
+    if (win && rnd(S) < 0.3) { c.power += 1; chips.push({ t: `💪 ${c.name} progresse au feu (+1)`, k: 'good' }); }
+    else if (!win && rnd(S) < 0.12 && !c.isCaptain) { c.power = Math.max(1, c.power - 1); chips.push({ t: `🩹 ${c.name} est blessé`, k: 'bad' }); }
+  }
+  if ((B.crewActed || []).length) chips.push({ t: `🤝 ${B.crewActed.length} équipier${B.crewActed.length > 1 ? 's' : ''} au combat : loyauté +5`, k: 'good' });
   S.deathCause = `Tombé au cours de la bataille : ${B.title}`;
   applyEff(S, e, chips, null);
   S.combo = win ? Math.min(5, (S.combo || 0) + 1) : 0;

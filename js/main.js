@@ -323,7 +323,7 @@ function vBattle(S) {
   const sure = S.hero.haki.obs >= 1;
   const last = b.last;
   const lastTxt = last ? `<div class="blast ${last.outcome}"><b>Manche ${last.round}</b> · ${esc(last.text)} <i class="dmg">ennemi −${last.dFoe}</i>${last.dYou ? ` <i class="dmg you">toi −${last.dYou}</i>` : ''}</div>` : '';
-  const tac = acts.filter(a => a.kind === 'tac'), sp = acts.filter(a => a.kind === 'sp');
+  const tac = acts.filter(a => a.kind === 'tac'), sp = acts.filter(a => a.kind === 'sp'), cr = acts.filter(a => a.kind === 'crew');
   return `<section class="card battle ${b.kind}">
     <h3><span class="e">${b.emoji}</span> ${esc(b.title)} <span class="pts">Manche ${Math.min(b.round, b.maxRounds)} / ${b.maxRounds}</span></h3>
     <div class="forces">
@@ -336,6 +336,7 @@ function vBattle(S) {
     ${lastTxt}
     <div class="tacs">${tac.map(a => `<button class="tac" data-act="btac" data-arg="${a.id}"><span class="e">${a.emoji}</span><b>${a.label}</b><small>${a.sub}</small></button>`).join('')}</div>
     ${sp.length ? `<h4>✨ Coups spéciaux (une fois par bataille)</h4><div class="tacs sp">${sp.map(a => `<button class="tac special" data-act="btac" data-arg="${a.id}" ${a.enabled ? '' : 'disabled'}><span class="e">${a.emoji}</span><b>${a.label}</b><small>${a.sub}</small></button>`).join('')}</div>` : ''}
+    ${cr.length ? `<h4>👥 Ton équipage (une action chacun)</h4><div class="tacs sp">${cr.map(a => `<button class="tac crew" data-act="btac" data-arg="${a.id}" ${a.enabled ? '' : 'disabled'}><span class="e">${a.emoji}</span><b>${esc(a.label)}</b><small>${esc(a.sub)}</small></button>`).join('')}</div>` : ''}
   </section>`;
 }
 

@@ -591,3 +591,4 @@ button,.choice,.act,.tac,.dest,.btn{touch-action:manipulation;-webkit-user-selec
 .worldmap .mdot{fill:#5b3d1e}.worldmap .mnow{fill:#f4c542;stroke:#b71c1c;stroke-width:2;transform-box:fill-box;transform-origin:center;animation:pulse 1.4s infinite}
 .journal .jhead{list-style:none;font-weight:700;margin-top:10px;border-bottom:1px solid rgba(91,61,30,.25);font-size:.85em;opacity:.8}
 .journal li span{display:inline-block;width:1.4em}
+.tac.crew{border-color:#3fa7d6;background:linear-gradient(180deg,#eef9ff,#d6eefc)}
